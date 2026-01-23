@@ -1,7 +1,19 @@
-# Tauri + React
+# RippleMessengerClient
+ 
+## Run
+1. install nodejs
+2. clone the code
+3. run
+```
+npm install
+npm run tauri dev
+```
 
-This template should help get you started developing with Tauri and React in Vite.
+## Build
+```
+npm install
+npm run tauri build
+```
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Donate
+rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS

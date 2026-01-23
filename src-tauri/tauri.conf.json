@@ -12,13 +12,23 @@
   "app": {
     "windows": [
       {
-        "title": "ripplemessenger",
-        "width": 800,
-        "height": 600
+        "title": "RippleMessenger",
+        "width": 1280,
+        "height": 1000
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' asset: data:; img-src 'self' asset: data:",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$DOWNLOAD/**",
+          "$PICTURES/**",
+          "$APP/**",
+          "$APPDATA/**",
+          "$CACHE/**"
+        ]
+      }
     }
   },
   "bundle": {
