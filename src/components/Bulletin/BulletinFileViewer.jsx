@@ -58,7 +58,7 @@ const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) =
       {
         fileImage ?
           <div onClick={() => download()}>
-            {name}.{ext}
+            {name}{ext}
             <img
               src={fileImage}
               alt={`${name}.${ext}`}
@@ -68,7 +68,7 @@ const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) =
           :
           <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => download()}>
             <IoAttachSharp className="icon-sm" />
-            {name}.{ext}
+            {name}{ext}
           </div>
       }
     </div>

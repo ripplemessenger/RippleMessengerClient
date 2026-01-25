@@ -9,7 +9,7 @@ import { eventChannel, END } from 'redux-saga'
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema } from '../../lib/MessageSchemaVerifier'
 import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
-import { BulletinPageSize, CommonDBSchame, Day, DefaultServer, FileChunkSize, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
+import { BulletinPageSize, CommonDBSchame, Day, DefaultPartition, DefaultServer, FileChunkSize, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
 import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message, safeAddItem } from '../../lib/AppUtil'
 import { BlobToUint32, calcTotalPage, DHSequence, FileEHash, FileHash, genNonce, Uint32ToBuffer, VerifyJsonSignature } from '../../lib/MessengerUtil'
@@ -563,31 +563,29 @@ function* handelMessengerEvent(action) {
               .where("Hash")
               .equals(json.Hash)
               .first())
+            console.log(group)
             if (group === undefined) {
-              // TODO? GroupSync
               yield call(GroupSync)
             } else if (group.IsAccepted === true && (group.CreatedBy === ob_address || group.Member.includes(ob_address))) {
               const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
               let ecdh = yield call(() => CommonDB.ECDHS
                 .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
                 .first())
-              if (ecdh === undefined) {
+              console.log(ecdh)
+              if (ecdh === undefined && address !== ob_address) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
               } else if (ecdh.AesKey === undefined) {
                 yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
               } else {
                 let tmp_msg_list = []
                 if (json.Sequence === 0) {
-                  let [first_msg] = yield call(() => CommonDB.GroupMessages
-                    .where({ GroupHash: json.Hash, Address: json.Address })
-                    .sortBy('Sequence'))
-                  if (first_msg !== undefined) {
-                    tmp_msg_list = yield call(() => CommonDB.GroupMessages
-                      .where('SignedAt').aboveOrEqual(first_msg.SignedAt)
-                      .filter((msg) => msg.GroupHash === json.Hash)
-                      .limit(64)
-                      .toArray())
-                  }
+                  tmp_msg_list = yield call(() => CommonDB.GroupMessages
+                    .orderBy('SignedAt')
+                    .reverse()
+                    .filter((msg) => msg.GroupHash === json.Hash)
+                    .limit(64)
+                    .toArray())
+                  console.log(tmp_msg_list)
                 } else {
                   let current_msg = yield call(() => CommonDB.GroupMessages
                     .where({ GroupHash: json.Hash, Address: json.Address })
@@ -595,11 +593,14 @@ function* handelMessengerEvent(action) {
                     .first())
                   if (current_msg !== undefined) {
                     tmp_msg_list = yield call(() => CommonDB.GroupMessages
-                      .where('SignedAt').above(current_msg.SignedAt)
-                      .filter((msg) => msg.GroupHash === json.Hash)
+                      .orderBy('SignedAt')
+                      .reverse()
+                      .filter((msg) => msg.GroupHash === json.Hash && msg.SignedAt > current_msg.SignedAt)
                       .limit(64)
                       .toArray())
                   }
+                  console.log(current_msg)
+                  console.log(tmp_msg_list)
                 }
                 if (tmp_msg_list.length > 0) {
                   let list = []
@@ -1936,9 +1937,12 @@ function* SyncPrivateMessage({ payload }) {
 }
 
 function* InitHandshake(payload) {
-  console.log(payload)
+  // console.log(payload)
   const self_seed = yield select(state => state.User.Seed)
   const self_address = yield select(state => state.User.Address)
+  if (payload.pair_address === self_address) {
+    return
+  }
   let timestamp = Date.now()
   const ec = new Elliptic.ec('secp256k1')
   const ecdh_sk = HalfSHA512(GenesisHash + self_seed + self_address + payload.ecdh_sequence)
@@ -2235,7 +2239,6 @@ function* SendContent({ payload }) {
 }
 
 function* SendFile({ payload }) {
-  console.log(payload)
   const self_address = yield select(state => state.User.Address)
   const CurrentSession = yield select(state => state.Messenger.CurrentSession)
 
@@ -2406,15 +2409,14 @@ function* ShowForwardBulletin({ payload }) {
 
 function* ForwardBulletin({ payload }) {
   yield put(setForwardFlag(false))
-  yield call(LoadCurrentSession, { payload: { type: SessionType.Private, address: payload.friend } })
+  yield call(LoadCurrentSession, { payload: payload.session })
   const forward_bulletin = yield select(state => state.Messenger.ForwardBulletin)
-  console.log(forward_bulletin)
   yield call(SendContent, {
     payload: {
       content: forward_bulletin
     }
   })
-  yield put(setFlashNoticeMessage({ message: `bulletin forward to ${payload.friend}`, duration: 3000 }))
+  yield put(setFlashNoticeMessage({ message: `bulletin forward success`, duration: 3000 }))
 }
 
 // group
@@ -2460,17 +2462,17 @@ function* RequestGroupMessageSync({ payload }) {
     yield call(initMessageGenerator, seed)
   }
 
-  const [current_msg] = yield call(() => CommonDB.GroupMessages
-    .reverse()
-    .sortBy('SignedAt')
-  )
-  if (current_msg !== undefined) {
-    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, current_msg.Address, current_msg.Sequence)
-    yield call(SendMessage, { msg: group_message_sync_request })
+  let msg_list = yield call(() => CommonDB.GroupMessages
+    .where("GroupHash")
+    .equals(payload.hash)
+    .sortBy('SignedAt'))
+  if (msg_list.length > 0) {
+    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, msg_list[0].Address, msg_list[0].Sequence)
+    yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
   } else {
     const address = yield select(state => state.User.Address)
     const group_message_sync_request = MG.genGroupMessageSync(payload.hash, address, 0)
-    yield call(SendMessage, { msg: group_message_sync_request })
+    yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
   }
 }
 

@@ -12,7 +12,7 @@ const PublishFileItem = ({ name, ext, size, hash }) => {
   return (
     <div className='flex flex-row'>
       <div className='file-link' title={filesize_format(size)} >
-        <IoAttachSharp />{name}.{ext}
+        <IoAttachSharp />{name}{ext}
       </div>
       <div className='file-del' onClick={() => dispatch({ type: 'BulletinFileDel', payload: { Hash: hash } })}>
         X

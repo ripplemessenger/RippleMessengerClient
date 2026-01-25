@@ -22,7 +22,7 @@ const ChatFileLink = ({ name, ext, size, hash }) => {
 
       const dest_dir = await path.join(await path.downloadDir(), `RippleMessenger`)
       await mkdir(dest_dir, { recursive: true })
-      const dest_file_path = await path.join(dest_dir, `${name}.${ext}`)
+      const dest_file_path = await path.join(dest_dir, `${name}${ext}`)
       await writeFile(dest_file_path, content)
       dispatch(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
     } else {
@@ -34,7 +34,7 @@ const ChatFileLink = ({ name, ext, size, hash }) => {
   return (
     <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => download()}>
       <IoAttachSharp className="icon-sm" />
-      {name}.{ext}
+      {name}{ext}
     </div>
   )
 }

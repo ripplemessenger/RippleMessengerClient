@@ -70,6 +70,7 @@ export default function TabGroup() {
       type: 'AcceptGroupRequest',
       payload: { hash: hash }
     })
+    setShowRequest(false)
   }
 
   return (

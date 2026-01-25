@@ -21,8 +21,6 @@ export default function ChatHomePage() {
   const navigate = useNavigate()
 
   const { SessionList, CurrentSession, CurrentSessionMessageList } = useSelector(state => state.Messenger)
-  const { Address, ContactMap, FriendList } = useSelector(state => state.User)
-
 
   function scrollToBottom() {
     let MessageListContainer = document.getElementById('MessageListContainer')
@@ -88,7 +86,7 @@ export default function ChatHomePage() {
               :
               SessionList.map((session, index) => (
                 <div key={index} className='text-xs text-gray-200 mt-1 p-1'>
-                  <ListSession session={session} />
+                  <ListSession session={session} onClick={() => { dispatch({ type: 'LoadCurrentSession', payload: session }) }} />
                 </div>
               ))
           }

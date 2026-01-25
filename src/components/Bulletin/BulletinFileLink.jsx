@@ -33,7 +33,7 @@ const BulletinFileLink = ({ name, ext, size, hash }) => {
   return (
     <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => download()}>
       <IoAttachSharp className="icon-sm" />
-      {name}.{ext}
+      {name}{ext}
     </div>
   )
 }

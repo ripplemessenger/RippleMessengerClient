@@ -8,7 +8,7 @@ import SessionName from './SessionName'
 import AvatarImage from '../AvatarImage'
 import { SessionType } from '../../lib/AppConst'
 
-const ListSession = ({ session, textSize = 'text-base' }) => {
+const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -17,7 +17,7 @@ const ListSession = ({ session, textSize = 'text-base' }) => {
     <div className={`${textSize}`}>
       {
         session.type === SessionType.Private &&
-        <div className={`flex flex-row mx-5px mt-5px`} onClick={() => { dispatch({ type: 'LoadCurrentSession', payload: session }) }}>
+        <div className={`flex flex-row mx-5px mt-5px`} onClick={onClick}>
           <AvatarImage address={session.address} timestamp={Date.now()} style={'avatar-sm'} />
           <div className={`flex flex-col justify-between`}>
             <div className={`flex flex-col justify-between px-1`}>
@@ -32,7 +32,7 @@ const ListSession = ({ session, textSize = 'text-base' }) => {
       }
       {
         session.type === SessionType.Group &&
-        <div className={`flex flex-row mx-5px mt-5px`} onClick={() => { dispatch({ type: 'LoadCurrentSession', payload: session }) }}>
+        <div className={`flex flex-row mx-5px mt-5px`} onClick={onClick}>
           <GrGroup className="session-icon" />
           <div className={`flex flex-col justify-between`}>
             <div className={`flex flex-row justify-between px-1`}>
