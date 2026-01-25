@@ -1,5 +1,4 @@
-import { convertFileSrc } from '@tauri-apps/api/core'
-import { useState, useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { exists, readFile, writeFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
@@ -11,7 +10,6 @@ import { FileHash } from '../lib/MessengerUtil'
 const AvatarCropper = ({ address, imageSrc, onClose }) => {
 
   const dispatch = useDispatch()
-  // const [croppedImage, setCroppedImage] = useState(null)
   const cropperRef = useRef(null)
 
   const saveAvatar = async () => {
@@ -23,7 +21,6 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
         baseDir: BaseDirectory.AppLocalData,
       })
     }
-    // console.log(cropperRef.current)
     if (cropperRef.current) {
       const cropper = cropperRef.current.cropper
       const canvas = cropper.getCroppedCanvas({
@@ -37,27 +34,19 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
           const buffer = await blob.arrayBuffer()
           const fileName = `/Avatar/${address}.png`
           const savePath = await path.join(await path.appCacheDir(), fileName)
-          // console.log(savePath)
           await writeFile(savePath, new Uint8Array(buffer))
 
           const filePath = await path.join(await path.appCacheDir(), `/Avatar/${address}.png`)
           const content = await readFile(filePath)
-          // console.log(content)
           const size = content.length
           const hash = FileHash(content)
-          // console.log(size)
-          // console.log(hash)
           dispatch({
             type: 'SaveSelfAvatar', payload: {
-              // address: address,
               hash: hash,
               size: size,
               timestamp: Date.now(),
-              // is_saved: true
             }
           })
-          // const webPath = convertFileSrc(savePath)
-          // setCroppedImage(webPath)
           onClose()
           // alert(`save to: ${savePath}`)
         } catch (error) {

@@ -10,6 +10,7 @@ const BulletinPageTab = {
   Channel: 'Channel',
   Tag: 'Tag',
   Random: 'Random',
+  Bookmark: 'Bookmark',
   Address: 'Address',
 }
 
@@ -68,7 +69,7 @@ const DefaultPartition = 90 * 24 * 3600
 const NonceMax = 2 ** 32 - 1
 const FileChunkSize = 1024 * 1024
 const FileMaxSize = 64 * 1024 * 1024
-const BulletinFileExtRegex = /jpg|png|jpeg|txt|md/i
+const FileImageExtRegex = /^(png|jpe?g|gif|webp)$/i
 
 //Bulletin
 const BulletinPageSize = 20
@@ -99,7 +100,7 @@ export {
   FileChunkSize,
   FileMaxSize,
   DefaultPartition,
-  BulletinFileExtRegex,
+  FileImageExtRegex,
   SessionType,
   BulletinPageSize,
   BulletinContentPreviewSize,

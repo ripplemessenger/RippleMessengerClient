@@ -66,10 +66,10 @@ export default function TabMessengerNetwork() {
             <div className="card-title">
               Add Server
             </div>
-            <TextInput label={'URL:'} value={url} onChange={(e) => setNewURL(e.target.value.trim())} />
+            <TextInput label={'URL:'} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
             <button
               className="btn-primary"
-              disabled={url === ''}
+              disabled={newURL === ''}
               onClick={() => addServer()}>
               Add
             </button>

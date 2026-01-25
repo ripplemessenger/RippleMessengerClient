@@ -10,7 +10,7 @@ import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSche
 import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
 import { BulletinPageSize, CommonDBSchame, Day, DefaultServer, FileChunkSize, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
-import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer } from '../slices/MessengerSlice'
+import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message, safeAddItem } from '../../lib/AppUtil'
 import { BlobToUint32, calcTotalPage, DHSequence, FileEHash, FileHash, genNonce, Uint32ToBuffer, VerifyJsonSignature } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/UserSlice'
@@ -1401,6 +1401,19 @@ function* LoadFollowBulletin() {
   }
 }
 
+function* LoadBookmarkBulletin() {
+  if (CommonDB === null) {
+    yield call(initCommonDB)
+  }
+
+  let bulletins = yield call(() => CommonDB.Bulletins
+    .orderBy('SignedAt')
+    .reverse()
+    .filter(b => b.IsMark === true)
+    .toArray())
+  yield put(setBookmarkBulletinList(bulletins))
+}
+
 function* LoadBulletin(action) {
   console.log(action)
   if (CommonDB === null) {
@@ -2625,6 +2638,7 @@ export function* watchMessenger() {
 
   yield takeEvery('LoadMineBulletin', LoadMineBulletin)
   yield takeEvery('LoadFollowBulletin', LoadFollowBulletin)
+  yield takeEvery('LoadBookmarkBulletin', LoadBookmarkBulletin)
   yield takeLatest('LoadBulletin', LoadBulletin)
   yield takeLatest('RequestRandomBulletin', RequestRandomBulletin)
   yield takeLatest('RequestBulletinAddress', RequestBulletinAddress)

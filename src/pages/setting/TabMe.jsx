@@ -1,5 +1,5 @@
-import { convertFileSrc } from '@tauri-apps/api/core'
-import { open, save } from '@tauri-apps/plugin-dialog'
+import { open } from '@tauri-apps/plugin-dialog'
+import { readFile } from '@tauri-apps/plugin-fs'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -31,9 +31,10 @@ export default function TabMe() {
     console.log(file)
 
     if (file) {
-      const webPath = convertFileSrc(file)
-      console.log(webPath)
-      setImageSrc(webPath)
+      const bytes = await readFile(file)
+      const blob = new Blob([new Uint8Array(bytes)])
+      const url = URL.createObjectURL(blob)
+      setImageSrc(url)
     }
   }
 

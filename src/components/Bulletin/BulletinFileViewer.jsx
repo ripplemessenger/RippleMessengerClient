@@ -1,4 +1,3 @@
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -7,15 +6,19 @@ import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { setFlashNoticeMessage } from '../../store/slices/UserSlice'
 import { IoAttachSharp } from "react-icons/io5"
+import { FileImageExtRegex } from '../../lib/AppConst'
 
 const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) => {
 
   const [fileImage, setFileImage] = useState(null)
+
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
   useEffect(() => {
-    setImage()
+    if (FileImageExtRegex.test(ext)) {
+      setImage()
+    }
   }, [hash, timestamp])
 
   async function setImage() {
@@ -25,8 +28,10 @@ const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) =
     if (is_file_exist) {
       const fileName = `/File/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
       const filePath = await path.join(await path.appCacheDir() + fileName)
-      let fileSrc = convertFileSrc(filePath) + `?t=${timestamp}`
-      setFileImage(fileSrc)
+      const bytes = await readFile(filePath)
+      const blob = new Blob([new Uint8Array(bytes)])
+      const url = URL.createObjectURL(blob)
+      setFileImage(url)
     }
   }
 
@@ -52,7 +57,7 @@ const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) =
     <div>
       {
         fileImage ?
-          <div>
+          <div onClick={() => download()}>
             {name}.{ext}
             <img
               src={fileImage}

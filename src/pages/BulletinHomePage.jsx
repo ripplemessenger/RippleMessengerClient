@@ -11,6 +11,7 @@ import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import TabAddress from './bulletin/TabAddress'
 import TabTag from './bulletin/TabTag'
+import TabBookmark from './bulletin/TabBookmark'
 
 export default function BulletinHomePage() {
   const tabItems = [
@@ -19,6 +20,7 @@ export default function BulletinHomePage() {
     { name: BulletinPageTab.Channel, content: <TabChannel /> },
     { name: BulletinPageTab.Tag, content: <TabTag /> },
     { name: BulletinPageTab.Random, content: <TabRandom /> },
+    { name: BulletinPageTab.Bookmark, content: <TabBookmark /> },
     { name: BulletinPageTab.Address, content: <TabAddress /> },
   ]
 

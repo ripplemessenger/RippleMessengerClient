@@ -2,14 +2,14 @@ import { convertFileSrc } from '@tauri-apps/api/core'
 import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { RxAvatar } from "react-icons/rx"
-import { exists, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 
 const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
   const [avatarImage, setAvatarImage] = useState(null)
 
   const dispatch = useDispatch()
-  // console.log(address)
+
   async function setAvatar() {
     const is_avater_exist = await exists(`Avatar/${address}.png`, {
       baseDir: BaseDirectory.AppLocalData,
@@ -17,11 +17,12 @@ const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
     if (is_avater_exist) {
       const fileName = `/Avatar/${address}.png`
       const avatarPath = await path.join(await path.appCacheDir() + fileName)
-      let fileSrc = convertFileSrc(avatarPath) + `?t=${timestamp}`
-      setAvatarImage(fileSrc)
+      const bytes = await readFile(avatarPath)
+      const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
+      const url = URL.createObjectURL(blob)
+      setAvatarImage(url)
     }
 
-    // console.log(address)
     if (address !== undefined) {
       dispatch({
         type: 'CheckAvatar',

@@ -24,6 +24,7 @@ const MessengerSlice = createSlice({
     activeTabBulletin: BulletinPageTab.Mine,
     MineBulletinList: [],
     FollowBulletinList: [],
+    BookmarkBulletinList: [],
 
     DisplayBulletin: null,
     DisplayBulletinReplyList: [],
@@ -115,6 +116,9 @@ const MessengerSlice = createSlice({
     setFollowBulletinList: (state, action) => {
       state.FollowBulletinList = action.payload
     },
+    setBookmarkBulletinList: (state, action) => {
+      state.BookmarkBulletinList = action.payload
+    },
     setBulletinAddressList: (state, action) => {
       state.BulletinAddressPage = action.payload.Page
       state.BulletinAddressTotalPage = action.payload.TotalPage
@@ -189,6 +193,7 @@ export const {
   setRandomBulletin,
   setMineBulletinList,
   setFollowBulletinList,
+  setBookmarkBulletinList,
   setBulletinAddressList,
   setTagBulletinList,
   setSearchTagList,
