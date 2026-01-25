@@ -1,5 +1,6 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { MasterAddress } from '../lib/MessengerConst';
 
 export default function AboutPage() {
   const content = `
@@ -11,6 +12,9 @@ export default function AboutPage() {
 5. Data on My Devices
 6. Encrypted Chat
 7. Publish(Comment) bulletin freely
+
+## Donate
+${MasterAddress}
 `
   return (
     <div className="flex justify-center items-center card">

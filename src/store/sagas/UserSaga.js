@@ -5,6 +5,7 @@ import { decryptWithPassword, safeAddItem } from '../../lib/AppUtil'
 import { ClearMessage, DisconnectSwitch, LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
 import { CommonDBSchame, SessionType } from '../../lib/AppConst'
 import { setChannelList, setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
+import { MasterAddress } from '../../lib/MessengerConst'
 
 let CommonDB = null
 
@@ -33,6 +34,13 @@ function* handleLogin(action) {
   yield call(LoadChannelList)
   yield call(LoadSessionList)
   yield call(LoadGroupRequestList)
+
+
+  const contact_list = yield select(state => state.User.ContactList)
+  if (contact_list.length === 0) {
+    yield call(ContactAdd, { payload: { address: MasterAddress, nickname: 'RippleMessenger' } })
+    yield call(ContactToggleIsFollow, { payload: { contact_address: MasterAddress } })
+  }
 }
 
 function* handleLogout() {
