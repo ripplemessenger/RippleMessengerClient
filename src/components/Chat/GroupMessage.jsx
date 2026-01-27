@@ -39,7 +39,7 @@ const GroupMessage = ({ message }) => {
             <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Address} />
           }
           {
-            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.ChatFile &&
+            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.GroupChatFile &&
             <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} />
           }
         </div>

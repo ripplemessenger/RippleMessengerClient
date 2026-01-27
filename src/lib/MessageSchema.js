@@ -699,12 +699,25 @@ const MessageObjectBulletinSchema = {
   }
 }
 
-const MessageObjectChatFileSchema = {
+const MessageObjectPrivateChatFileSchema = {
   "type": "object",
   "required": ["ObjectType", "Name", "Ext", "Size", "Hash"],
   "maxProperties": 7,
   "properties": {
-    "ObjectType": { "type": "number", "const": MessageObjectType.ChatFile },
+    "ObjectType": { "type": "number", "const": MessageObjectType.PrivateChatFile },
+    "Name": { "type": "string" },
+    "Ext": { "type": "string" },
+    "Size": { "type": "number" },
+    "Hash": { "type": "string" }
+  }
+}
+
+const MessageObjectGroupChatFileSchema = {
+  "type": "object",
+  "required": ["ObjectType", "Name", "Ext", "Size", "Hash"],
+  "maxProperties": 7,
+  "properties": {
+    "ObjectType": { "type": "number", "const": MessageObjectType.GroupChatFile },
     "Name": { "type": "string" },
     "Ext": { "type": "string" },
     "Size": { "type": "number" },
@@ -989,8 +1002,9 @@ export {
 
   // Message Object
   MessageObjectBulletinSchema,
-  MessageObjectChatFileSchema,
-
+  MessageObjectPrivateChatFileSchema,
+  MessageObjectGroupChatFileSchema,
+  
   // Asset
   SendSchema,
   ReceiveSchema,

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import TextTimestamp from '../TextTimestamp'
@@ -42,7 +41,7 @@ const PrivateMessage = ({ message }) => {
             <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Sour} />
           }
           {
-            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.ChatFile &&
+            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.MessageObjectPrivateChatFileSchema &&
             <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} />
           }
         </div>

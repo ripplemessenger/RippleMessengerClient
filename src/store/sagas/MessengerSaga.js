@@ -12,7 +12,7 @@ import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType
 import { BulletinPageSize, CommonDBSchame, Day, DefaultPartition, DefaultServer, FileChunkSize, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
 import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message, safeAddItem } from '../../lib/AppUtil'
-import { BlobToUint32, calcTotalPage, DHSequence, FileEHash, FileHash, genNonce, Uint32ToBuffer, VerifyJsonSignature } from '../../lib/MessengerUtil'
+import { BlobToUint32, calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/UserSlice'
 
 let CommonDB = null
@@ -119,7 +119,7 @@ function createSwitchEventChannel(client) {
                   }
                 }
                 break
-              case FileRequestType.ChatFile:
+              case FileRequestType.PrivateChatFile:
                 const chat_file_dir = await path.join(base_dir, `File`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
                 mkdir(chat_file_dir, { recursive: true })
                 let chat_file_path = await path.join(chat_file_dir, request.Hash)
@@ -335,7 +335,7 @@ function* handelMessengerEvent(action) {
     yield call(SubscribeChannel)
   } else if (action.type === updateMessengerConnStatus.type && action.payload === false) {
     // disconnnected
-    //   yield call([switchClient, switchClient.disconnect])
+    // yield call([switchClient, switchClient.disconnect])
   } else if (action.type === 'HandelReceiveMessage') {
     console.log('received message', action.payload)
     let json = action.payload
@@ -437,9 +437,9 @@ function* handelMessengerEvent(action) {
                   }
                 }
                 break
-              case FileRequestType.ChatFile:
+              case FileRequestType.PrivateChatFile:
                 // console.log(json)
-                let chat_file = yield call(() => CommonDB.ChatFiles
+                let chat_file = yield call(() => CommonDB.PrivateChatFiles
                   .where('EHash')
                   .equals(json.Hash)
                   .first())
@@ -960,7 +960,6 @@ function* handelMessengerEvent(action) {
             .equals(json.GroupHash)
             .first())
           if (group === undefined) {
-            // TODO? GroupSync
             yield call(GroupSync)
           } else if (group.IsAccepted === true) {
             const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
@@ -982,15 +981,18 @@ function* handelMessengerEvent(action) {
                   .first())
                 if (pre_message !== undefined
                   || (pre_message === undefined && group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
-                  const decrypt_content = AesDecrypt(group_msg.Content, ecdh.AesKey)
-                  let content_hash = QuarterSHA512Message(decrypt_content)
+                  let content = AesDecrypt(group_msg.Content, ecdh.AesKey)
+                  let content_json = deriveJson(content)
+                  if (content_json && checkMessageObjectSchema(content_json)) {
+                    content = content_json
+                  }
                   let verify_json = {
                     ObjectType: ObjectType.GroupMessage,
                     GroupHash: json.GroupHash,
                     Sequence: group_msg.Sequence,
                     PreHash: group_msg.PreHash,
                     Confirm: group_msg.Confirm,
-                    Content: content_hash,
+                    Content: content,
                     Timestamp: group_msg.Timestamp,
                     PublicKey: group_msg.PublicKey,
                     Signature: group_msg.Signature
@@ -999,7 +1001,6 @@ function* handelMessengerEvent(action) {
                     delete verify_json["Confirm"]
                   }
                   if (VerifyJsonSignature(verify_json)) {
-                    verify_json.Content = decrypt_content
                     let hash = QuarterSHA512Message(verify_json)
                     let to_save = {
                       Hash: hash,
@@ -1032,11 +1033,13 @@ function* handelMessengerEvent(action) {
                 }
               }
               unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
+              console.log(unCachedMessageAddress)
               for (let i = 0; i < unCachedMessageAddress.length; i++) {
                 const msg_address = unCachedMessageAddress[i]
                 let [last_msg] = yield call(() => CommonDB.GroupMessages
-                  .where("Address")
-                  .equals(msg_address)
+                  .where({ Address: msg_address, GroupHash: json.GroupHash })
+                  // .where("Address")
+                  // .equals(msg_address)
                   .reverse()
                   .sortBy('SignedAt')
                 )
@@ -1894,7 +1897,9 @@ export function* LoadSessionList() {
     const group = group_list[i]
     let member = [...group.Member]
     member.push(group.CreatedBy)
-    session_list.push({ type: SessionType.Group, hash: group.Hash, name: group.Name, member: member, updated_at: Date.now() })
+    if (member.includes(address)) {
+      session_list.push({ type: SessionType.Group, hash: group.Hash, name: group.Name, member: member, updated_at: Date.now() })
+    }
   }
   yield put(setSessionList(session_list))
 }
@@ -2012,7 +2017,6 @@ function* LoadCurrentSession({ payload }) {
         session.current_sequence = 0
         session.current_hash = GenesisHash
       }
-      console.log(session)
       yield put(setCurrentSession(session))
 
       yield call(RefreshPrivateMessageList)
@@ -2034,10 +2038,10 @@ function* LoadCurrentSession({ payload }) {
           group_session.current_sequence = 0
           group_session.current_hash = GenesisHash
         }
+        yield put(setCurrentSession(group_session))
+        yield call(RefreshGroupMessageList)
+        yield call(RequestGroupMessageSync, { payload: { hash: group_session.hash } })
       }
-      yield put(setCurrentSession(group_session))
-      yield call(RefreshGroupMessageList)
-      yield call(RequestGroupMessageSync, { payload: { hash: group_session.hash } })
       break
     default:
       break
@@ -2250,69 +2254,121 @@ function* SendFile({ payload }) {
   if (file_info.size > FileMaxSize) {
     yield put(setFlashNoticeMessage({ message: `file size too large(more than ${filesize_format(FileMaxSize)})...`, duration: 3000 }))
   } else {
-    switch (CurrentSession.type) {
-      case SessionType.Private:
-        const content = yield call(() => readFile(file_path))
-        const hash = FileHash(content)
-        const ehash = FileEHash(self_address, CurrentSession.remote, hash)
+    if (CurrentSession.type === SessionType.Private) {
+      const content = yield call(() => readFile(file_path))
+      const hash = FileHash(content)
+      const ehash = PrivateFileEHash(self_address, CurrentSession.remote, hash)
 
-        let chunk_length = Math.ceil(file_info.size / FileChunkSize)
-        let file = yield call(() => CommonDB.Files
+      let chunk_length = Math.ceil(file_info.size / FileChunkSize)
+      let file = yield call(() => CommonDB.Files
+        .where('Hash')
+        .equals(hash)
+        .first())
+      if (file === undefined) {
+        yield call(() => saveLocalFile(hash, content))
+        let result = yield call(() => CommonDB.Files.add({
+          Hash: hash,
+          Size: file_info.size,
+          UpdatedAt: Date.now(),
+          ChunkLength: chunk_length,
+          ChunkCursor: chunk_length
+        }))
+      } else if (file.ChunkCursor < file.ChunkLength) {
+        yield call(() => saveLocalFile(hash, content))
+        let updatedCount = yield call(() => CommonDB.Files
           .where('Hash')
           .equals(hash)
-          .first())
-        if (file === undefined) {
-          yield call(() => saveLocalFile(hash, content))
-          let result = yield call(() => CommonDB.Files.add({
-            Hash: hash,
-            Size: file_info.size,
-            UpdatedAt: Date.now(),
-            ChunkLength: chunk_length,
-            ChunkCursor: chunk_length
+          .modify(tmp => {
+            tmp.ChunkCursor = chunk_length
+            tmp.UpdatedAt = Date.now()
           }))
-        } else if (file.ChunkCursor < file.ChunkLength) {
-          yield call(() => saveLocalFile(hash, content))
-          let updatedCount = yield call(() => CommonDB.Files
-            .where('Hash')
-            .equals(hash)
-            .modify(tmp => {
-              tmp.ChunkCursor = chunk_length
-              tmp.UpdatedAt = Date.now()
-            }))
-        } else {
-          // file exist
-        }
+      } else {
+        // file exist
+      }
 
-        let chat_file = yield call(() => CommonDB.ChatFiles
-          .where('EHash')
-          .equals(ehash)
-          .first())
-        if (chat_file === undefined) {
-          yield call(() => saveLocalFile(hash, content))
-          let result = yield call(() => CommonDB.ChatFiles.add({
-            EHash: ehash,
-            Hash: hash,
+      let private_chat_file = yield call(() => CommonDB.PrivateChatFiles
+        .where('EHash')
+        .equals(ehash)
+        .first())
+      if (private_chat_file === undefined) {
+        yield call(() => saveLocalFile(hash, content))
+        let result = yield call(() => CommonDB.PrivateChatFiles.add({
+          EHash: ehash,
+          Hash: hash,
+          Size: file_info.size,
+          Address1: self_address > CurrentSession.remote ? self_address : CurrentSession.remote,
+          Address2: self_address > CurrentSession.remote ? CurrentSession.remote : self_address
+        }))
+      }
+
+      yield call(SendContent, {
+        payload: {
+          content: {
+            ObjectType: MessageObjectType.PrivateChatFile,
+            Name: name,
+            Ext: ext,
             Size: file_info.size,
-            Address1: self_address > CurrentSession.remote ? self_address : CurrentSession.remote,
-            Address2: self_address > CurrentSession.remote ? CurrentSession.remote : self_address
-          }))
-        }
-
-        yield call(SendContent, {
-          payload: {
-            content: {
-              ObjectType: MessageObjectType.ChatFile,
-              Name: name,
-              Ext: ext,
-              Size: file_info.size,
-              Hash: hash
-            }
+            Hash: hash
           }
-        })
-        break;
+        }
+      })
+    } else if (CurrentSession.type === SessionType.Group) {
+      const content = yield call(() => readFile(file_path))
+      const hash = FileHash(content)
+      const ehash = GroupFileEHash(CurrentSession.hash, hash)
 
-      default:
-        break;
+      let chunk_length = Math.ceil(file_info.size / FileChunkSize)
+      let file = yield call(() => CommonDB.Files
+        .where('Hash')
+        .equals(hash)
+        .first())
+      if (file === undefined) {
+        yield call(() => saveLocalFile(hash, content))
+        let result = yield call(() => CommonDB.Files.add({
+          Hash: hash,
+          Size: file_info.size,
+          UpdatedAt: Date.now(),
+          ChunkLength: chunk_length,
+          ChunkCursor: chunk_length
+        }))
+      } else if (file.ChunkCursor < file.ChunkLength) {
+        yield call(() => saveLocalFile(hash, content))
+        let updatedCount = yield call(() => CommonDB.Files
+          .where('Hash')
+          .equals(hash)
+          .modify(tmp => {
+            tmp.ChunkCursor = chunk_length
+            tmp.UpdatedAt = Date.now()
+          }))
+      } else {
+        // file exist
+      }
+
+      let group_chat_file = yield call(() => CommonDB.GroupChatFiles
+        .where('EHash')
+        .equals(ehash)
+        .first())
+      if (group_chat_file === undefined) {
+        yield call(() => saveLocalFile(hash, content))
+        let result = yield call(() => CommonDB.GroupChatFiles.add({
+          EHash: ehash,
+          Hash: hash,
+          Size: file_info.size,
+          GroupHash: CurrentSession.hash
+        }))
+      }
+
+      yield call(SendContent, {
+        payload: {
+          content: {
+            ObjectType: MessageObjectType.GroupChatFile,
+            Name: name,
+            Ext: ext,
+            Size: file_info.size,
+            Hash: hash
+          }
+        }
+      })
     }
   }
 }
@@ -2334,58 +2390,119 @@ function* RefreshPrivateMessageList() {
 
 function* FetchChatFile({ payload }) {
   const self_address = yield select(state => state.User.Address)
-  const ehash = FileEHash(self_address, payload.remote, payload.hash)
-  let chat_file = yield call(() => CommonDB.ChatFiles
-    .where('EHash')
-    .equals(ehash)
-    .first())
-  if (chat_file === undefined) {
-    let result = yield call(() => CommonDB.ChatFiles.add({
-      EHash: ehash,
-      Hash: payload.hash,
-      Size: payload.size,
-      Address1: self_address > payload.remote ? self_address : payload.remote,
-      Address2: self_address > payload.remote ? payload.remote : self_address
-    }))
-  }
-
-  let chunk_length = Math.ceil(payload.size / FileChunkSize)
-  let file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file === undefined) {
-    let result = yield call(() => CommonDB.Files.add({
-      Hash: payload.hash,
-      Size: payload.size,
-      UpdatedAt: Date.now(),
-      ChunkLength: chunk_length,
-      ChunkCursor: 0
-    }))
-  }
-
-  file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file.ChunkCursor < file.ChunkLength) {
-    let timestamp = Date.now()
-    const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, payload.remote)
-    let ecdh = yield call(() => CommonDB.ECDHS
-      .where({ SelfAddress: self_address, PairAddress: payload.remote, Partition: DefaultPartition, Sequence: ecdh_sequence })
+  const current_session = yield select(state => state.Messenger.CurrentSession)
+  if (current_session.type === SessionType.Private) {
+    const ehash = PrivateFileEHash(self_address, current_session.remote, payload.hash)
+    let chat_file = yield call(() => CommonDB.PrivateChatFiles
+      .where('EHash')
+      .equals(ehash)
       .first())
-    console.log(ecdh)
-    if (ecdh !== undefined && ecdh.AesKey !== undefined) {
+    if (chat_file === undefined) {
+      let result = yield call(() => CommonDB.PrivateChatFiles.add({
+        EHash: ehash,
+        Hash: payload.hash,
+        Size: payload.size,
+        Address1: self_address > current_session.remote ? self_address : current_session.remote,
+        Address2: self_address > current_session.remote ? current_session.remote : self_address
+      }))
+    }
+
+    let chunk_length = Math.ceil(payload.size / FileChunkSize)
+    let file = yield call(() => CommonDB.Files
+      .where('Hash')
+      .equals(payload.hash)
+      .first())
+    if (file === undefined) {
+      let result = yield call(() => CommonDB.Files.add({
+        Hash: payload.hash,
+        Size: payload.size,
+        UpdatedAt: Date.now(),
+        ChunkLength: chunk_length,
+        ChunkCursor: 0
+      }))
+    }
+
+    file = yield call(() => CommonDB.Files
+      .where('Hash')
+      .equals(payload.hash)
+      .first())
+    if (file.ChunkCursor < file.ChunkLength) {
+      let timestamp = Date.now()
+      const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, current_session.remote)
+      let ecdh = yield call(() => CommonDB.ECDHS
+        .where({ SelfAddress: self_address, PairAddress: current_session.remote, Partition: DefaultPartition, Sequence: ecdh_sequence })
+        .first())
+      console.log(ecdh)
+      if (ecdh !== undefined && ecdh.AesKey !== undefined) {
+        let nonce = genFileNonce()
+        let tmp = {
+          Type: FileRequestType.PrivateChatFile,
+          Nonce: nonce,
+          EHash: ehash,
+          Hash: payload.hash,
+          Size: payload.size,
+          ChunkCursor: file.ChunkCursor + 1,
+          Address: current_session.remote,
+          AesKey: ecdh.AesKey,
+          Timestamp: timestamp
+        }
+        let prev_request = FileRequestList.filter(r => r.EHash === ehash)
+        if (prev_request.length === 0) {
+          console.log(prev_request)
+          console.log(tmp)
+          FileRequestList.push(tmp)
+          let file_request = MG.genFileRequest(FileRequestType.PrivateChatFile, ehash, nonce, file.ChunkCursor + 1, current_session.remote)
+          yield call(SendMessage, { msg: file_request })
+        }
+      }
+    } else {
+      // file exist
+    }
+  } else if (current_session.type === SessionType.Group) {
+    const ehash = GroupFileEHash(current_session.hash, payload.hash)
+    let chat_file = yield call(() => CommonDB.GroupChatFiles
+      .where('EHash')
+      .equals(ehash)
+      .first())
+    if (chat_file === undefined) {
+      let result = yield call(() => CommonDB.GroupChatFiles.add({
+        EHash: ehash,
+        Hash: payload.hash,
+        Size: payload.size,
+        GroupHash: current_session.hash
+      }))
+    }
+
+    let chunk_length = Math.ceil(payload.size / FileChunkSize)
+    let file = yield call(() => CommonDB.Files
+      .where('Hash')
+      .equals(payload.hash)
+      .first())
+    if (file === undefined) {
+      let result = yield call(() => CommonDB.Files.add({
+        Hash: payload.hash,
+        Size: payload.size,
+        UpdatedAt: Date.now(),
+        ChunkLength: chunk_length,
+        ChunkCursor: 0
+      }))
+    }
+
+    file = yield call(() => CommonDB.Files
+      .where('Hash')
+      .equals(payload.hash)
+      .first())
+    if (file.ChunkCursor < file.ChunkLength) {
+      let timestamp = Date.now()
       let nonce = genFileNonce()
       let tmp = {
-        Type: FileRequestType.ChatFile,
+        Type: FileRequestType.GroupChatFile,
         Nonce: nonce,
         EHash: ehash,
         Hash: payload.hash,
         Size: payload.size,
         ChunkCursor: file.ChunkCursor + 1,
-        Address: payload.remote,
-        AesKey: ecdh.AesKey,
+        GroupHash: current_session.hash,
         Timestamp: timestamp
       }
       let prev_request = FileRequestList.filter(r => r.EHash === ehash)
@@ -2393,12 +2510,12 @@ function* FetchChatFile({ payload }) {
         console.log(prev_request)
         console.log(tmp)
         FileRequestList.push(tmp)
-        let file_request = MG.genFileRequest(FileRequestType.ChatFile, ehash, nonce, file.ChunkCursor + 1, payload.remote)
+        let file_request = MG.genGroupFileRequest(FileRequestType.PrivateChatFile, ehash, nonce, file.ChunkCursor + 1)
         yield call(SendMessage, { msg: file_request })
       }
+    } else {
+      // file exist
     }
-  } else {
-    // file exist
   }
 }
 

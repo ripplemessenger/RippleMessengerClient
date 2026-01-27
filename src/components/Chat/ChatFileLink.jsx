@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { exists, readFile, writeFile, mkdir } from '@tauri-apps/plugin-fs'
@@ -11,7 +10,7 @@ const ChatFileLink = ({ name, ext, size, hash }) => {
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { CurrentSession } = useSelector(state => state.Messenger)
+  // const { CurrentSession } = useSelector(state => state.Messenger)
 
   const download = async () => {
     const sour_dir = await path.appLocalDataDir()
@@ -27,7 +26,7 @@ const ChatFileLink = ({ name, ext, size, hash }) => {
       dispatch(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
     } else {
       dispatch(setFlashNoticeMessage({ message: 'file not exist, fetching from friend, make sure friend is online...', duration: 2000 }))
-      dispatch({ type: 'FetchChatFile', payload: { hash: hash, size: size, remote: CurrentSession.remote } })
+      dispatch({ type: 'FetchChatFile', payload: { hash: hash, size: size } })
     }
   }
 

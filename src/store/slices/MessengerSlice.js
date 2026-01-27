@@ -55,6 +55,7 @@ const MessengerSlice = createSlice({
 
     // group
     GroupList: [],
+    // for handshake
     TotalGroupMemberList: [],
     ComposeMemberList: [],
     GroupRequestList: [],

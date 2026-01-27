@@ -38,7 +38,7 @@ function FileHash(buffer) {
   return hash
 }
 
-function FileEHash(address1, address2, hash) {
+function PrivateFileEHash(address1, address2, hash) {
   let tmpStr = ''
   if (address1 > address2) {
     tmpStr = address1 + address2 + hash
@@ -46,6 +46,11 @@ function FileEHash(address1, address2, hash) {
     tmpStr = address2 + address1 + hash
   }
   const ehash = QuarterSHA512WordArray(tmpStr)
+  return ehash
+}
+
+function GroupFileEHash(group_hash, file_hash) {
+  const ehash = QuarterSHA512WordArray(group_hash, file_hash)
   return ehash
 }
 
@@ -134,7 +139,8 @@ export {
   AddressToName,
 
   FileHash,
-  FileEHash,
+  PrivateFileEHash,
+  GroupFileEHash,
   encrypt,
   decrypt,
 

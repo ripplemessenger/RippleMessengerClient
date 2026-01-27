@@ -47,10 +47,11 @@ const CommonDBSchame = {
 
   PrivateMessages: `Hash&, Sour, Dest, Sequence, PreHash, Content, SignedAt, Json, Confirmed, Readed, IsObject, ObjectType, [Sour+Dest+Confirmed]`,
   // TODO
-  ChatFiles: `EHash&, Hash, Size, Address1, Address2`,
+  PrivateChatFiles: `EHash&, Hash, Size, Address1, Address2`,
 
   Groups: `Hash&, Name, CreatedBy, Member, CreatedAt, CreateJson, DeleteddAt, DeleteJson, IsAccepted`,
   GroupMessages: `Hash&, GroupHash, Address, Sequence, PreHash, Content, SignedAt, Json, Confirmed, Readed, IsObject, ObjectType, [GroupHash+Address], [GroupHash+Confirmed]`,
+  GroupChatFiles: `EHash&, Hash, Size, GroupHash`,
 }
 
 const DefaultBulletinCacheSize = 0

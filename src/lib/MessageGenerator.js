@@ -132,6 +132,19 @@ export default class MessageGenerator {
     return JSON.stringify(this.signJson(json))
   }
 
+  genGroupFileRequest(group_hash, hash, nonce, chunk_cursor) {
+    let json = {
+      Action: ActionCode.FileRequest,
+      GroupHash: group_hash,
+      Hash: hash,
+      Nonce: nonce,
+      ChunkCursor: chunk_cursor,
+      Timestamp: Date.now(),
+      PublicKey: this.PublicKey
+    }
+    return JSON.stringify(this.signJson(json))
+  }
+
   // not a message, a bulletin json
   genBulletinJson(sequence, pre_hash, tag, quote, file, content, timestamp) {
     let tmp_json = {
@@ -257,14 +270,13 @@ export default class MessageGenerator {
   }
 
   genGroupMessage(group_hash, sequence, pre_hash, confirm, content, timestamp) {
-    let content_hash = QuarterSHA512Message(content)
     let tmp = {
       ObjectType: ObjectType.GroupMessage,
       GroupHash: group_hash,
       Sequence: sequence,
       PreHash: pre_hash,
       Confirm: confirm,
-      Content: content_hash,
+      Content: content,
       Timestamp: timestamp,
       PublicKey: this.PublicKey
     }

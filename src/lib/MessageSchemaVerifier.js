@@ -1,5 +1,5 @@
 import Ajv from 'ajv'
-import { AvatarListSchema, AvatarRequestSchema, BulletinAddressListSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectChatFileSchema, OfferCancelSchema, OfferCreateSchema, OfferTakeConfirmSchema, OfferTakeSchema, PrivateMessageSchema, PrivateMessageSyncSchema, ReceiveSchema, SendSchema } from './MessageSchema'
+import { AvatarListSchema, AvatarRequestSchema, BulletinAddressListSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, OfferCancelSchema, OfferCreateSchema, OfferTakeConfirmSchema, OfferTakeSchema, PrivateMessageSchema, PrivateMessageSyncSchema, ReceiveSchema, SendSchema } from './MessageSchema'
 const ajv = new Ajv({ allErrors: true })
 
 function deriveJson(str) {
@@ -361,11 +361,12 @@ function checkOfferTakeConfirmSchema(json) {
 }
 
 const vMessageObjectBulletinSchema = ajv.compile(MessageObjectBulletinSchema)
-const vMessageObjectChatFileSchema = ajv.compile(MessageObjectChatFileSchema)
+const vMessageObjectPrivateChatFileSchema = ajv.compile(MessageObjectPrivateChatFileSchema)
+const vMessageObjectGroupChatFileSchema = ajv.compile(MessageObjectGroupChatFileSchema)
 
 function checkMessageObjectSchema(json) {
   try {
-    if (vMessageObjectBulletinSchema(json) || vMessageObjectChatFileSchema(json)) {
+    if (vMessageObjectBulletinSchema(json) || vMessageObjectPrivateChatFileSchema(json) || vMessageObjectGroupChatFileSchema(json)) {
       console.log(`MessageObject schema ok`)
       return true
     } else {

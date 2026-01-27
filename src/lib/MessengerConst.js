@@ -77,13 +77,15 @@ const ObjectType = {
 const FileRequestType = {
   Avatar: 100,
   File: 101,
-  ChatFile: 102
+  PrivateChatFile: 102,
+  GroupChatFile: 103
 }
 
 const MessageObjectType = {
   NotObject: 100,
   Bulletin: 101,
-  ChatFile: 102
+  PrivateChatFile: 102,
+  GroupChatFile: 103
 }
 
 export {

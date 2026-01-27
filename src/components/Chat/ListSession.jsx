@@ -45,21 +45,6 @@ const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
           </div>
         </div>
       }
-      {
-        session.type === SessionType.Channel &&
-        <div className={`flex flex-row mx-5px mt-5px`} onClick={() => { dispatch({ type: 'LoadCurrentSession', payload: session }) }}>
-          <GrChannel className="session-icon" />
-          <div className={`flex flex-col justify-between`}>
-            <div className={`flex flex-row justify-between px-1`}>
-              <SessionName name={session.name} />
-              <TextTimestamp timestamp={session.updated_at} textSize={'text-xs'} />
-            </div>
-            <div className={`flex flex-row justify-between`}>
-              {session.recent_msg}
-            </div>
-          </div>
-        </div>
-      }
     </div>
   )
 }
