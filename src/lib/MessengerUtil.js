@@ -45,12 +45,12 @@ function PrivateFileEHash(address1, address2, hash) {
   } else {
     tmpStr = address2 + address1 + hash
   }
-  const ehash = QuarterSHA512WordArray(tmpStr)
+  const ehash = QuarterSHA512Message(tmpStr)
   return ehash
 }
 
 function GroupFileEHash(group_hash, file_hash) {
-  const ehash = QuarterSHA512WordArray(group_hash, file_hash)
+  const ehash = QuarterSHA512Message(group_hash + file_hash)
   return ehash
 }
 
