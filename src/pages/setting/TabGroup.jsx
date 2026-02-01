@@ -22,7 +22,7 @@ export default function TabGroup() {
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(state => state.Messenger)
 
   useEffect(() => {
-    console.log(ContactList)
+    console.log(GroupList)
     if (activeTabSetting === SettingPageTab.Group) {
     }
   }, [dispatch, activeTabSetting])
@@ -211,8 +211,8 @@ export default function TabGroup() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title row-center-middle">
           {SettingPageTab.Group}
-          <GrGroup className="icon" onClick={() => setShowCreateGroup(true)} />
-          <MdOutlineVerifiedUser className="icon" onClick={() => setShowRequest(true)} />
+          <GrGroup className="card-icon" onClick={() => setShowCreateGroup(true)} />
+          <MdOutlineVerifiedUser className="card-icon" onClick={() => setShowRequest(true)} />
         </div>
 
         <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">

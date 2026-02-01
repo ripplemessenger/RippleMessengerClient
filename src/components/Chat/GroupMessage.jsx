@@ -40,7 +40,7 @@ const GroupMessage = ({ message }) => {
           }
           {
             typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.GroupChatFile &&
-            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} />
+            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} timestamp={Date.now()} />
           }
         </div>
       </div>

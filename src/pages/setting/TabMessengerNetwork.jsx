@@ -19,7 +19,7 @@ export default function TabMessengerNetwork() {
   useEffect(() => {
     console.log(ServerList)
     console.log(CurrentServer)
-    if (activeTabSetting === SettingPageTab.Contact) {
+    if (activeTabSetting === SettingPageTab.MessengerNetwork) {
     }
   }, [dispatch, activeTabSetting])
 
@@ -80,7 +80,7 @@ export default function TabMessengerNetwork() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title row-center-middle">
           {SettingPageTab.MessengerNetwork}
-          <TbCloudNetwork className="icon" onClick={() => setShowAddServer(true)} />
+          <TbCloudNetwork className="card-icon" onClick={() => setShowAddServer(true)} />
         </div>
 
         <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">

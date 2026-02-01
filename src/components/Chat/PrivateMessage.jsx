@@ -41,8 +41,8 @@ const PrivateMessage = ({ message }) => {
             <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Sour} />
           }
           {
-            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.MessageObjectPrivateChatFileSchema &&
-            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} />
+            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.PrivateChatFile &&
+            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} timestamp={Date.now()} />
           }
         </div>
       </div>

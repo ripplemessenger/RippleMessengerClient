@@ -1,5 +1,5 @@
 import { QuarterSHA512Message } from './AppUtil'
-import { ActionCode, ObjectType } from './MessengerConst'
+import { ActionCode, FileRequestType, ObjectType } from './MessengerConst'
 import { Sign } from './MessengerUtil'
 
 export default class MessageGenerator {
@@ -121,8 +121,8 @@ export default class MessageGenerator {
   genFileRequest(type, hash, nonce, chunk_cursor, to) {
     let json = {
       Action: ActionCode.FileRequest,
-      To: to,
       FileType: type,
+      To: to,
       Hash: hash,
       Nonce: nonce,
       ChunkCursor: chunk_cursor,
@@ -135,6 +135,7 @@ export default class MessageGenerator {
   genGroupFileRequest(group_hash, hash, nonce, chunk_cursor) {
     let json = {
       Action: ActionCode.FileRequest,
+      FileType: FileRequestType.GroupChatFile,
       GroupHash: group_hash,
       Hash: hash,
       Nonce: nonce,

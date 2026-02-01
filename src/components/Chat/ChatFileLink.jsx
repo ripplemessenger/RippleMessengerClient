@@ -1,16 +1,39 @@
+import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { exists, readFile, writeFile, mkdir } from '@tauri-apps/plugin-fs'
+import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { setFlashNoticeMessage } from '../../store/slices/UserSlice'
 import { IoAttachSharp } from "react-icons/io5"
+import { FileImageExtRegex } from '../../lib/AppConst'
 
-const ChatFileLink = ({ name, ext, size, hash }) => {
+const ChatFileLink = ({ name, ext, size, hash, timestamp = Date.now() }) => {
+
+  const [fileImage, setFileImage] = useState(null)
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  // const { CurrentSession } = useSelector(state => state.Messenger)
+
+  useEffect(() => {
+    if (FileImageExtRegex.test(ext)) {
+      setImage()
+    }
+  }, [hash, timestamp])
+
+  async function setImage() {
+    const is_file_exist = await exists(`File/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
+      baseDir: BaseDirectory.AppLocalData,
+    })
+    if (is_file_exist) {
+      const fileName = `/File/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
+      const filePath = await path.join(await path.appCacheDir() + fileName)
+      const bytes = await readFile(filePath)
+      const blob = new Blob([new Uint8Array(bytes)])
+      const url = URL.createObjectURL(blob)
+      setFileImage(url)
+    }
+  }
 
   const download = async () => {
     const sour_dir = await path.appLocalDataDir()
@@ -31,9 +54,23 @@ const ChatFileLink = ({ name, ext, size, hash }) => {
   }
 
   return (
-    <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => download()}>
-      <IoAttachSharp className="icon-sm" />
-      {name}{ext}
+    <div title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+      {
+        fileImage ?
+          <div>
+            {name}{ext}
+            <img
+              src={fileImage}
+              alt={`${name}.${ext}`}
+              className={`max-w-[600px] max-h-[600px] object-contain`}
+            />
+          </div>
+          :
+          <div className='flex flex-row justify-start file-link' title={filesize_format(size)} >
+            <IoAttachSharp className="icon-sm" />
+            {name}{ext}
+          </div>
+      }
     </div>
   )
 }

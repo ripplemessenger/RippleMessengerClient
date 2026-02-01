@@ -31,7 +31,7 @@ export default function TabRandom() {
         <div className="mx-auto w-full flex flex-col mt-4">
           <div className="card-title row-center-middle">
             {BulletinPageTab.Random}
-            <IoMdRefresh className="icon" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} />
+            <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} />
           </div>
 
           <div className={`mt-1 flex-1 justify-center`}>

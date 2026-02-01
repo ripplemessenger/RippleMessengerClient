@@ -133,7 +133,7 @@ export default function TabChannel() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title row-center-middle">
           {SettingPageTab.Channel}
-          <GrChannel className="icon" onClick={() => setShowCreateChannel(true)} />
+          <GrChannel className="card-icon" onClick={() => setShowCreateChannel(true)} />
         </div>
 
         <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">

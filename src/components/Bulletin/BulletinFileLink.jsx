@@ -26,12 +26,12 @@ const BulletinFileLink = ({ name, ext, size, hash }) => {
       dispatch(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
     } else {
       dispatch(setFlashNoticeMessage({ message: 'file not exist, fetching from server...', duration: 2000 }))
-      dispatch({ type: 'FetchFile', payload: { hash: hash } })
+      dispatch({ type: 'FetchBulletinFile', payload: { hash: hash } })
     }
   }
 
   return (
-    <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => download()}>
+    <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveBulletinFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
       <IoAttachSharp className="icon-sm" />
       {name}{ext}
     </div>

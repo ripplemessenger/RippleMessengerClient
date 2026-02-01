@@ -38,7 +38,8 @@ const CommonDBSchame = {
   Channels: `Name&, CreatedBy, Speaker, CreatedAt`,
   LocalAccounts: `Address&, Salt, CipherData, UpdatedAt`,
 
-  Files: `Hash&, Size, UpdatedAt, ChunkLength, ChunkCursor`,
+  // TODO
+  Files: `Hash&, Size, UpdatedAt, ChunkLength, ChunkCursor, IsSaved, [Hash+IsSaved]`,
 
   Bulletins: `Hash&, Address, Sequence, Content, Tag, Quote, File, Json, SignedAt, PreHash, NextHash, IsMark, [Address+Sequence]`,
   BulletinReplys: `[Hash+ReplyHash]&, SignedAt`,

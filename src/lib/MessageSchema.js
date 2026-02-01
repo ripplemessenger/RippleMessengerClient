@@ -18,19 +18,36 @@ const DeclareSchema = {
 // ***file***
 const FileRequestSchema = {
   "type": "object",
-  "required": ["Action", "FileType", "Hash", "Nonce", "ChunkCursor", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 9,
   "properties": {
     "Action": { "type": "number", "const": ActionCode.FileRequest },
     "FileType": { "type": "number" },
     "To": { "type": "string" },
+    "GroupHash": { "type": "string" },
     "Hash": { "type": "string" },
     "Nonce": { "type": "number" },
     "ChunkCursor": { "type": "number" },
     "Timestamp": { "type": "number" },
     "PublicKey": { "type": "string" },
     "Signature": { "type": "string" }
-  }
+  },
+  "allOf": [
+    { "required": ["Action", "FileType", "Hash", "Nonce", "ChunkCursor", "Timestamp", "PublicKey", "Signature"] },
+    {
+      "oneOf": [
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["To"] },
+              { "required": ["GroupHash"] }
+            ]
+          }
+        },
+        { "required": ["To"] },
+        { "required": ["GroupHash"] }
+      ]
+    }
+  ],
+  "additionalProperties": false
 }
 
 // ***avatar***
@@ -1004,7 +1021,7 @@ export {
   MessageObjectBulletinSchema,
   MessageObjectPrivateChatFileSchema,
   MessageObjectGroupChatFileSchema,
-  
+
   // Asset
   SendSchema,
   ReceiveSchema,

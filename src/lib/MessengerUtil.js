@@ -135,6 +135,19 @@ function trimEndCommasAndValidate(str) {
   return isEndWithComma && resultStr.length > 0 ? resultStr : false
 }
 
+function getMemberIndex(members, member) {
+  const sortedMembers = [...members]
+  sortedMembers.sort()
+  const index = sortedMembers.findIndex(m => m === member)
+  return index
+}
+
+function getMemberByIndex(members, index) {
+  const sortedMembers = [...members]
+  sortedMembers.sort()
+  return sortedMembers[index]
+}
+
 export {
   AddressToName,
 
@@ -153,5 +166,7 @@ export {
   BlobToUint32,
   genNonce,
   calcTotalPage,
-  trimEndCommasAndValidate
+  trimEndCommasAndValidate,
+  getMemberIndex,
+  getMemberByIndex
 }

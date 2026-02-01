@@ -60,6 +60,11 @@
     @apply h-96 w-96;
   }
 
+   .card-icon {
+    @apply h-8 w-8;
+    @apply bg-green-300 dark:bg-green-700;
+  }
+
   .card-title {
     @apply shrink-0;
     @apply text-text-secondary dark:text-dark-text-secondary;

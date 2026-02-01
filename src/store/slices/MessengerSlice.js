@@ -55,6 +55,7 @@ const MessengerSlice = createSlice({
 
     // group
     GroupList: [],
+    GroupMemberMap: {},
     // for handshake
     TotalGroupMemberList: [],
     ComposeMemberList: [],
@@ -161,7 +162,8 @@ const MessengerSlice = createSlice({
 
     // group
     setGroupList: (state, action) => {
-      state.GroupList = action.payload
+      state.GroupList = action.payload.group_list
+      state.GroupMemberMap = action.payload.group_member_map
     },
     setTotalGroupMemberList: (state, action) => {
       state.TotalGroupMemberList = action.payload

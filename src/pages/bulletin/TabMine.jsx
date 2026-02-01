@@ -24,7 +24,8 @@ export default function TabMine() {
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
           <div className="card-title  row-center-middle">
-            {BulletinPageTab.Mine}<MdPostAdd className="icon" onClick={() => dispatch(setPublishFlag(true))} />
+            {BulletinPageTab.Mine}
+            <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
           </div>
 
 

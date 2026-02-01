@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
-import { MessageObjectType } from '../lib/MessengerConst'
 import { setFlashNoticeMessage } from '../store/slices/UserSlice'
 import ListSession from '../components/Chat/ListSession'
 import AvatarName from '../components/AvatarName'
 import SessionName from '../components/Chat/SessionName'
-import { GrChannel, GrGroup } from 'react-icons/gr'
+import { GrGroup } from 'react-icons/gr'
 import PrivateMessage from '../components/Chat/PrivateMessage'
 import GroupMessage from '../components/Chat/GroupMessage'
 import { SessionType } from '../lib/AppConst'
 
 export default function ChatHomePage() {
 
-  const [messageType, setMessageType] = useState(MessageObjectType.NotObject)
   const [message, setMessage] = useState('')
 
   const dispatch = useDispatch()

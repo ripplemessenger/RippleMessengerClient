@@ -90,7 +90,7 @@ export default function TabContact() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title row-center-middle">
           {SettingPageTab.Contact}
-          <AiOutlineUserAdd className="icon" onClick={() => setShowAddContact(true)} />
+          <AiOutlineUserAdd className="card-icon" onClick={() => setShowAddContact(true)} />
         </div>
 
         <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
