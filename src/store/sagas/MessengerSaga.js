@@ -1204,7 +1204,6 @@ function* handelMessengerEvent(action) {
       }
     }
   } else if (action.type === 'FetchBulletinFile') {
-    console.log(action.payload)
     yield fork(FetchBulletinFile, { payload: { hash: action.payload.hash } })
   } else if (action.type === 'FetchPrivateChatFile') {
     console.log(action.payload)
@@ -1225,12 +1224,10 @@ function genFileNonce() {
 }
 
 function* FetchBulletinFile({ payload }) {
-  console.log(payload)
   let file = yield call(() => CommonDB.Files
     .where('Hash')
     .equals(payload.hash)
     .first())
-  console.log(file)
   if (file !== undefined && file.IsSaved === false) {
     let nonce = genFileNonce()
     let tmp = {
