@@ -17,7 +17,7 @@ const GroupMessage = ({ message }) => {
     <div className={`flex ${message.Address !== Address ? 'mr-auto flex-row' : 'ml-auto flex-row-reverse'}`}>
       <AvatarImage address={message.Address} timestamp={Date.now()} style={'avatar-sm'} />
 
-      <div className={`flex flex-col  ${message.Address !== Address ? 'items-start' : 'items-end'}`}>
+      <div className={`flex flex-col ${message.Address !== Address ? 'items-start' : 'items-end'}`}>
         <div className={`flex flex-row justify-between`}>
           <div className={`rounded-full px-1 border border-gray-400 shrink-0`} onClick={() => { dispatch(setDisplayJson({ json: message.Json, isExpand: true })) }}>
             <span className={`text-xs text-gray-500 dark:text-slate-200 text-left`}>
@@ -40,7 +40,7 @@ const GroupMessage = ({ message }) => {
           }
           {
             typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.GroupChatFile &&
-            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} timestamp={Date.now()} />
+            <ChatFileLink address={message.Address} name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} timestamp={Date.now()} />
           }
         </div>
       </div>

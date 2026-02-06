@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
-import { setFlashNoticeMessage } from '../../store/slices/UserSlice'
 import { IoAttachSharp } from "react-icons/io5"
 import { FileImageExtRegex } from '../../lib/AppConst'
 
-const ChatFileLink = ({ name, ext, size, hash, timestamp = Date.now() }) => {
+const ChatFileLink = ({ address, name, ext, size, hash, timestamp = Date.now() }) => {
+
+  const { Address } = useSelector(state => state.User)
+  const { AppBaseDir } = useSelector(state => state.Common)
 
   const [fileImage, setFileImage] = useState(null)
 
@@ -22,12 +24,13 @@ const ChatFileLink = ({ name, ext, size, hash, timestamp = Date.now() }) => {
   }, [hash, timestamp])
 
   async function setImage() {
-    const is_file_exist = await exists(`File/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
-      baseDir: BaseDirectory.AppLocalData,
+    const is_file_exist = await exists(`file/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
+      baseDir: BaseDirectory.Resource,
     })
+    
     if (is_file_exist) {
-      const fileName = `/File/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
-      const filePath = await path.join(await path.appCacheDir() + fileName)
+      const fileName = `/file/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
+      const filePath = await path.join(AppBaseDir, fileName)
       const bytes = await readFile(filePath)
       const blob = new Blob([new Uint8Array(bytes)])
       const url = URL.createObjectURL(blob)
@@ -35,30 +38,15 @@ const ChatFileLink = ({ name, ext, size, hash, timestamp = Date.now() }) => {
     }
   }
 
-  const download = async () => {
-    const sour_dir = await path.appLocalDataDir()
-    const sour_file_path = await path.join(sour_dir, `File`, hash.substring(0, 3), hash.substring(3, 6), hash)
-    let isExist = await exists(sour_file_path)
-    if (isExist) {
-      const content = await readFile(sour_file_path)
-
-      const dest_dir = await path.join(await path.downloadDir(), `RippleMessenger`)
-      await mkdir(dest_dir, { recursive: true })
-      const dest_file_path = await path.join(dest_dir, `${name}${ext}`)
-      await writeFile(dest_file_path, content)
-      dispatch(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
-    } else {
-      dispatch(setFlashNoticeMessage({ message: 'file not exist, fetching from friend, make sure friend is online...', duration: 2000 }))
-      dispatch({ type: 'FetchChatFile', payload: { hash: hash, size: size } })
-    }
-  }
-
   return (
-    <div title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+    <div title={filesize_format(size)} >
       {
         fileImage ?
-          <div>
-            {name}{ext}
+          <div className={`flex flex-col ${address !== Address ? 'items-start' : 'items-end'}`} >
+            <div className={`flex flex-row justify-start'}`} title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+              <IoAttachSharp className="icon-sm" />
+              {name}{ext}
+            </div>
             <img
               src={fileImage}
               alt={`${name}.${ext}`}
@@ -66,7 +54,7 @@ const ChatFileLink = ({ name, ext, size, hash, timestamp = Date.now() }) => {
             />
           </div>
           :
-          <div className='flex flex-row justify-start file-link' title={filesize_format(size)} >
+          <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
             <IoAttachSharp className="icon-sm" />
             {name}{ext}
           </div>

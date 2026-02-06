@@ -79,6 +79,8 @@ function App() {
     const initialTheme = savedTheme || (systemDark ? 'dark' : 'light')
     setIsDark(initialTheme === 'dark')
     document.documentElement.classList.toggle('dark', initialTheme === 'dark')
+
+    dispatch({ type: 'LoadAppBaseDir' })
   }, [])
 
   return (

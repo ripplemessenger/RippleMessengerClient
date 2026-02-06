@@ -166,8 +166,7 @@ export default function TabGroup() {
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             {request.Name}
                           </td>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
-                            title={request.CreatedBy}>
+                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
                               <AvatarImage address={request.CreatedBy} timestamp={Date.now()} style={'avatar'} />
                               <AvatarName address={request.CreatedBy} />

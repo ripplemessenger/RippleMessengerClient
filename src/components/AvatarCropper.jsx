@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { exists, readFile, writeFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { IoCopyOutline, IoCloseOutline } from "react-icons/io5"
@@ -9,16 +9,17 @@ import { FileHash } from '../lib/MessengerUtil'
 
 const AvatarCropper = ({ address, imageSrc, onClose }) => {
 
+  const { AppBaseDir } = useSelector(state => state.Common)
   const dispatch = useDispatch()
   const cropperRef = useRef(null)
 
   const saveAvatar = async () => {
     const is_avater_dir_exist = await exists('avatar', {
-      baseDir: BaseDirectory.AppLocalData,
+      baseDir: BaseDirectory.Resource,
     })
     if (!is_avater_dir_exist) {
-      await mkdir('Avatar', {
-        baseDir: BaseDirectory.AppLocalData,
+      await mkdir('avatar', {
+        baseDir: BaseDirectory.Resource,
       })
     }
     if (cropperRef.current) {
@@ -32,11 +33,11 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
       canvas.toBlob(async (blob) => {
         try {
           const buffer = await blob.arrayBuffer()
-          const fileName = `/Avatar/${address}.png`
-          const savePath = await path.join(await path.appCacheDir(), fileName)
+          const fileName = `/avatar/${address}.png`
+          const savePath = await path.join(AppBaseDir, fileName)
           await writeFile(savePath, new Uint8Array(buffer))
 
-          const filePath = await path.join(await path.appCacheDir(), `/Avatar/${address}.png`)
+          const filePath = await path.join(AppBaseDir, `/avatar/${address}.png`)
           const content = await readFile(filePath)
           const size = content.length
           const hash = FileHash(content)

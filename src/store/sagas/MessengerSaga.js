@@ -57,14 +57,14 @@ function createSwitchEventChannel(client) {
         for (let i = 0; i < FileRequestList.length; i++) {
           const request = FileRequestList[i]
           if (request.Nonce === nonce) {
-            const base_dir = await path.appLocalDataDir()
+            const base_dir = await path.resourceDir()
             if (request.Type === FileRequestType.Avatar) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
               content = Buffer.from(content)
               const content_hash = FileHash(content)
               if (request.Hash === content_hash) {
-                const avatar_dir = await path.join(base_dir, `Avatar`)
+                const avatar_dir = await path.join(base_dir, `avatar`)
                 mkdir(avatar_dir, { recursive: true })
                 let avatar_path = `${avatar_dir}/${request.Address}.png`
                 await writeFile(avatar_path, content)
@@ -80,7 +80,7 @@ function createSwitchEventChannel(client) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
               content = Buffer.from(content)
-              const file_dir = await path.join(base_dir, `File`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+              const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
               mkdir(file_dir, { recursive: true })
               let file_path = await path.join(file_dir, request.Hash)
               let file = await CommonDB.Files
@@ -126,9 +126,9 @@ function createSwitchEventChannel(client) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
               content = Buffer.from(content)
-              const chat_file_dir = await path.join(base_dir, `File`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
-              mkdir(chat_file_dir, { recursive: true })
-              let chat_file_path = await path.join(chat_file_dir, request.Hash)
+              const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+              mkdir(file_dir, { recursive: true })
+              let chat_file_path = await path.join(file_dir, request.Hash)
               let chat_file = await CommonDB.Files
                 .where('Hash')
                 .equals(request.Hash)
@@ -177,9 +177,9 @@ function createSwitchEventChannel(client) {
                 .where({ SelfAddress: request.SelfAddress, PairAddress: from, Partition: DefaultPartition, Sequence: ecdh_sequence })
                 .first()
               if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                const chat_file_dir = await path.join(base_dir, `File`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
-                mkdir(chat_file_dir, { recursive: true })
-                let chat_file_path = await path.join(chat_file_dir, request.Hash)
+                const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+                mkdir(file_dir, { recursive: true })
+                let chat_file_path = await path.join(file_dir, request.Hash)
                 let chat_file = await CommonDB.Files
                   .where('Hash')
                   .equals(request.Hash)
@@ -464,8 +464,8 @@ function* handelMessengerEvent(action) {
                 .equals(json.Hash)
                 .first())
               if (avatar) {
-                const avatar_dir = yield call(() => path.appCacheDir())
-                const avatar_path = yield call(() => path.join(avatar_dir, `/Avatar/${avatar.Address}.png`))
+                const base_dir = yield select(state => state.Common.AppBaseDir)
+                const avatar_path = yield call(() => path.join(base_dir, `/avatar/${avatar.Address}.png`))
                 const content = yield call(() => readFile(avatar_path))
                 const nonce = Uint32ToBuffer(json.Nonce)
                 yield call(SendMessage, { msg: Buffer.concat([nonce, content]) })
@@ -476,7 +476,7 @@ function* handelMessengerEvent(action) {
                 .equals(json.Hash)
                 .first())
               if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
-                const base_dir = yield call(() => path.appLocalDataDir())
+                const base_dir = yield select(state => state.Common.AppBaseDir)
                 const file_path = yield call(() => path.join(base_dir, `File`, json.Hash.substring(0, 3), json.Hash.substring(3, 6), json.Hash))
                 const nonce = Uint32ToBuffer(json.Nonce)
                 if (file.Size <= FileChunkSize) {
@@ -513,7 +513,7 @@ function* handelMessengerEvent(action) {
                   .first())
                 // console.log(file)
                 if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
-                  const base_dir = yield call(() => path.appLocalDataDir())
+                  const base_dir = yield select(state => state.Common.AppBaseDir)
                   // console.log(base_dir)
                   const file_path = yield call(() => path.join(base_dir, `File`, file.Hash.substring(0, 3), file.Hash.substring(3, 6), file.Hash))
                   // console.log(file_path)
@@ -581,7 +581,7 @@ function* handelMessengerEvent(action) {
                     .equals(chat_file.Hash)
                     .first())
                   if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
-                    const base_dir = yield call(() => path.appLocalDataDir())
+                    const base_dir = yield select(state => state.Common.AppBaseDir)
                     const file_path = yield call(() => path.join(base_dir, `File`, file.Hash.substring(0, 3), file.Hash.substring(3, 6), file.Hash))
                     const nonce = Uint32ToBuffer(json.Nonce)
 
@@ -1254,8 +1254,8 @@ function* SaveBulletinFile({ payload }) {
     .first())
   console.log(file)
   if (file && file.IsSaved) {
-    const sour_dir = yield call(() => path.appLocalDataDir())
-    const sour_file_path = yield call(() => path.join(sour_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const sour_file_path = yield call(() => path.join(base_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
     const content = yield call(() => readFile(sour_file_path))
     const dl_dir = yield call(() => path.downloadDir())
     const dest_dir = yield call(() => path.join(dl_dir, `RippleMessenger`))
@@ -1418,8 +1418,8 @@ function* SaveChatFile({ payload }) {
     .first())
   console.log(file)
   if (file && file.IsSaved) {
-    const sour_dir = yield call(() => path.appLocalDataDir())
-    const sour_file_path = yield call(() => path.join(sour_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const sour_file_path = yield call(() => path.join(base_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
     const content = yield call(() => readFile(sour_file_path))
     const dl_dir = yield call(() => path.downloadDir())
     const dest_dir = yield call(() => path.join(dl_dir, `RippleMessenger`))
@@ -2003,8 +2003,8 @@ function* BulletinQuote({ payload }) {
 }
 
 function* saveLocalFile(hash, content) {
-  const base_dir = yield call(() => path.appLocalDataDir())
-  const file_dir = yield call(() => path.join(base_dir, `File`, hash.substring(0, 3), hash.substring(3, 6)))
+  const base_dir = yield select(state => state.Common.AppBaseDir)
+  const file_dir = yield call(() => path.join(base_dir, `file`, hash.substring(0, 3), hash.substring(3, 6)))
   yield call(() => mkdir(file_dir, { recursive: true }))
   const save_file_path = yield call(() => path.join(file_dir, hash))
   yield call(() => writeFile(save_file_path, content))
