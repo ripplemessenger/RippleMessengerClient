@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { all } from 'redux-saga/effects'
 import createSagaMiddleware from 'redux-saga'
 
-import { watchCommon } from './sagas/CommonSaga'
+import { GetDB, LoadAppBaseDir, watchCommon } from './sagas/CommonSaga'
 import { watchUser } from './sagas/UserSaga'
 import { watchMessenger } from './sagas/MessengerSaga'
 
@@ -37,4 +37,6 @@ export const store = configureStore({
     getDefaultMiddleware().concat(sagaMiddleware)
 })
 
+sagaMiddleware.run(LoadAppBaseDir)
+sagaMiddleware.run(GetDB)
 sagaMiddleware.run(rootSaga)

@@ -13,7 +13,7 @@ export default function TabBookmark() {
 
   useEffect(() => {
     if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Bookmark) {
-      dispatch({ type: 'LoadBookmarkBulletin' })
+      dispatch({ type: 'LoadMarkBulletin' })
     }
   }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
 

@@ -6,6 +6,7 @@ import { IoCopyOutline, IoCloseOutline } from "react-icons/io5"
 import Cropper from "react-cropper"
 import "cropperjs/dist/cropper.css"
 import { FileHash } from '../lib/MessengerUtil'
+import { AvatarDir } from '../lib/AppConst'
 
 const AvatarCropper = ({ address, imageSrc, onClose }) => {
 
@@ -33,11 +34,11 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
       canvas.toBlob(async (blob) => {
         try {
           const buffer = await blob.arrayBuffer()
-          const fileName = `/avatar/${address}.png`
+          const fileName = `/${AvatarDir}/${address}.png`
           const savePath = await path.join(AppBaseDir, fileName)
           await writeFile(savePath, new Uint8Array(buffer))
 
-          const filePath = await path.join(AppBaseDir, `/avatar/${address}.png`)
+          const filePath = await path.join(AppBaseDir, `/${AvatarDir}/${address}.png`)
           const content = await readFile(filePath)
           const size = content.length
           const hash = FileHash(content)

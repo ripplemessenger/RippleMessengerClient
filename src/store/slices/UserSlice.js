@@ -14,7 +14,7 @@ const UserSlice = createSlice({
     FlashNoticeDuration: 0,
     DisplayJson: null,
 
-    LocalAccountList: [],
+    AccountList: [],
 
     // contact
     ContactList: [],
@@ -62,11 +62,11 @@ const UserSlice = createSlice({
     },
 
     // local account
-    loadLocalAccountListStart: (state) => {
-      state.LocalAccountList = []
+    loadAccountListStart: (state) => {
+      state.AccountList = []
     },
-    loadLocalAccountListSuccess: (state, action) => {
-      state.LocalAccountList = action.payload.local_account_list
+    loadAccountListSuccess: (state, action) => {
+      state.AccountList = action.payload.local_account_list
     },
 
     // contact
@@ -103,8 +103,8 @@ export const {
   setFlashNoticeMessage,
   setDisplayJson,
 
-  loadLocalAccountListStart,
-  loadLocalAccountListSuccess,
+  loadAccountListStart,
+  loadAccountListSuccess,
 
   setContactList,
   setFollowList,

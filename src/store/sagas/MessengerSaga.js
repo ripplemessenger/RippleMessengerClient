@@ -9,18 +9,12 @@ import { eventChannel, END } from 'redux-saga'
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema } from '../../lib/MessageSchemaVerifier'
 import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
-import { BulletinPageSize, CommonDBSchame, Day, DefaultPartition, DefaultServer, FileChunkSize, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
+import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
 import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message, safeAddItem } from '../../lib/AppUtil'
 import { BlobToUint32, calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/UserSlice'
-
-let CommonDB = null
-
-function initCommonDB() {
-  CommonDB = new Dexie('Common')
-  CommonDB.version(1).stores(CommonDBSchame)
-}
+import { dbAPI } from '../../db'
 
 let switchClient = null
 let switchEventChannel = null
@@ -43,6 +37,7 @@ function createSwitchEventChannel(client) {
       if (data_type === 'string') {
         try {
           const json = JSON.parse(event.data)
+          console.log(json)
           emit({ type: 'HandelReceiveMessage', payload: json })
         } catch (error) {
           console.log(event.data)
@@ -64,60 +59,34 @@ function createSwitchEventChannel(client) {
               content = Buffer.from(content)
               const content_hash = FileHash(content)
               if (request.Hash === content_hash) {
-                const avatar_dir = await path.join(base_dir, `avatar`)
+                const avatar_dir = await path.join(base_dir, AvatarDir)
                 mkdir(avatar_dir, { recursive: true })
                 let avatar_path = `${avatar_dir}/${request.Address}.png`
                 await writeFile(avatar_path, content)
-                await CommonDB.Avatars
-                  .where('Address')
-                  .equals(request.Address)
-                  .modify(a => {
-                    a.IsSaved = true
-                    a.UpdatedAt = Date.now()
-                  })
+                await dbAPI.updateAvatarIsSaved(request.Address, 1, Date.now())
               }
             } else if (request.Type === FileRequestType.File) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
               content = Buffer.from(content)
-              const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+              const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
               mkdir(file_dir, { recursive: true })
               let file_path = await path.join(file_dir, request.Hash)
-              let file = await CommonDB.Files
-                .where('Hash')
-                .equals(request.Hash)
-                .first()
-              if (file.ChunkCursor < file.ChunkLength && file.ChunkCursor + 1 === request.ChunkCursor) {
+              let file = await dbAPI.getFileByHash(request.Hash)
+              if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
                 await writeFile(file_path, content, { append: true })
                 FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                let current_chunk_cursor = file.ChunkCursor + 1
-                await CommonDB.Files
-                  .where('Hash')
-                  .equals(request.Hash)
-                  .modify(tmp => {
-                    tmp.ChunkCursor = current_chunk_cursor
-                    tmp.UpdatedAt = Date.now()
-                  })
-                if (current_chunk_cursor < file.ChunkLength) {
+                let current_chunk_cursor = file.chunk_cursor + 1
+                await dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now())
+                if (current_chunk_cursor < file.chunk_length) {
                   emit({ type: 'FetchBulletinFile', payload: { hash: request.Hash } })
                 } else {
                   let hash = FileHash(await readFile(file_path))
                   if (hash === request.Hash) {
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.IsSaved = true
-                      })
+                    await dbAPI.remoteFileSaved(request.Hash, Date.now())
                   } else {
                     await remove(file_path)
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.ChunkCursor = 0
-                        tmp.UpdatedAt = Date.now()
-                      })
+                    await dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now())
                     emit({ type: 'FetchBulletinFile', payload: { hash: request.Hash } })
                   }
                 }
@@ -126,45 +95,25 @@ function createSwitchEventChannel(client) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
               content = Buffer.from(content)
-              const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+              const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
               mkdir(file_dir, { recursive: true })
               let chat_file_path = await path.join(file_dir, request.Hash)
-              let chat_file = await CommonDB.Files
-                .where('Hash')
-                .equals(request.Hash)
-                .first()
-              if (chat_file.ChunkCursor < chat_file.ChunkLength && chat_file.ChunkCursor + 1 === request.ChunkCursor) {
-                const decrypted_content = AesDecryptBuffer(content, request.AesKey)
+              let chat_file = await dbAPI.getFileByHash(request.Hash)
+              if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
+                const decrypted_content = AesDecryptBuffer(content, request.aes_key)
                 await writeFile(chat_file_path, decrypted_content, { append: true })
                 FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                let current_chunk_cursor = chat_file.ChunkCursor + 1
-                await CommonDB.Files
-                  .where('Hash')
-                  .equals(request.Hash)
-                  .modify(tmp => {
-                    tmp.ChunkCursor = current_chunk_cursor
-                    tmp.UpdatedAt = Date.now()
-                  })
-                if (current_chunk_cursor < chat_file.ChunkLength) {
+                let current_chunk_cursor = chat_file.chunk_cursor + 1
+                await dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now())
+                if (current_chunk_cursor < chat_file.chunk_length) {
                   emit({ type: 'FetchPrivateChatFile', payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
                 } else {
                   let hash = FileHash(await readFile(chat_file_path))
                   if (hash === request.Hash) {
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.IsSaved = true
-                      })
+                    await dbAPI.remoteFileSaved(request.Hash, Date.now())
                   } else {
                     await remove(chat_file_path)
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.ChunkCursor = 0
-                        tmp.UpdatedAt = Date.now()
-                      })
+                    await dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now())
                     emit({ type: 'FetchPrivateChatFile', payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
                   }
                 }
@@ -173,57 +122,32 @@ function createSwitchEventChannel(client) {
               const index = await BlobToUint32(event.data.slice(4, 8))
               const from = getMemberByIndex(request.GroupMember, index)
               const ecdh_sequence = DHSequence(DefaultPartition, Date.now(), request.SelfAddress, from)
-              let ecdh = await CommonDB.ECDHS
-                .where({ SelfAddress: request.SelfAddress, PairAddress: from, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                .first()
-              if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                const file_dir = await path.join(base_dir, `file`, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
+              let ecdh = await dbAPI.getHandshake(request.SelfAddress, from, DefaultPartition, ecdh_sequence)
+              if (ecdh !== null && ecdh.aes_key !== null) {
+                const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
                 mkdir(file_dir, { recursive: true })
                 let chat_file_path = await path.join(file_dir, request.Hash)
-                let chat_file = await CommonDB.Files
-                  .where('Hash')
-                  .equals(request.Hash)
-                  .first()
-                if (chat_file.ChunkCursor < chat_file.ChunkLength && chat_file.ChunkCursor + 1 === request.ChunkCursor) {
+                let chat_file = await dbAPI.getFileByHash(request.Hash)
+                if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
                   let content = event.data.slice(8)
                   content = await content.arrayBuffer()
                   content = Buffer.from(content)
-                  const decrypted_content = AesDecryptBuffer(content, ecdh.AesKey)
+                  const decrypted_content = AesDecryptBuffer(content, ecdh.aes_key)
                   await writeFile(chat_file_path, decrypted_content, { append: true })
                   FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                  await CommonDB.Files
-                    .where('Hash')
-                    .equals(request.Hash)
-                    .modify(tmp => {
-                      tmp.ChunkCursor = chat_file.ChunkCursor + 1
-                      tmp.UpdatedAt = Date.now()
-                    })
+                  await dbAPI.updateFileChunkCursor(request.Hash, chat_file.chunk_cursor + 1, Date.now())
                 }
 
-                chat_file = await CommonDB.Files
-                  .where('Hash')
-                  .equals(request.Hash)
-                  .first()
-                if (chat_file.ChunkCursor < chat_file.ChunkLength) {
+                chat_file = await dbAPI.getFileByHash(request.Hash)
+                if (chat_file.chunk_cursor < chat_file.chunk_length) {
                   emit({ type: 'FetchGroupChatFile', payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
                 } else {
                   let hash = FileHash(await readFile(chat_file_path))
                   if (hash === request.Hash) {
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.IsSaved = true
-                      })
+                    await dbAPI.remoteFileSaved(request.Hash, Date.now())
                   } else {
                     await remove(chat_file_path)
-                    await CommonDB.Files
-                      .where('Hash')
-                      .equals(request.Hash)
-                      .modify(tmp => {
-                        tmp.ChunkCursor = 0
-                        tmp.UpdatedAt = Date.now()
-                      })
+                    await dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now())
                     emit({ type: 'FetchGroupChatFile', payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
                   }
                 }
@@ -309,10 +233,8 @@ function* SendMessage(payload) {
 
 function* CacheBulletin(bulletin_json) {
   let address = rippleKeyPairs.deriveAddress(bulletin_json.PublicKey)
-  let bulletin_db = yield call(() => CommonDB.Bulletins
-    .where({ Address: address, Sequence: bulletin_json.Sequence })
-    .first())
-  if (bulletin_db === undefined) {
+  let bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
+  if (bulletin_db === null) {
     let tag = []
     if (bulletin_json.Tag) {
       tag = bulletin_json.Tag
@@ -328,14 +250,10 @@ function* CacheBulletin(bulletin_json) {
         const f = file[i]
         console.log(f)
         let chunk_length = Math.ceil(f.Size / FileChunkSize)
-        yield call(() => safeAddItem(CommonDB, 'Files', 'Hash', {
-          Hash: f.Hash,
-          Size: f.Size,
-          ChunkLength: chunk_length,
-          ChunkCursor: 0,
-          IsSaved: false,
-          UpdatedAt: Date.now()
-        }))
+        let file = yield call(() => dbAPI.getFileByHash(f.Hash))
+        if (file === null) {
+          yield call(() => dbAPI.addFile(f.hash, f.size, Date.now(), chunk_length, 0, false))
+        }
         yield fork(FetchBulletinFile, { payload: { hash: f.Hash } })
       }
     }
@@ -386,9 +304,6 @@ function* handelMessengerEvent(action) {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
 
   if (action.type === updateMessengerConnStatus.type && action.payload === true) {
     // connnected
@@ -413,12 +328,9 @@ function* handelMessengerEvent(action) {
             let new_list = []
             for (let i = 0; i < json.List.length; i++) {
               const avatar = json.List[i]
-              let db_avatar = yield call(() => CommonDB.Avatars
-                .where('Address')
-                .equals(avatar.Address)
-                .first())
-              if (db_avatar !== undefined && db_avatar.SignedAt > avatar.SignedAt) {
-                new_list.push(db_avatar.Json)
+              let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar.Address))
+              if (db_avatar !== null && db_avatar.signed_at > avatar.SignedAt) {
+                new_list.push(db_avatar.json)
               }
             }
             if (new_list.length > 0) {
@@ -432,24 +344,19 @@ function* handelMessengerEvent(action) {
           break
         case ActionCode.BulletinRequest:
           if (checkBulletinRequestSchema(json) && VerifyJsonSignature(json)) {
-            let bulletin = yield call(() => CommonDB.Bulletins
-              .where({ Address: json.Address, Sequence: json.Sequence })
-              .first())
-            if (bulletin) {
-              yield call(SendMessage, { msg: JSON.stringify(bulletin.Json) })
+            let bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
+            if (bulletin !== null) {
+              yield call(SendMessage, { msg: JSON.stringify(bulletin.json) })
             } else if (json.Address === address) {
               // pull self bulletin from server
-              const last_bulletin = yield call(() => CommonDB.Bulletins
-                .where('Address').equals(json.Address)
-                .sortBy('Sequence')
-                .then(records => records[records.length - 1]))
-              if (last_bulletin === undefined) {
+              const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
+              if (last_bulletin === null) {
                 if (json.Sequence > 1) {
                   let msg = MG.genBulletinRequest(address, 1, address)
                   yield call(EnqueueMessage, { payload: { msg: msg } })
                 }
-              } else if (last_bulletin.Sequence + 1 < json.Sequence) {
-                let msg = MG.genBulletinRequest(address, last_bulletin.Sequence + 1, address)
+              } else if (last_bulletin.sequence + 1 < json.Sequence) {
+                let msg = MG.genBulletinRequest(address, last_bulletin.sequence + 1, address)
                 yield call(EnqueueMessage, { payload: { msg: msg } })
               }
             }
@@ -459,27 +366,21 @@ function* handelMessengerEvent(action) {
           console.log(json.Hash)
           if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
             if (json.FileType === FileRequestType.Avatar) {
-              let avatar = yield call(() => CommonDB.Avatars
-                .where('Hash')
-                .equals(json.Hash)
-                .first())
-              if (avatar) {
+              let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
+              if (avatar !== null) {
                 const base_dir = yield select(state => state.Common.AppBaseDir)
-                const avatar_path = yield call(() => path.join(base_dir, `/avatar/${avatar.Address}.png`))
+                const avatar_path = yield call(() => path.join(base_dir, `/${AvatarDir}/${avatar.address}.png`))
                 const content = yield call(() => readFile(avatar_path))
                 const nonce = Uint32ToBuffer(json.Nonce)
                 yield call(SendMessage, { msg: Buffer.concat([nonce, content]) })
               }
             } else if (json.FileType === FileRequestType.File) {
-              let file = yield call(() => CommonDB.Files
-                .where('Hash')
-                .equals(json.Hash)
-                .first())
-              if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
+              let file = yield call(() => dbAPI.getFileByHash(json.Hash))
+              if (file !== null && file.is_saved) {// && file.chunk_cursor >= json.ChunkCursor) {
                 const base_dir = yield select(state => state.Common.AppBaseDir)
-                const file_path = yield call(() => path.join(base_dir, `File`, json.Hash.substring(0, 3), json.Hash.substring(3, 6), json.Hash))
+                const file_path = yield call(() => path.join(base_dir, FileDir, json.Hash.substring(0, 3), json.Hash.substring(3, 6), json.Hash))
                 const nonce = Uint32ToBuffer(json.Nonce)
-                if (file.Size <= FileChunkSize) {
+                if (file.size <= FileChunkSize) {
                   const content = yield call(() => readFile(file_path))
                   yield call(SendMessage, { msg: Buffer.concat([nonce, content]) })
                 } else {
@@ -487,7 +388,7 @@ function* handelMessengerEvent(action) {
                   try {
                     const start = (json.ChunkCursor - 1) * FileChunkSize
                     fileHandle.seek(start, SeekMode.Start)
-                    const length = Math.min(FileChunkSize, file.Size - start)
+                    const length = Math.min(FileChunkSize, file.size - start)
                     const buffer = new Uint8Array(length)
                     const bytesRead = yield call(() => fileHandle.read(buffer))
                     if (bytesRead > 0) {
@@ -500,40 +401,20 @@ function* handelMessengerEvent(action) {
                 }
               }
             } else if (json.FileType === FileRequestType.PrivateChatFile) {
-              // console.log(json)
-              let chat_file = yield call(() => CommonDB.PrivateChatFiles
-                .where('EHash')
-                .equals(json.Hash)
-                .first())
-              // console.log(chat_file)
-              if (chat_file !== undefined) {
-                let file = yield call(() => CommonDB.Files
-                  .where('Hash')
-                  .equals(chat_file.Hash)
-                  .first())
-                // console.log(file)
-                if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
+              let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(json.Hash))
+              if (private_chat_file !== null) {
+                let file = yield call(() => dbAPI.getFileByHash(private_chat_file.hash))
+                if (file !== undefined && file.is_saved) {// && file.chunk_length >= json.ChunkCursor) {
                   const base_dir = yield select(state => state.Common.AppBaseDir)
-                  // console.log(base_dir)
-                  const file_path = yield call(() => path.join(base_dir, `File`, file.Hash.substring(0, 3), file.Hash.substring(3, 6), file.Hash))
-                  // console.log(file_path)
+                  const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
                   const nonce = Uint32ToBuffer(json.Nonce)
-                  // console.log(nonce)
-                  // console.log(file.Size)
-                  // console.log(FileChunkSize)
 
-                  if (file.Size <= FileChunkSize) {
+                  if (file.size <= FileChunkSize) {
                     const content = yield call(() => readFile(file_path))
                     const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                    let ecdh = yield call(() => CommonDB.ECDHS
-                      .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                      .first())
-                    // console.log(ecdh)
-                    if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                      const encrypted_content = AesEncryptBuffer(content, ecdh.AesKey)
-                      // TODO222 encrypted_content
-                      // console.log(content)
-                      // console.log(encrypted_content)
+                    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                    if (ecdh !== null && ecdh.aes_key !== null) {
+                      const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
                       yield call(SendMessage, { msg: Buffer.concat([nonce, encrypted_content]) })
                     }
                     yield call(SendMessage, { msg: Buffer.concat([nonce, content]) })
@@ -542,21 +423,15 @@ function* handelMessengerEvent(action) {
                     try {
                       const start = (json.ChunkCursor - 1) * FileChunkSize
                       fileHandle.seek(start, SeekMode.Start)
-                      const length = Math.min(FileChunkSize, file.Size - start)
+                      const length = Math.min(FileChunkSize, file.size - start)
                       const buffer = new Uint8Array(length)
                       const bytesRead = yield call(() => fileHandle.read(buffer))
                       if (bytesRead > 0) {
                         const chunk = buffer.slice(0, bytesRead)
                         const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                        let ecdh = yield call(() => CommonDB.ECDHS
-                          .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                          .first())
-                        console.log(ecdh)
-                        if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                          const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.AesKey)
-                          // TODO222 encrypted_chunk
-                          // console.log(chunk)
-                          // console.log(encrypted_chunk)
+                        let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                        if (ecdh !== null && ecdh.aes_key !== null) {
+                          const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
                           yield call(SendMessage, { msg: Buffer.concat([nonce, encrypted_chunk]) })
                         }
                       }
@@ -571,28 +446,20 @@ function* handelMessengerEvent(action) {
               if (group_member_map[json.GroupHash] && group_member_map[json.GroupHash].includes(ob_address)) {
                 let index = getMemberIndex(group_member_map[json.GroupHash], address)
                 const index_u32 = Uint32ToBuffer(index)
-                let chat_file = yield call(() => CommonDB.GroupChatFiles
-                  .where('EHash')
-                  .equals(json.Hash)
-                  .first())
-                if (chat_file !== undefined) {
-                  let file = yield call(() => CommonDB.Files
-                    .where('Hash')
-                    .equals(chat_file.Hash)
-                    .first())
-                  if (file !== undefined && file.IsSaved && file.ChunkLength >= json.ChunkCursor) {
+                let group_chat_file = yield call(() => dbAPI.getFileByHash(json.Hash))
+                if (group_chat_file !== null) {
+                  let file = yield call(() => dbAPI.getFileByHash(group_chat_file.hash))
+                  if (file !== undefined && file.is_saved) {// && file.chunk_length >= json.ChunkCursor) {
                     const base_dir = yield select(state => state.Common.AppBaseDir)
-                    const file_path = yield call(() => path.join(base_dir, `File`, file.Hash.substring(0, 3), file.Hash.substring(3, 6), file.Hash))
+                    const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
                     const nonce = Uint32ToBuffer(json.Nonce)
 
-                    if (file.Size <= FileChunkSize) {
+                    if (file.size <= FileChunkSize) {
                       const content = yield call(() => readFile(file_path))
                       const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                      let ecdh = yield call(() => CommonDB.ECDHS
-                        .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                        .first())
-                      if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                        const encrypted_content = AesEncryptBuffer(content, ecdh.AesKey)
+                      let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                      if (ecdh !== null && ecdh.aes_key !== null) {
+                        const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
                         yield call(SendMessage, { msg: Buffer.concat([nonce, index_u32, encrypted_content]) })
                       }
                     } else {
@@ -600,17 +467,15 @@ function* handelMessengerEvent(action) {
                       try {
                         const start = (json.ChunkCursor - 1) * FileChunkSize
                         fileHandle.seek(start, SeekMode.Start)
-                        const length = Math.min(FileChunkSize, file.Size - start)
+                        const length = Math.min(FileChunkSize, file.size - start)
                         const buffer = new Uint8Array(length)
                         const bytesRead = yield call(() => fileHandle.read(buffer))
                         if (bytesRead > 0) {
                           const chunk = buffer.slice(0, bytesRead)
                           const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                          let ecdh = yield call(() => CommonDB.ECDHS
-                            .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                            .first())
-                          if (ecdh !== undefined && ecdh.AesKey !== undefined) {
-                            const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.AesKey)
+                          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                          if (ecdh !== null && ecdh.aes_key !== null) {
+                            const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
                             yield call(SendMessage, { msg: Buffer.concat([nonce, index_u32, encrypted_chunk]) })
                           }
                         }
@@ -626,37 +491,23 @@ function* handelMessengerEvent(action) {
           break
         case ActionCode.PrivateMessageSync:
           if (checkPrivateMessageSyncSchema(json) && VerifyJsonSignature(json)) {
-            // TODO PrivateMessageSync pair
-            let msg_list = yield call(() => CommonDB.PrivateMessages
-              .where({ Sour: address, Dest: ob_address })
-              .reverse()
-              .sortBy('Sequence')
-            )
-            console.log(msg_list)
-            let unSyncMessageList = msg_list.filter(tmp => tmp.Sequence > json.PairSequence)
-            console.log(unSyncMessageList)
-            if (unSyncMessageList.length > 0) {
-              for (let i = 0; i < unSyncMessageList.length; i++) {
-                const msg = unSyncMessageList[i]
-                yield call(SendMessage, { msg: JSON.stringify(msg.Json) })
-              }
+            let unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
+            for (let i = 0; i < unsyncMessageList.length; i++) {
+              const msg = unsyncMessageList[i]
+              yield call(SendMessage, { msg: msg.json })
             }
           }
           break
         case ActionCode.GroupSync:
           if (checkGroupSyncSchema(json) && VerifyJsonSignature(json)) {
-            let group_list = yield call(() => CommonDB.Groups
-              .orderBy('CreatedAt')
-              .reverse()
-              .toArray())
-            group_list = group_list.filter(g => g.IsAccepted === true)
+            const group_list = yield select(state => state.Messenger.GroupList)
             let tmp_list = []
             for (let i = 0; i < group_list.length; i++) {
               const group = group_list[i]
-              if (group.DeleteJson !== undefined) {
-                tmp_list.push(group.DeleteJson)
+              if (group.delete_json !== undefined) {
+                tmp_list.push(group.delete_json)
               } else {
-                tmp_list.push(group.CreateJson)
+                tmp_list.push(group.create_json)
               }
             }
             if (tmp_list.length > 0) {
@@ -671,53 +522,34 @@ function* handelMessengerEvent(action) {
         case ActionCode.GroupMessageSync:
           if (checkGroupMessageSyncSchema(json) && VerifyJsonSignature(json)) {
             let timestamp = Date.now()
-            let group = yield call(() => CommonDB.Groups
-              .where("Hash")
-              .equals(json.Hash)
-              .first())
-            console.log(group)
-            if (group === undefined) {
+            let group = yield call(() => dbAPI.getGroupByHash(json.Hash))
+            // console.log(group)
+            if (group === null) {
               yield call(GroupSync)
-            } else if (group.IsAccepted === true && (group.CreatedBy === ob_address || group.Member.includes(ob_address))) {
+            } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
               const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
-              let ecdh = yield call(() => CommonDB.ECDHS
-                .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                .first())
-              console.log(ecdh)
-              if (ecdh === undefined && address !== ob_address) {
+              let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+              // console.log(ecdh)
+              if (ecdh === null && address !== ob_address) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-              } else if (ecdh.AesKey === undefined) {
+              } else if (ecdh.aes_key === null) {
                 yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
               } else {
                 let tmp_msg_list = []
                 if (json.Sequence === 0) {
-                  tmp_msg_list = yield call(() => CommonDB.GroupMessages
-                    .orderBy('SignedAt')
-                    .filter((msg) => msg.GroupHash === json.Hash)
-                    .limit(64)
-                    .toArray())
-                  console.log(tmp_msg_list)
+                  tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
                 } else {
-                  let current_msg = yield call(() => CommonDB.GroupMessages
-                    .where({ GroupHash: json.Hash, Address: json.Address })
-                    .filter((msg) => msg.Sequence === json.Sequence)
-                    .first())
-                  if (current_msg !== undefined) {
-                    tmp_msg_list = yield call(() => CommonDB.GroupMessages
-                      .orderBy('SignedAt')
-                      .filter((msg) => msg.GroupHash === json.Hash && msg.SignedAt > current_msg.SignedAt)
-                      .limit(64)
-                      .toArray())
+                  let current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
+                  if (current_msg !== null) {
+                    tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
                   }
-                  console.log(current_msg)
-                  console.log(tmp_msg_list)
                 }
                 if (tmp_msg_list.length > 0) {
                   let list = []
                   for (let i = 0; i < tmp_msg_list.length; i++) {
                     const tmp_msg = tmp_msg_list[i]
                     let tmp_msg_json = tmp_msg.Json
-                    let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.AesKey)
+                    let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
                     tmp_msg_json.Content = encrypt_content
                     delete tmp_msg_json["ObjectType"]
                     delete tmp_msg_json["GroupHash"]
@@ -784,29 +616,13 @@ function* handelMessengerEvent(action) {
           const avatar = json.List[i]
           if (VerifyJsonSignature(avatar)) {
             const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
-            let db_avatar = yield call(() => CommonDB.Avatars
-              .where('Address')
-              .equals(avatar_address)
-              .first())
+            let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
             if (db_avatar !== undefined) {
               if (db_avatar.SignedAt < avatar.Timestamp) {
-                yield call(() => CommonDB.Avatars
-                  .where('Address')
-                  .equals(avatar_address)
-                  .modify(a => {
-                    a.Hash = avatar.Hash
-                    a.Size = avatar.Size
-                    a.UpdatedAt = Date.now()
-                    a.SignedAt = avatar.Timestamp
-                    a.Json = avatar
-                  }))
-                if (db_avatar.Hash !== avatar.Hash) {
-                  yield call(() => CommonDB.Avatars
-                    .where('Address')
-                    .equals(avatar_address)
-                    .modify(a => {
-                      a.IsSaved = false
-                    }))
+                if (db_avatar.Hash === avatar.Hash) {
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
+                } else {
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
                   yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
                 }
               }
@@ -816,18 +632,13 @@ function* handelMessengerEvent(action) {
       } else if (json.ObjectType === ObjectType.ECDH) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
         if (checkECDHHandshakeSchema(json)) {
-          let friend = yield call(() => CommonDB.Friends
-            .where('[Local+Remote]')
-            .equals([address, ob_address])
-            .first())
+          let friend = yield call(() => dbAPI.getFriend(address, ob_address))
           // console.log(friend)
           const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
           // console.log(total_member_list)
-          if (friend !== undefined || total_member_list.includes(ob_address)) {
-            let ecdh = yield call(() => CommonDB.ECDHS
-              .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: json.Sequence })
-              .first())
-            if (ecdh === undefined) {
+          if (friend !== null || total_member_list.includes(ob_address)) {
+            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
+            if (ecdh === null) {
               const ec = new Elliptic.ec('secp256k1')
               const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
               const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
@@ -836,17 +647,7 @@ function* handelMessengerEvent(action) {
               const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
               const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
               const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-              yield call(() => CommonDB.ECDHS.add({
-                SelfAddress: address,
-                PairAddress: ob_address,
-                Partition: DefaultPartition,
-                Sequence: json.Sequence,
-                AesKey: aes_key,
-                PrivateKey: ecdh_sk,
-                PublicKey: ecdh_pk,
-                SelfJson: self_json,
-                PairJson: json
-              }))
+              yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
               yield call(SendMessage, { msg: JSON.stringify(self_json) })
             } else {
               const ec = new Elliptic.ec('secp256k1')
@@ -855,15 +656,8 @@ function* handelMessengerEvent(action) {
               const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
               const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
               const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-              yield call(() => CommonDB.ECDHS
-                .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: json.Sequence })
-                .modify(tmp => {
-                  tmp.AesKey = aes_key
-                  tmp.SelfJson = self_json
-                  tmp.PairJson = json
-                }))
-              if (json.Pair) {
-              } else {
+              yield call(() => dbAPI.updateHandshake(aes_key, self_json, json, address, ob_address, DefaultPartition, json.Sequence))
+              if (json.Pair === undefined) {
                 yield call(SendMessage, { msg: JSON.stringify(self_json) })
               }
             }
@@ -876,57 +670,31 @@ function* handelMessengerEvent(action) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
         if (checkPrivateMessageSchema(json)) {
           if (ob_address !== address) {
-            let msg_from = yield call(() => CommonDB.Friends
-              .where('[Local+Remote]')
-              .equals([address, ob_address])
-              .first())
-            if (msg_from !== undefined) {
+            let friend = yield call(() => dbAPI.getFriend(address, ob_address))
+            if (friend !== null) {
               const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-              let ecdh = yield call(() => CommonDB.ECDHS
-                .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                .first())
-              if (ecdh === undefined || ecdh.AesKey === undefined) {
+              let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+              if (ecdh === null || ecdh.aes_key === null) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
               } else {
-                let content = AesDecrypt(json.Content, ecdh.AesKey)
+                let content = AesDecrypt(json.Content, ecdh.aes_key)
                 let content_json = deriveJson(content)
                 if (content_json && checkMessageObjectSchema(content_json)) {
                   content = content_json
                 }
                 let hash = QuarterSHA512Message(json)
-                let to_save = {
-                  Hash: hash,
-                  Sour: ob_address,
-                  Dest: address,
-                  Sequence: json.Sequence,
-                  PreHash: json.PreHash,
-                  Content: content,
-                  SignedAt: json.Timestamp,
-                  // CreatedAt: timestamp,
-                  Json: json,
-                  Confirmed: 0,
-                  Readed: 0
-                }
-                if (typeof content === 'string') {
-                  to_save.IsObject = false
-                } else if (typeof content === 'object') {
-                  to_save.IsObject = true
-                  to_save.ObjectType = content.ObjectType
+                if (typeof content === 'object') {
                   if (content.ObjectType === MessageObjectType.PrivateChatFile) {
                     yield fork(FetchPrivateChatFile, { payload: { remote: ob_address, hash: content.Hash, size: content.Size } })
                   }
                 }
 
-                let [last_msg] = yield call(() => CommonDB.PrivateMessages
-                  .where({ Sour: ob_address, Dest: address })
-                  .reverse()
-                  .sortBy('Sequence')
-                )
+                let last_msg = yield call(() => dbAPI.getLastPrivateMessage(ob_address, address))
                 const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-                if (last_msg === undefined) {
+                if (last_msg === null) {
                   if (json.Sequence === 1 && json.PreHash === GenesisHash) {
                     // first msg, save
-                    yield call(() => safeAddItem(CommonDB, 'PrivateMessages', 'Hash', to_save))
+                    yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
                     if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
                       yield call(RefreshPrivateMessageList)
                     } else {
@@ -938,15 +706,15 @@ function* handelMessengerEvent(action) {
                   }
                 } else {
                   // (last_msg !== undefined)
-                  if (last_msg.Sequence + 1 === json.Sequence && last_msg.Hash === json.PreHash) {
+                  if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
                     // chained msg, save
-                    yield call(() => safeAddItem(CommonDB, 'PrivateMessages', 'Hash', to_save))
+                    yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
                     if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
                       yield call(RefreshPrivateMessageList)
                     } else {
                       // TODO: unread message count
                     }
-                  } else if (last_msg.Sequence + 1 < json.Sequence) {
+                  } else if (last_msg.sequence + 1 < json.Sequence) {
                     // unchained msg, request next msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: ob_address } })
                   }
@@ -955,65 +723,40 @@ function* handelMessengerEvent(action) {
             }
           } else {
             // sync self message
-            let msg_to = yield call(() => CommonDB.Friends
-              .where('[Local+Remote]')
-              .equals([address, json.To])
-              .first())
-            if (msg_to !== undefined && msg_to.IsAccepted === false) {
-              msg_to = undefined
-            }
-            if (msg_to !== undefined) {
+            let msg_to = yield call(() => dbAPI.getFriend(address, json.To))
+            if (msg_to !== null) {
               const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, json.To)
-              let ecdh = yield call(() => CommonDB.ECDHS
-                .where({ SelfAddress: address, PairAddress: json.To, Partition: DefaultPartition, Sequence: ecdh_sequence })
-                .first())
-              if (ecdh === undefined || ecdh.AesKey === undefined) {
+              let ecdh = yield call(() => dbAPI.getHandshake(address, json.To, DefaultPartition, ecdh_sequence))
+              if (ecdh === null || ecdh.aes_key === null) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: json.To })
               } else {
-                let content = AesDecrypt(json.Content, ecdh.AesKey)
+                let content = AesDecrypt(json.Content, ecdh.aes_key)
                 let content_json = deriveJson(content)
                 if (content_json && checkMessageObjectSchema(content_json)) {
                   content = content_json
                 }
                 let hash = QuarterSHA512Message(json)
-                let to_save = {
-                  Hash: hash,
-                  Sour: address,
-                  Dest: json.To,
-                  Sequence: json.Sequence,
-                  PreHash: json.PreHash,
-                  Content: content,
-                  SignedAt: json.Timestamp,
-                  Json: json,
-                  Confirmed: 0,
-                  Readed: 0
-                }
-                if (typeof content === 'string') {
-                  to_save.IsObject = false
-                } else if (typeof content === 'object') {
-                  to_save.IsObject = true
-                  to_save.ObjectType = content.ObjectType
+                if (typeof content === 'object') {
+                  if (content.ObjectType === MessageObjectType.PrivateChatFile) {
+                    yield fork(FetchPrivateChatFile, { payload: { remote: json.To, hash: content.Hash, size: content.Size } })
+                  }
                 }
 
-                let [last_msg] = yield call(() => CommonDB.PrivateMessages
-                  .where({ Sour: address, Dest: json.To })
-                  .reverse()
-                  .sortBy('Sequence')
-                )
-                if (last_msg === undefined) {
+                let last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, json.To))
+                if (last_msg === null) {
                   if (json.Sequence === 1 && json.PreHash === GenesisHash) {
                     // first msg, save
-                    yield call(() => safeAddItem(CommonDB, 'PrivateMessages', 'Hash', to_save))
+                    yield call(() => dbAPI.addPrivateMessage(hash, address, json.To, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
                   } else {
                     // request first msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: json.To } })
                   }
                 } else {
                   // (last_msg !== undefined)
-                  if (last_msg.Sequence + 1 === json.Sequence && last_msg.Hash === json.PreHash) {
+                  if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
                     // chained msg, save
-                    yield call(() => safeAddItem(CommonDB, 'PrivateMessages', 'Hash', to_save))
-                  } else if (last_msg.Sequence + 1 < json.Sequence) {
+                    yield call(() => dbAPI.addPrivateMessage(hash, address, json.To, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
+                  } else if (last_msg.sequence + 1 < json.Sequence) {
                     // unchained msg, request next msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: json.To } })
                   }
@@ -1026,41 +769,22 @@ function* handelMessengerEvent(action) {
         if (checkGroupListSchema(json)) {
           for (let i = 0; i < json.List.length; i++) {
             const group_json = json.List[i]
-            let db_g = yield call(() => CommonDB.Groups
-              .where('Hash')
-              .equals(group_json.Hash)
-              .first())
+            let db_g = yield call(() => dbAPI.getGroupByHash(group_json.Hash))
             if (group_json.ObjectType === ObjectType.GroupCreate && VerifyJsonSignature(group_json)) {
-              if (db_g === undefined) {
+              if (db_g === null) {
                 const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
-                let new_group = {
-                  Hash: group_json.Hash,
-                  Name: group_json.Name,
-                  CreatedBy: created_by,
-                  Member: group_json.Member,
-                  CreatedAt: group_json.Timestamp,
-                  CreateJson: group_json,
-                  IsAccepted: false
-                }
                 if (created_by === address) {
-                  new_group.IsAccepted = true
-                  let result = yield call(() => CommonDB.Groups.add(new_group))
+                  yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
                   yield call(LoadSessionList)
                   yield call(LoadGroupList)
-                } else {
-                  let result = yield call(() => CommonDB.Groups.add(new_group))
+                } else if (group_json.Member.includes(address)) {
+                  yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
                   yield call(LoadGroupRequestList)
                 }
               }
             } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
-              if (db_g !== undefined && db_g.DeletedAt === undefined) {
-                yield call(() => CommonDB.Groups
-                  .where('Hash')
-                  .equals(group_json.Hash)
-                  .modify(tmp => {
-                    tmp.DeletedAt = group_json.Timestamp
-                    tmp.DeleteJson = group_json
-                  }))
+              if (db_g !== null) {
+                yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
               }
             }
           }
@@ -1068,33 +792,25 @@ function* handelMessengerEvent(action) {
       } else if (json.ObjectType === ObjectType.GroupMessageList) {
         if (checkGroupMessageListSchema(json)) {
           const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-          let group = yield call(() => CommonDB.Groups
-            .where("Hash")
-            .equals(json.GroupHash)
-            .first())
-          if (group === undefined) {
+          let group = yield call(() => dbAPI.getGroupByHash(json.GroupHash))
+          if (group === null) {
             yield call(GroupSync)
-          } else if (group.IsAccepted === true) {
+          } else if (group.is_accepted === true) {
             const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-            let ecdh = yield call(() => CommonDB.ECDHS
-              .where({ SelfAddress: address, PairAddress: ob_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-              .first())
-            if (ecdh === undefined) {
+            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+            if (ecdh === null) {
               yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-            } else if (ecdh.AesKey === undefined) {
+            } else if (ecdh.aes_key === null) {
               yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
             } else {
               let unCachedMessageAddress = []
               for (let i = 0; i < json.List.length; i++) {
                 const group_msg = json.List[i]
                 const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
-                let pre_message = yield call(() => CommonDB.GroupMessages
-                  .where('Hash')
-                  .equals(group_msg.PreHash)
-                  .first())
+                let pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
                 if (pre_message !== undefined
                   || (pre_message === undefined && group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
-                  let content = AesDecrypt(group_msg.Content, ecdh.AesKey)
+                  let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
                   let content_json = deriveJson(content)
                   if (content_json && checkMessageObjectSchema(content_json)) {
                     content = content_json
@@ -1115,59 +831,24 @@ function* handelMessengerEvent(action) {
                   }
                   if (VerifyJsonSignature(verify_json)) {
                     let hash = QuarterSHA512Message(verify_json)
-                    let to_save = {
-                      Hash: hash,
-                      GroupHash: json.GroupHash,
-                      Address: msg_address,
-                      Sequence: verify_json.Sequence,
-                      PreHash: verify_json.PreHash,
-                      Content: verify_json.Content,
-                      SignedAt: verify_json.Timestamp,
-                      Json: verify_json,
-                      Confirmed: 0,
-                      Readed: 1
-                    }
-                    if (typeof verify_json.Content === 'string') {
-                      to_save.IsObject = false
-                    } else if (typeof verify_json.Content === 'object') {
-                      to_save.IsObject = true
-                      to_save.ObjectType = verify_json.Content.ObjectType
+                    if (typeof verify_json.Content === 'object') {
                       if (verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
                         let chunk_length = Math.ceil(verify_json.Content.Size / FileChunkSize)
-                        let file = yield call(() => CommonDB.Files
-                          .where('Hash')
-                          .equals(verify_json.Content.Hash)
-                          .first())
-                        if (file === undefined) {
-                          let result = yield call(() => CommonDB.Files.add({
-                            Hash: verify_json.Content.Hash,
-                            Size: verify_json.Content.Size,
-                            UpdatedAt: Date.now(),
-                            ChunkLength: chunk_length,
-                            ChunkCursor: 0,
-                            IsSaved: false
-                          }))
+                        let file = yield call(() => dbAPI.getFileByHash(verify_json.Content.Hash))
+                        if (file === null) {
+                          yield call(() => dbAPI.addFile(verify_json.Content.Hash, verify_json.Content.Size, Date.now(), chunk_length, 0, false))
                         }
 
                         const ehash = GroupFileEHash(json.GroupHash, verify_json.Content.Hash)
                         console.log(verify_json.Content.Hash)
                         console.log(ehash)
-                        let group_chat_file = yield CommonDB.GroupChatFiles
-                          .where('EHash')
-                          .equals(ehash)
-                          .first()
-                        console.log(group_chat_file)
-                        if (group_chat_file === undefined) {
-                          let result = yield call(() => CommonDB.GroupChatFiles.add({
-                            EHash: ehash,
-                            Hash: verify_json.Content.Hash,
-                            Size: verify_json.Content.Size,
-                            GroupHash: json.GroupHash
-                          }))
+                        let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
+                        if (group_chat_file === null) {
+                          yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, verify_json.Content.Hash, verify_json.Content.Size))
                         }
                       }
                     }
-                    yield call(() => safeAddItem(CommonDB, 'GroupMessages', 'Hash', to_save))
+                    yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, false, typeof verify_json.Content === 'object'))
                     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
                     if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
                       yield call(RefreshGroupMessageList)
@@ -1183,18 +864,12 @@ function* handelMessengerEvent(action) {
               console.log(unCachedMessageAddress)
               for (let i = 0; i < unCachedMessageAddress.length; i++) {
                 const msg_address = unCachedMessageAddress[i]
-                let [last_msg] = yield call(() => CommonDB.GroupMessages
-                  .where({ Address: msg_address, GroupHash: json.GroupHash })
-                  // .where("Address")
-                  // .equals(msg_address)
-                  .reverse()
-                  .sortBy('SignedAt')
-                )
-                if (last_msg === undefined) {
+                let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
+                if (last_msg === null) {
                   let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, 0, ob_address)
                   yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
                 } else {
-                  let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, last_msg.Sequence, ob_address)
+                  let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, last_msg.sequence, ob_address)
                   yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
                 }
               }
@@ -1224,38 +899,32 @@ function genFileNonce() {
 }
 
 function* FetchBulletinFile({ payload }) {
-  let file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file !== undefined && file.IsSaved === false) {
+  let file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file !== null && file.is_saved === 0) {
     let nonce = genFileNonce()
     let tmp = {
       Type: FileRequestType.File,
       Nonce: nonce,
-      Hash: file.Hash,
-      ChunkCursor: file.ChunkCursor + 1,
+      Hash: file.hash,
+      ChunkCursor: file.chunk_cursor + 1,
       // Address: address,
       Timestamp: Date.now()
     }
     FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
-    FileRequestList = FileRequestList.filter(r => r.Hash !== file.Hash)
+    FileRequestList = FileRequestList.filter(r => r.Hash !== file.hash)
     FileRequestList.push(tmp)
-    let file_request = MG.genFileRequest(FileRequestType.File, file.Hash, nonce, file.ChunkCursor + 1)
+    let file_request = MG.genFileRequest(FileRequestType.File, file.hash, nonce, file.chunk_cursor + 1)
     yield call(SendMessage, { msg: file_request })
   }
 }
 
 function* SaveBulletinFile({ payload }) {
   console.log(payload)
-  const file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
+  const file = yield call(() => dbAPI.getFileByHash(payload.hash))
   console.log(file)
-  if (file && file.IsSaved) {
+  if (file && file.is_saved) {
     const base_dir = yield select(state => state.Common.AppBaseDir)
-    const sour_file_path = yield call(() => path.join(base_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
+    const sour_file_path = yield call(() => path.join(base_dir, FileDir, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
     const content = yield call(() => readFile(sour_file_path))
     const dl_dir = yield call(() => path.downloadDir())
     const dest_dir = yield call(() => path.join(dl_dir, `RippleMessenger`))
@@ -1272,48 +941,24 @@ function* SaveBulletinFile({ payload }) {
 function* FetchPrivateChatFile({ payload }) {
   const self_address = yield select(state => state.User.Address)
   const ehash = PrivateFileEHash(self_address, payload.remote, payload.hash)
-  let chat_file = yield call(() => CommonDB.PrivateChatFiles
-    .where('EHash')
-    .equals(ehash)
-    .first())
-  if (chat_file === undefined) {
-    let result = yield call(() => CommonDB.PrivateChatFiles.add({
-      EHash: ehash,
-      Hash: payload.hash,
-      Size: payload.size,
-      Address1: self_address > payload.remote ? self_address : payload.remote,
-      Address2: self_address > payload.remote ? payload.remote : self_address
-    }))
+  let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(ehash))
+  if (private_chat_file === null) {
+    yield call(() => dbAPI.addPrivateFile(ehash, self_address, payload.remote, payload.hash, payload.size))
   }
 
   let chunk_length = Math.ceil(payload.size / FileChunkSize)
-  let file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file === undefined) {
-    let result = yield call(() => CommonDB.Files.add({
-      Hash: payload.hash,
-      Size: payload.size,
-      UpdatedAt: Date.now(),
-      ChunkLength: chunk_length,
-      ChunkCursor: 0,
-      IsSaved: false
-    }))
+  let file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file === null) {
+    yield call(() => dbAPI.addFile(payload.hash, payload.size, Date.now(), chunk_length, 0, false))
   }
 
-  file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file && !file.IsSaved) {
+  file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file && !file.is_saved) {
     let timestamp = Date.now()
     const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, payload.remote)
-    let ecdh = yield call(() => CommonDB.ECDHS
-      .where({ SelfAddress: self_address, PairAddress: payload.remote, Partition: DefaultPartition, Sequence: ecdh_sequence })
-      .first())
+    let ecdh = yield call(() => dbAPI.getHandshake(self_address, payload.remote, DefaultPartition, ecdh_sequence))
     console.log(ecdh)
-    if (ecdh !== undefined && ecdh.AesKey !== undefined) {
+    if (ecdh !== null && ecdh.aes_key !== null) {
       let nonce = genFileNonce()
       let tmp = {
         Type: FileRequestType.PrivateChatFile,
@@ -1321,15 +966,15 @@ function* FetchPrivateChatFile({ payload }) {
         EHash: ehash,
         Hash: payload.hash,
         Size: payload.size,
-        ChunkCursor: file.ChunkCursor + 1,
+        ChunkCursor: file.chunk_cursor + 1,
         Address: payload.remote,
-        AesKey: ecdh.AesKey,
+        aes_key: ecdh.aes_key,
         Timestamp: timestamp
       }
       FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
       FileRequestList = FileRequestList.filter(r => r.EHash !== ehash)
       FileRequestList.push(tmp)
-      let file_request = MG.genFileRequest(FileRequestType.PrivateChatFile, ehash, nonce, file.ChunkCursor + 1, payload.remote)
+      let file_request = MG.genFileRequest(FileRequestType.PrivateChatFile, ehash, nonce, file.chunk_cursor + 1, payload.remote)
       yield call(SendMessage, { msg: file_request })
     }
   } else {
@@ -1338,43 +983,21 @@ function* FetchPrivateChatFile({ payload }) {
 }
 
 function* FetchGroupChatFile({ payload }) {
-  console.log(payload)
   const self_address = yield select(state => state.User.Address)
   const ehash = GroupFileEHash(payload.group_hash, payload.hash)
-  let chat_file = yield call(() => CommonDB.GroupChatFiles
-    .where('EHash')
-    .equals(ehash)
-    .first())
-  if (chat_file === undefined) {
-    let result = yield call(() => CommonDB.GroupChatFiles.add({
-      EHash: ehash,
-      Hash: payload.hash,
-      Size: payload.size,
-      GroupHash: payload.group_hash
-    }))
+  let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(ehash))
+  if (group_chat_file === null) {
+    yield call(() => dbAPI.addGroupFile(ehash, payload.group_hash, payload.hash, payload.size))
   }
 
   let chunk_length = Math.ceil(payload.size / FileChunkSize)
-  let file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file === undefined) {
-    let result = yield call(() => CommonDB.Files.add({
-      Hash: payload.hash,
-      Size: payload.size,
-      UpdatedAt: Date.now(),
-      ChunkLength: chunk_length,
-      ChunkCursor: 0,
-      IsSaved: false
-    }))
+  let file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file === null) {
+    yield call(() => dbAPI.addFile(payload.hash, payload.size, Date.now(), chunk_length, 0, false))
   }
 
-  file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (file && !file.IsSaved) {
+  file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file && !file.is_saved) {
     let timestamp = Date.now()
     let nonce = genFileNonce()
     const group_member_map = yield select(state => state.Messenger.GroupMemberMap)
@@ -1384,7 +1007,7 @@ function* FetchGroupChatFile({ payload }) {
       EHash: ehash,
       Hash: payload.hash,
       Size: payload.size,
-      ChunkCursor: file.ChunkCursor + 1,
+      ChunkCursor: file.chunk_cursor + 1,
       GroupHash: payload.group_hash,
       GroupMember: group_member_map[payload.group_hash],
       SelfAddress: self_address,
@@ -1394,7 +1017,7 @@ function* FetchGroupChatFile({ payload }) {
     FileRequestList = FileRequestList.filter(r => r.EHash === ehash)
     console.log(tmp)
     FileRequestList.push(tmp)
-    let file_request = MG.genGroupFileRequest(payload.group_hash, ehash, nonce, file.ChunkCursor + 1)
+    let file_request = MG.genGroupFileRequest(payload.group_hash, ehash, nonce, file.chunk_cursor + 1)
     yield call(SendMessage, { msg: file_request })
   } else {
     // file exist
@@ -1412,14 +1035,10 @@ function* FetchChatFile({ payload }) {
 
 function* SaveChatFile({ payload }) {
   console.log(payload)
-  const file = yield call(() => CommonDB.Files
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  console.log(file)
-  if (file && file.IsSaved) {
+  const file = yield call(() => dbAPI.getFileByHash(payload.hash))
+  if (file && file.is_saved) {
     const base_dir = yield select(state => state.Common.AppBaseDir)
-    const sour_file_path = yield call(() => path.join(base_dir, `File`, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
+    const sour_file_path = yield call(() => path.join(base_dir, FileDir, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
     const content = yield call(() => readFile(sour_file_path))
     const dl_dir = yield call(() => path.downloadDir())
     const dest_dir = yield call(() => path.join(dl_dir, `RippleMessenger`))
@@ -1479,19 +1098,14 @@ function* ReConnnect() {
 }
 
 export function* LoadServerList() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let server_list = yield call(() => CommonDB.Servers
-    .reverse()
-    .sortBy('UpdatedAt'))
+  let server_list = yield call(() => dbAPI.getAllServers())
   if (server_list.length === 0) {
-    const server = {
-      URL: DefaultServer,
-      UpdatedAt: Date.now()
-    }
-    yield call(() => CommonDB.Servers.add(server))
-    server_list.push(server)
+    const timestamp = Date.now()
+    yield call(() => dbAPI.addServer(DefaultServer, timestamp))
+    server_list.push({
+      url: DefaultServer,
+      updated_at: timestamp
+    })
   }
   yield put(setServerList(server_list))
   yield put(setCurrentServer(server_list[0].URL))
@@ -1499,69 +1113,38 @@ export function* LoadServerList() {
 }
 
 function* ServerAdd({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
+  const server = yield call(() => dbAPI.getServerByURL(payload.url))
+  if (server === null) {
+    yield call(() => dbAPI.addServer(payload.url, Date.now()))
+  } else {
+    yield call(() => dbAPI.updateServer(payload.url, Date.now()))
   }
-  yield call(() => safeAddItem(CommonDB, 'Servers', 'URL', {
-    URL: payload.url,
-    UpdatedAt: Date.now()
-  }))
   yield call(LoadServerList)
 }
 
 function* ServerDel({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  yield call(() => CommonDB.Servers
-    .where('URL')
-    .equals(payload.url)
-    .delete())
+  yield call(() => dbAPI.deleteServer(payload.url))
   yield call(LoadServerList)
 }
 
 function* ServerUse({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  yield call(() => CommonDB.Servers
-    .where('URL')
-    .equals(payload.url)
-    .modify(s => {
-      s.UpdatedAt = Date.now()
-    }))
+  yield call(() => dbAPI.updateServer(payload.url, Date.now()))
   yield call(LoadServerList)
 }
 
 // avatar
 function* CheckAvatar({ payload }) {
   // console.log(payload)
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let avatar = yield call(() => CommonDB.Avatars
-    .where('Address')
-    .equals(payload.address)
-    .first())
-  if (avatar === undefined) {
+  let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
+  if (db_avatar === null) {
     console.log(`new avatar wanted...`)
-    yield call(() => CommonDB.Avatars.add({
-      Address: payload.address,
-      Hash: GenesisHash,
-      Size: 0,
-      UpdatedAt: Epoch,
-      SignedAt: Epoch,
-      IsSaved: false
-    }))
+    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, "", Epoch, 0))
   }
 }
 
 function* SaveSelfAvatar({ payload }) {
   const address = yield select(state => state.User.Address)
-  let db_avatar = yield call(() => CommonDB.Avatars
-    .where('Address')
-    .equals(address)
-    .first())
+  let db_avatar = yield call(() => dbAPI.getAvatarByAddress(address))
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1572,18 +1155,8 @@ function* SaveSelfAvatar({ payload }) {
   }
 
   let avatar_json = MG.genAvatarJson(payload.hash, payload.size, payload.timestamp)
-  if (db_avatar !== undefined) {
-    yield call(() => CommonDB.Avatars
-      .where('Address')
-      .equals(address)
-      .modify(a => {
-        a.Hash = payload.hash
-        a.Size = payload.size
-        a.Json = avatar_json
-        a.UpdatedAt = payload.timestamp
-        a.SignedAt = payload.timestamp
-        a.IsSaved = true
-      }))
+  if (db_avatar !== null) {
+    yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, 1))
   }
 
   let avatar_response = {
@@ -1594,9 +1167,6 @@ function* SaveSelfAvatar({ payload }) {
 }
 
 export function* AvatarRequest() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1606,21 +1176,13 @@ export function* AvatarRequest() {
     yield call(initMessageGenerator, seed)
   }
   let timestamp = Date.now()
-  let old_avatar_list = yield call(() => CommonDB.Avatars
-    .orderBy('UpdatedAt')
-    .limit(64)
-    .toArray())
+  let old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
   let list = []
   for (let i = 0; i < old_avatar_list.length; i++) {
     const avatar = old_avatar_list[i];
-    if (avatar.UpdatedAt < timestamp - Hour) {
-      list.push({ Address: avatar.Address, SignedAt: avatar.SignedAt })
-      yield call(() => CommonDB.Avatars
-        .where('Address')
-        .equals(avatar.Address)
-        .modify(a => {
-          a.UpdatedAt = timestamp
-        }))
+    if (avatar.updated_at < timestamp - Hour) {
+      list.push({ Address: avatar.address, SignedAt: avatar.signed_at })
+      yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
     }
   }
   if (list.length > 0) {
@@ -1632,9 +1194,6 @@ export function* AvatarRequest() {
 function* RequestAvatarFile(payload) {
   if (payload.hash === GenesisHash) {
     return
-  }
-  if (CommonDB === null) {
-    yield call(initCommonDB)
   }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
@@ -1661,9 +1220,6 @@ function* RequestAvatarFile(payload) {
 
 // bulletin
 function* RequestNextBulletin({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1672,23 +1228,16 @@ function* RequestNextBulletin({ payload }) {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  let [bulletin] = yield call(() => CommonDB.Bulletins
-    .where('Address')
-    .equals(payload.address)
-    .reverse()
-    .sortBy('Sequence'))
+  let last_bulletin = yield call(() => dbAPI.getLastBulletin(payload.address))
   let request_sequence = 1
-  if (bulletin !== undefined) {
-    request_sequence = bulletin.Sequence + 1
+  if (last_bulletin !== null) {
+    request_sequence = last_bulletin.sequence + 1
   }
   let bulletin_request = MG.genBulletinRequest(payload.address, request_sequence, payload.address)
   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
 }
 
 function* LoadMineBulletin() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   if (!seed) {
@@ -1696,13 +1245,9 @@ function* LoadMineBulletin() {
     return
   }
 
-  let bulletins = yield call(() => CommonDB.Bulletins
-    .orderBy('Sequence')
-    .reverse()
-    .filter(record => record.Address === address)
-    .toArray())
+  let bulletins = yield call(() => dbAPI.getMyBulletins(address))
   if (bulletins.length > 0) {
-    yield put(setCurrentBulletinSequence(bulletins[0].Sequence))
+    yield put(setCurrentBulletinSequence(bulletins[0].sequence))
   } else {
     yield put(setCurrentBulletinSequence(0))
   }
@@ -1710,9 +1255,6 @@ function* LoadMineBulletin() {
 }
 
 function* LoadFollowBulletin() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   if (!seed) {
@@ -1720,23 +1262,16 @@ function* LoadFollowBulletin() {
     return
   }
 
-  let follows = yield call(() => CommonDB.Follows
-    .where('Local')
-    .equals(address)
-    .toArray())
-  if (follows.length > 0) {
+  let follow_list = yield call(() => dbAPI.getMyFollows(address))
+  if (follow_list.length > 0) {
     let follow_address_list = []
-    for (let i = 0; i < follows.length; i++) {
-      const follow = follows[i]
-      follow_address_list.push(follow.Remote)
-      yield fork(RequestNextBulletin, { payload: { address: follow.Remote } })
+    for (let i = 0; i < follow_list.length; i++) {
+      const follow = follow_list[i]
+      follow_address_list.push(follow.remote)
+      yield fork(RequestNextBulletin, { payload: { address: follow.remote } })
     }
 
-    let bulletins = yield call(() => CommonDB.Bulletins
-      .where('Address')
-      .anyOf(follow_address_list)
-      .sortBy('SignedAt')
-    )
+    let bulletins = yield call(() => dbAPI.getSetBulletins(follow_address_list))
     bulletins = bulletins.reverse()
     yield put(setFollowBulletinList(bulletins))
   } else {
@@ -1744,24 +1279,13 @@ function* LoadFollowBulletin() {
   }
 }
 
-function* LoadBookmarkBulletin() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-
-  let bulletins = yield call(() => CommonDB.Bulletins
-    .orderBy('SignedAt')
-    .reverse()
-    .filter(b => b.IsMark === true)
-    .toArray())
+function* LoadMarkBulletin() {
+  let bulletins = yield call(() => dbAPI.getMarkBulletins())
   yield put(setBookmarkBulletinList(bulletins))
 }
 
 function* LoadBulletin(action) {
   console.log(action)
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1771,11 +1295,8 @@ function* LoadBulletin(action) {
     yield call(initMessageGenerator, seed)
   }
 
-  let bulletin = yield call(() => CommonDB.Bulletins
-    .where('Hash')
-    .equals(action.payload.hash)
-    .first())
-  if (bulletin === undefined) {
+  let bulletin = yield call(() => dbAPI.getBulletinByHash(action.payload.hash))
+  if (bulletin === null) {
     let to = action.payload.address
     if (action.payload.to) {
       to = action.payload.to
@@ -1899,11 +1420,8 @@ function* RequestTagBulletin({ payload }) {
 
 // Publish
 function* PublishBulletin(action) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
+  const seed = yield select(state => state.User.Seed)
   const tag = yield select(state => state.Messenger.PublishTagList)
   const quote = yield select(state => state.Messenger.PublishQuoteList)
   const file = yield select(state => state.Messenger.PublishFileList)
@@ -1914,16 +1432,13 @@ function* PublishBulletin(action) {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  const last_bulletin = yield call(() => CommonDB.Bulletins
-    .where('Address').equals(address)
-    .sortBy('Sequence')
-    .then(records => records[records.length - 1]))
+  const last_bulletin = yield call(() => dbAPI.getLastBulletin(address))
   let bulletin_json
   let timestamp = Date.now()
-  if (last_bulletin === undefined) {
+  if (last_bulletin === null) {
     bulletin_json = MG.genBulletinJson(1, GenesisHash, tag, quote, file, action.payload.content, timestamp)
   } else {
-    bulletin_json = MG.genBulletinJson(last_bulletin.Sequence + 1, last_bulletin.Hash, tag, quote, file, action.payload.content, timestamp)
+    bulletin_json = MG.genBulletinJson(last_bulletin.sequence + 1, last_bulletin.hash, tag, quote, file, action.payload.content, timestamp)
   }
   let new_bulletin = {
     Hash: QuarterSHA512Message(bulletin_json),
@@ -2004,7 +1519,7 @@ function* BulletinQuote({ payload }) {
 
 function* saveLocalFile(hash, content) {
   const base_dir = yield select(state => state.Common.AppBaseDir)
-  const file_dir = yield call(() => path.join(base_dir, `file`, hash.substring(0, 3), hash.substring(3, 6)))
+  const file_dir = yield call(() => path.join(base_dir, FileDir, hash.substring(0, 3), hash.substring(3, 6)))
   yield call(() => mkdir(file_dir, { recursive: true }))
   const save_file_path = yield call(() => path.join(file_dir, hash))
   yield call(() => writeFile(save_file_path, content))
@@ -2023,30 +1538,13 @@ function* BulletinFileAdd({ payload }) {
     const hash = FileHash(content)
 
     let chunk_length = Math.ceil(file_info.size / FileChunkSize)
-    let file = yield call(() => CommonDB.Files
-      .where('Hash')
-      .equals(hash)
-      .first())
-    if (file === undefined) {
+    let file = yield call(() => dbAPI.getFileByHash(hash))
+    if (file === null) {
       yield call(() => saveLocalFile(hash, content))
-      let result = yield call(() => CommonDB.Files.add({
-        Hash: hash,
-        Size: file_info.size,
-        UpdatedAt: Date.now(),
-        ChunkLength: chunk_length,
-        ChunkCursor: chunk_length,
-        IsSaved: true
-      }))
+      yield call(() => dbAPI.addFile(hash, file_info.size, Date.now(), chunk_length, chunk_length, true))
     } else {
       yield call(() => saveLocalFile(hash, content))
-      let updatedCount = yield call(() => CommonDB.Files
-        .where('Hash')
-        .equals(hash)
-        .modify(tmp => {
-          tmp.ChunkCursor = chunk_length
-          tmp.IsSaved = true
-          tmp.UpdatedAt = Date.now()
-        }))
+      yield call(() => dbAPI.localFileSaved(hash, chunk_length, Date.now()))
     }
 
     let new_file = {
@@ -2058,7 +1556,7 @@ function* BulletinFileAdd({ payload }) {
     const old_list = yield select(state => state.Messenger.PublishFileList)
     for (let i = 0; i < old_list.length; i++) {
       const file = old_list[i]
-      if (file.Hash === new_file.Hash) {
+      if (file.hash === new_file.Hash) {
         return
       }
     }
@@ -2079,12 +1577,10 @@ function* BulletinFileDel({ payload }) {
 }
 
 function* BulletinMarkToggle({ payload }) {
-  let updatedCount = yield call(() => CommonDB.Bulletins
-    .where('Hash')
-    .equals(payload.hash)
-    .modify(tmp => {
-      tmp.IsMark = !tmp.IsMark
-    }))
+  const bulletin_db = yield call(() => dbAPI.getBulletinByHash(payload.hash))
+  if (bulletin_db !== null) {
+    yield call(() => dbAPI.toggleBulletinMark(payload.hash, !bulletin_db.is_marked))
+  }
 }
 
 // channel
@@ -2119,72 +1615,38 @@ function* RefreshChannelMessageList() {
 }
 
 function* CreateChannel(action) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const address = yield select(state => state.User.Address)
   const speaker = yield select(state => state.Messenger.ComposeSpeakerList)
-  const db_channel = yield call(() => CommonDB.Channels
-    .where('Name')
-    .equals(action.payload.name)
-    .first()
-  )
-  if (db_channel === undefined) {
-    const new_channel = {
-      Name: action.payload.name,
-      CreatedBy: address,
-      Speaker: speaker,
-      CreatedAt: Date.now(),
-    }
-    let result = yield call(() => CommonDB.Channels.add(new_channel))
+  const db_channel = yield call(() => dbAPI.getChannelByName(address, action.payload.name))
+  if (db_channel === null) {
+    yield call(() => dbAPI.addChannel(address, action.payload.name, speaker, Date.now()))
   } else {
-    let result = yield call(() => CommonDB.Channels
-      .where('Name')
-      .equals(action.payload.name)
-      .modify(tmp => {
-        tmp.Speaker = speaker
-        tmp.CreatedAt = Date.now()
-      }))
+    yield call(() => dbAPI.updateChannel(address, action.payload.name, speaker, Date.now()))
   }
   yield put(setComposeSpeakerList([]))
   yield call(LoadChannelList)
 }
 
 function* DeleteChannel(action) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let result = yield call(() => CommonDB.Channels
-    .where('Name')
-    .equals(action.payload.name)
-    .delete())
-  if (result) {
-    yield call(LoadChannelList)
-  }
+  const address = yield select(state => state.User.Address)
+  yield call(() => dbAPI.deleteChannel(address, action.payload.name))
+  yield call(LoadChannelList)
 }
 
 export function* LoadChannelList() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  const channel_list = yield call(() => CommonDB.Channels
-    .orderBy('CreatedAt')
-    .reverse()
-    .toArray())
-  console.log(channel_list)
+  const address = yield select(state => state.User.Address)
+  const channel_list = yield call(() => dbAPI.getMyChannels(address))
   yield put(setChannelList(channel_list))
 }
 
 function* LoadCurrentChannel({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const channel = { name: payload.Name, speaker: payload.Speaker, updated_at: payload.CreatedAt }
   yield put(setCurrentChannel(channel))
   yield call(RefreshChannelMessageList)
 }
 
 export function* SubscribeChannel() {
+  const address = yield select(state => state.User.Address)
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -2193,14 +1655,11 @@ export function* SubscribeChannel() {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  const channel_list = yield call(() => CommonDB.Channels
-    .orderBy('CreatedAt')
-    .reverse()
-    .toArray())
+  const channel_list = yield call(() => dbAPI.getMyChannels(address))
   let subscribe_address_list = []
   for (let i = 0; i < channel_list.length; i++) {
     const channel = channel_list[i]
-    subscribe_address_list = subscribe_address_list.concat(...channel.Speaker)
+    subscribe_address_list = subscribe_address_list.concat(...channel.speaker)
   }
   subscribe_address_list = [...new Set(subscribe_address_list)]
   let subscribe_request = MG.genBulletinSubscribe(subscribe_address_list)
@@ -2209,44 +1668,31 @@ export function* SubscribeChannel() {
 
 // session
 export function* LoadSessionList() {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const address = yield select(state => state.User.Address)
   if (!address) {
     return
   }
   // private
-  let friend_list = yield call(() => CommonDB.Friends
-    .where('Local')
-    .equals(address)
-    .toArray())
+  let friend_list = yield call(() => dbAPI.getMyFollows(address))
   let session_list = []
   for (let i = 0; i < friend_list.length; i++) {
     const friend = friend_list[i]
-    session_list.push({ type: SessionType.Private, address: friend.Remote, updated_at: Date.now() })
+    session_list.push({ type: SessionType.Private, address: friend.remote, updated_at: Date.now() })
   }
   // group
-  let group_list = yield call(() => CommonDB.Groups
-    .orderBy('CreatedAt')
-    .reverse()
-    .toArray())
-  group_list = group_list.filter(g => g.DeleteJson === undefined && g.IsAccepted === true)
+  let group_list = yield select(state => state.Messenger.GroupList)
   for (let i = 0; i < group_list.length; i++) {
     const group = group_list[i]
-    let member = [...group.Member]
-    member.push(group.CreatedBy)
+    let member = [...group.member]
+    member.push(group.created_by)
     if (member.includes(address)) {
-      session_list.push({ type: SessionType.Group, hash: group.Hash, name: group.Name, member: member, updated_at: Date.now() })
+      session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, updated_at: Date.now() })
     }
   }
   yield put(setSessionList(session_list))
 }
 
 function* SyncPrivateMessage({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -2256,24 +1702,16 @@ function* SyncPrivateMessage({ payload }) {
     yield call(initMessageGenerator, seed)
   }
 
-  let [current_self_msg] = yield call(() => CommonDB.PrivateMessages
-    .where({ Sour: payload.local, Dest: payload.remote })
-    .reverse()
-    .sortBy('Sequence')
-  )
+  let current_self_msg = yield call(() => dbAPI.getLastPrivateMessage(payload.local, payload.remote))
   let self_sequence = 0
-  if (current_self_msg !== undefined) {
-    self_sequence = current_self_msg.Sequence
+  if (current_self_msg !== null) {
+    self_sequence = current_self_msg.sequence
   }
 
-  let [current_pair_msg] = yield call(() => CommonDB.PrivateMessages
-    .where({ Sour: payload.remote, Dest: payload.local })
-    .reverse()
-    .sortBy('Sequence')
-  )
+  let current_pair_msg = yield call(() => dbAPI.getLastPrivateMessage(payload.remote, payload.local))
   let pair_sequence = 0
-  if (current_pair_msg !== undefined) {
-    pair_sequence = current_pair_msg.Sequence
+  if (current_pair_msg !== null) {
+    pair_sequence = current_pair_msg.sequence
   }
 
   let private_sync_request = MG.genPrivateMessageSync(payload.remote, pair_sequence, self_sequence)
@@ -2293,24 +1731,11 @@ function* InitHandshake(payload) {
   const key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
   const ecdh_pk = key_pair.getPublic('hex')
   let self_json = MG.genECDHHandshake(DefaultPartition, payload.ecdh_sequence, ecdh_pk, '', payload.pair_address, timestamp)
-  yield call(() => CommonDB.ECDHS.add({
-    SelfAddress: self_address,
-    PairAddress: payload.pair_address,
-    Partition: DefaultPartition,
-    Sequence: payload.ecdh_sequence,
-    // AesKey:'',
-    PrivateKey: ecdh_sk,
-    PublicKey: ecdh_pk,
-    SelfJson: self_json,
-    // PairJson:
-  }))
+  yield call(() => dbAPI.initHandshakeFromLocal(self_address, payload.pair_address, DefaultPartition, payload.ecdh_sequence, ecdh_sk, ecdh_pk, self_json))
   yield fork(SendMessage, { msg: JSON.stringify(self_json) })
 }
 
 function* LoadCurrentSession({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   const self_seed = yield select(state => state.User.Seed)
   const self_address = yield select(state => state.User.Address)
@@ -2328,15 +1753,13 @@ function* LoadCurrentSession({ payload }) {
       const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, pair_address)
       let session = { type: SessionType.Private, remote: pair_address, partition_sequence: ecdh_sequence }
 
-      let ecdh = yield call(() => CommonDB.ECDHS
-        .where({ SelfAddress: self_address, PairAddress: pair_address, Partition: DefaultPartition, Sequence: ecdh_sequence })
-        .first())
-      if (ecdh === undefined) {
+      let ecdh = yield call(() => dbAPI.getHandshake(self_address, pair_address, DefaultPartition, ecdh_sequence))
+      if (ecdh === null) {
         yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: pair_address })
       } else {
-        if (ecdh.AesKey !== undefined) {
+        if (ecdh.aes_key !== null) {
           // aes ready, handsake already done, ready to chat
-          session.aes_key = ecdh.AesKey
+          session.aes_key = ecdh.aes_key
         } else {
           // my-sk-pk exist, aes not ready
           // send self-not-ready-json
@@ -2344,14 +1767,10 @@ function* LoadCurrentSession({ payload }) {
         }
       }
 
-      let [current_msg] = yield call(() => CommonDB.PrivateMessages
-        .where({ Sour: self_address, Dest: pair_address })
-        .reverse()
-        .sortBy('Sequence')
-      )
-      if (current_msg !== undefined) {
-        session.current_sequence = current_msg.Sequence
-        session.current_hash = current_msg.Hash
+      let current_msg = yield call(() => dbAPI.getLastPrivateMessage(self_address, pair_address))
+      if (current_msg !== null) {
+        session.current_sequence = current_msg.sequence
+        session.current_hash = current_msg.hash
       } else {
         session.current_sequence = 0
         session.current_hash = GenesisHash
@@ -2365,14 +1784,10 @@ function* LoadCurrentSession({ payload }) {
     case SessionType.Group:
       let group_session = { type: SessionType.Group, hash: payload.hash, name: payload.name, member: payload.member, updated_at: payload.updated_at }
       if (group_session.member.includes(self_address)) {
-        let [current_group_msg] = yield call(() => CommonDB.GroupMessages
-          .where({ GroupHash: payload.hash, Address: self_address })
-          .reverse()
-          .sortBy('Sequence')
-        )
-        if (current_group_msg !== undefined) {
-          group_session.current_sequence = current_group_msg.Sequence
-          group_session.current_hash = current_group_msg.Hash
+        let current_group_msg = yield call(() => dbAPI.getMemberLastGroupMessage(payload.hash, self_address))
+        if (current_group_msg !== null) {
+          group_session.current_sequence = current_group_msg.sequence
+          group_session.current_hash = current_group_msg.hash
         } else {
           group_session.current_sequence = 0
           group_session.current_hash = GenesisHash
@@ -2390,9 +1805,6 @@ function* LoadCurrentSession({ payload }) {
 // message
 function* SendContent({ payload }) {
   console.log(payload)
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -2410,69 +1822,28 @@ function* SendContent({ payload }) {
       if (CurrentSession.aes_key !== undefined) {
         let content = AesEncrypt(payload.content, CurrentSession.aes_key)
 
-        let last_confirmed_msg = null
-        let confirmed_message_list = yield call(() => CommonDB.PrivateMessages
-          .where({ Sour: CurrentSession.remote, Dest: self_address, Confirmed: 1 })
-          .reverse()
-          .sortBy('Sequence'))
-        if (confirmed_message_list.length > 0) {
-          last_confirmed_msg = confirmed_message_list[0]
-        }
+        let last_confirmed_msg = yield call(() => dbAPI.getLastConfirmPrivateMessage(CurrentSession.remote, self_address))
+        let last_unconfirmed_msg = yield call(() => dbAPI.getLastUnconfirmPrivateMessage(CurrentSession.remote, self_address))
+        let to_confirm_msg = null
 
-        let confirm_msg = null
-        let unconfirm_message_list = yield call(() => CommonDB.PrivateMessages
-          .where({ Sour: CurrentSession.remote, Dest: self_address, Confirmed: 0 })
-          .reverse()
-          .sortBy('Sequence'))
-        console.log(unconfirm_message_list)
-        if (unconfirm_message_list.length > 0
-          && (last_confirmed_msg === null
-            || unconfirm_message_list[0].Sequence > last_confirmed_msg.Sequence)) {
-          confirm_msg = {
-            Sequence: unconfirm_message_list[0].Sequence,
-            Hash: unconfirm_message_list[0].Hash
+        if (last_unconfirmed_msg !== null && (last_confirmed_msg === null || last_unconfirmed_msg.sequence > last_confirmed_msg.sequence)) {
+          to_confirm_msg = {
+            Sequence: last_unconfirmed_msg.sequence,
+            Hash: last_unconfirmed_msg.hash
           }
         }
-        console.log(confirm_msg)
 
-        if (confirm_msg !== null) {
-          yield call(() => CommonDB.PrivateMessages
-            .where('Hash')
-            .equals(confirm_msg.Hash)
-            .modify(tmp => { tmp.Confirmed = 1 }))
+        if (to_confirm_msg !== null) {
+          yield call(() => dbAPI.confirmPrivateMessage(to_confirm_msg.Hash))
         }
 
-        console.log(content)
-        let msg_json = MG.genPrivateMessage(CurrentSession.current_sequence + 1, CurrentSession.current_hash, confirm_msg, content, CurrentSession.remote, timestamp)
+        let msg_json = MG.genPrivateMessage(CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_msg, content, CurrentSession.remote, timestamp)
         let hash = QuarterSHA512Message(msg_json)
-        console.log(msg_json)
-        console.log(hash)
-
-        let to_save = {
-          Hash: hash,
-          Sour: self_address,
-          Dest: CurrentSession.remote,
-          Sequence: CurrentSession.current_sequence + 1,
-          PreHash: CurrentSession.current_hash,
-          Content: payload.content,
-          SignedAt: timestamp,
-          // CreatedAt: timestamp,
-          Json: msg_json,
-          Confirmed: 0,
-          Readed: 1
-        }
-        if (typeof payload.content === 'string') {
-          to_save.IsObject = false
-        } else if (typeof payload.content === 'object') {
-          to_save.IsObject = true
-          to_save.ObjectType = payload.content.ObjectType
-        }
-        yield call(() => safeAddItem(CommonDB, 'PrivateMessages', 'Hash', to_save))
+        yield call(() => dbAPI.addPrivateMessage(hash, self_address, CurrentSession.remote, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, msg_json, timestamp, false, false, true, typeof payload.content === 'object'))
 
         let tmp_session = { ...CurrentSession }
         tmp_session.current_sequence = CurrentSession.current_sequence + 1
         tmp_session.current_hash = hash
-        console.log(tmp_session)
         yield put(setCurrentSession(tmp_session))
 
         yield call(RefreshPrivateMessageList)
@@ -2483,62 +1854,40 @@ function* SendContent({ payload }) {
       }
       break
     case SessionType.Group:
-      let last_confirmed_group_msg = null
-      let confirmed_group_message_list = yield call(() => CommonDB.GroupMessages
-        .where({ GroupHash: CurrentSession.hash, Confirmed: 1 })
-        .reverse()
-        .sortBy('SignedAt')
-      )
-      if (confirmed_group_message_list.length > 0) {
-        last_confirmed_group_msg = confirmed_group_message_list[0]
-      }
+      let last_confirmed_group_msg = yield call(() => dbAPI.getLastConfirmGroupMessage(CurrentSession.hash, self_address))
+      let last_unconfirm_message_group_list = yield call(() => dbAPI.getLastUnconfirmGroupMessage(CurrentSession.hash, self_address))
+      let to_confirm_group_msg = null
 
-      let confirm_group_msg = null
-      let unconfirm_message_group_list = yield call(() => CommonDB.GroupMessages
-        .where({ GroupHash: CurrentSession.hash, Confirmed: 0 })
-        .reverse()
-        .sortBy('SignedAt')
-      )
-      unconfirm_message_group_list = unconfirm_message_group_list.filter(m => m.Address !== self_address)
-      if (unconfirm_message_group_list.length > 0
-        && (last_confirmed_group_msg === null
-          || unconfirm_message_group_list[0].Sequence > last_confirmed_group_msg.Sequence)) {
-        confirm_group_msg = {
-          Address: unconfirm_message_group_list[0].Address,
-          Sequence: unconfirm_message_group_list[0].Sequence,
-          Hash: unconfirm_message_group_list[0].Hash
+      if (last_unconfirm_message_group_list !== null && (last_confirmed_group_msg === null || last_unconfirm_message_group_list.sequence > last_confirmed_group_msg.sequence)) {
+        to_confirm_group_msg = {
+          Address: last_unconfirm_message_group_list.address,
+          Sequence: last_unconfirm_message_group_list.sequence,
+          Hash: last_unconfirm_message_group_list.hash
         }
       }
 
-      if (confirm_group_msg !== null) {
-        yield call(() => CommonDB.GroupMessages
-          .where('Hash')
-          .equals(confirm_group_msg.Hash)
-          .modify(tmp => { tmp.Confirmed = 1 }))
+      if (to_confirm_group_msg !== null) {
+        yield call(() => dbAPI.confirmGroupMessage(to_confirm_group_msg.Hash))
       }
 
-      let group_msg_json = MG.genGroupMessage(CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, confirm_group_msg, payload.content, timestamp)
-      let group_hash = QuarterSHA512Message(group_msg_json)
+      let group_msg_json = MG.genGroupMessage(CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_group_msg, payload.content, timestamp)
+      let group_msg_hash = QuarterSHA512Message(group_msg_json)
+      if (typeof payload.content === 'object') {
+        if (payload.content.ObjectType === MessageObjectType.GroupChatFile) {
+          let chunk_length = Math.ceil(payload.content.Size / FileChunkSize)
+          let file = yield call(() => dbAPI.getFileByHash(payload.content.Hash))
+          if (file === null) {
+            yield call(() => dbAPI.addFile(payload.content.Hash, payload.content.Size, Date.now(), chunk_length, 0, false))
+          }
 
-      let group_msg_to_save = {
-        Hash: group_hash,
-        GroupHash: CurrentSession.hash,
-        Address: self_address,
-        Sequence: CurrentSession.current_sequence + 1,
-        PreHash: CurrentSession.current_hash,
-        Content: payload.content,
-        SignedAt: timestamp,
-        Json: group_msg_json,
-        Confirmed: 0,
-        Readed: 1
+          const ehash = GroupFileEHash(json.GroupHash, payload.content.Hash)
+          let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
+          if (group_chat_file === null) {
+            yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, payload.content.Hash, payload.content.Size))
+          }
+        }
       }
-      if (typeof payload.content === 'string') {
-        group_msg_to_save.IsObject = false
-      } else if (typeof payload.content === 'object') {
-        group_msg_to_save.IsObject = true
-        group_msg_to_save.ObjectType = payload.content.ObjectType
-      }
-      yield call(() => safeAddItem(CommonDB, 'GroupMessages', 'Hash', group_msg_to_save))
+      yield call(() => dbAPI.addGroupMessage(group_msg_hash, CurrentSession.hash, self_address, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, group_msg_json, group_msg_json.Timestamp, false, false, true, typeof payload.content === 'object'))
 
       let tmp_group_session = { ...CurrentSession }
       tmp_group_session.current_sequence = CurrentSession.current_sequence + 1
@@ -2551,15 +1900,13 @@ function* SendContent({ payload }) {
         let tmp_msg_json = group_msg_json
         if (member !== self_address) {
           const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, member)
-          let ecdh = yield call(() => CommonDB.ECDHS
-            .where({ SelfAddress: self_address, PairAddress: member, Partition: DefaultPartition, Sequence: ecdh_sequence })
-            .first())
-          if (ecdh === undefined) {
+          let ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+          if (ecdh === null) {
             yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: member })
-          } else if (ecdh.AesKey === undefined) {
+          } else if (ecdh.aes_key === null) {
             yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
           } else {
-            let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.AesKey)
+            let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
             tmp_msg_json.Content = encrypt_content
             delete tmp_msg_json["ObjectType"]
             delete tmp_msg_json["GroupHash"]
@@ -2600,42 +1947,16 @@ function* SendFile({ payload }) {
       const ehash = PrivateFileEHash(self_address, CurrentSession.remote, hash)
 
       let chunk_length = Math.ceil(file_info.size / FileChunkSize)
-      let file = yield call(() => CommonDB.Files
-        .where('Hash')
-        .equals(hash)
-        .first())
-      if (file === undefined) {
-        let result = yield call(() => CommonDB.Files.add({
-          Hash: hash,
-          Size: file_info.size,
-          UpdatedAt: Date.now(),
-          ChunkLength: chunk_length,
-          ChunkCursor: chunk_length,
-          IsSaved: true
-        }))
+      let file = yield call(() => dbAPI.getFileByHash(hash))
+      if (file === null) {
+        yield call(() => dbAPI.addFile(hash, file_info.size, Date.now(), chunk_length, chunk_length, true))
       } else {
-        let updatedCount = yield call(() => CommonDB.Files
-          .where('Hash')
-          .equals(hash)
-          .modify(tmp => {
-            tmp.ChunkCursor = chunk_length
-            tmp.IsSaved = true
-            tmp.UpdatedAt = Date.now()
-          }))
+        yield call(() => dbAPI.localFileSaved(hash, chunk_length, Date.now()))
       }
 
-      let private_chat_file = yield call(() => CommonDB.PrivateChatFiles
-        .where('EHash')
-        .equals(ehash)
-        .first())
-      if (private_chat_file === undefined) {
-        let result = yield call(() => CommonDB.PrivateChatFiles.add({
-          EHash: ehash,
-          Hash: hash,
-          Size: file_info.size,
-          Address1: self_address > CurrentSession.remote ? self_address : CurrentSession.remote,
-          Address2: self_address > CurrentSession.remote ? CurrentSession.remote : self_address
-        }))
+      let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(ehash))
+      if (private_chat_file === null) {
+        yield call(() => dbAPI.addPrivateFile(ehash, self_address, CurrentSession.remote, hash, file_info.size))
       }
 
       yield call(SendContent, {
@@ -2656,41 +1977,16 @@ function* SendFile({ payload }) {
       const ehash = GroupFileEHash(CurrentSession.hash, hash)
 
       let chunk_length = Math.ceil(file_info.size / FileChunkSize)
-      let file = yield call(() => CommonDB.Files
-        .where('Hash')
-        .equals(hash)
-        .first())
-      if (file === undefined) {
-        let result = yield call(() => CommonDB.Files.add({
-          Hash: hash,
-          Size: file_info.size,
-          UpdatedAt: Date.now(),
-          ChunkLength: chunk_length,
-          ChunkCursor: chunk_length,
-          IsSaved: true
-        }))
+      let file = yield call(() => dbAPI.getFileByHash(hash))
+      if (file === null) {
+        yield call(() => dbAPI.addFile(hash, file_info.size, Date.now(), chunk_length, chunk_cursor, true))
       } else {
-        let updatedCount = yield call(() => CommonDB.Files
-          .where('Hash')
-          .equals(hash)
-          .modify(tmp => {
-            tmp.ChunkCursor = chunk_length
-            tmp.IsSaved = true
-            tmp.UpdatedAt = Date.now()
-          }))
+        yield call(() => dbAPI.localFileSaved(hash, chunk_length, Date.now()))
       }
 
-      let group_chat_file = yield call(() => CommonDB.GroupChatFiles
-        .where('EHash')
-        .equals(ehash)
-        .first())
-      if (group_chat_file === undefined) {
-        let result = yield call(() => CommonDB.GroupChatFiles.add({
-          EHash: ehash,
-          Hash: hash,
-          Size: file_info.size,
-          GroupHash: CurrentSession.hash
-        }))
+      let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(ehash))
+      if (group_chat_file === null) {
+        yield call(() => dbAPI.addGroupFile(ehash, CurrentSession.hash, hash, file_info.size))
       }
 
       yield call(SendContent, {
@@ -2712,14 +2008,7 @@ function* SendFile({ payload }) {
 function* RefreshPrivateMessageList() {
   const self_address = yield select(state => state.User.Address)
   const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-  let current_msg_list = yield call(() => CommonDB.PrivateMessages
-    .where(['Sour', 'Dest', 'Confirmed'])
-    .anyOf([[self_address, CurrentSession.remote, 0],
-    [self_address, CurrentSession.remote, 1],
-    [CurrentSession.remote, self_address, 0],
-    [CurrentSession.remote, self_address, 1]])
-    .sortBy('SignedAt'))
-  console.log(current_msg_list)
+  let current_msg_list = yield call(() => dbAPI.getPrivateSession(self_address, CurrentSession.remote))
   yield put(setCurrentSessionMessageList(current_msg_list))
 }
 
@@ -2763,17 +2052,11 @@ function* ComposeMemberDel({ payload }) {
 
 function* RefreshGroupMessageList() {
   const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-  let current_msg_list = yield call(() => CommonDB.GroupMessages
-    .where("GroupHash")
-    .equals(CurrentSession.hash)
-    .sortBy('SignedAt'))
+  let current_msg_list = yield call(() => dbAPI.getGroupSession(CurrentSession.hash))
   yield put(setCurrentSessionMessageList(current_msg_list))
 }
 
 function* RequestGroupMessageSync({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -2783,14 +2066,9 @@ function* RequestGroupMessageSync({ payload }) {
     yield call(initMessageGenerator, seed)
   }
 
-  let [latest_msg] = yield call(() => CommonDB.GroupMessages
-    .where("GroupHash")
-    .equals(payload.hash)
-    .reverse()
-    .sortBy('SignedAt'))
-  console.log(latest_msg)
+  let latest_msg = yield call(() => dbAPI.getLastGroupMessage(payload.hash))
   if (latest_msg) {
-    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, latest_msg.Address, latest_msg.Sequence)
+    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, latest_msg.address, latest_msg.sequence)
     yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
   } else {
     const address = yield select(state => state.User.Address)
@@ -2800,9 +2078,6 @@ function* RequestGroupMessageSync({ payload }) {
 }
 
 function* CreateGroup(action) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   const member = yield select(state => state.Messenger.ComposeMemberList)
@@ -2814,18 +2089,9 @@ function* CreateGroup(action) {
     yield call(initMessageGenerator, seed)
   }
 
-  let hash = QuarterSHA512Message({ CreatedBy: address, Member: member, Random: Math.random() })
+  let hash = QuarterSHA512Message({ created_by: address, Member: member, Random: Math.random() })
   let json = MG.genGroupCreate(hash, action.payload.name, member)
-  let new_group = {
-    Hash: json.Hash,
-    Name: action.payload.name,
-    CreatedBy: address,
-    Member: json.Member,
-    CreatedAt: json.Timestamp,
-    CreateJson: json,
-    IsAccepted: true
-  }
-  let result = yield call(() => CommonDB.Groups.add(new_group))
+  let result = yield call(() => dbAPI.createGroup(json.Hash, action.payload.name, address, json.Member, json.Timestamp, json, true))
   if (result) {
     let group_response = {
       ObjectType: ObjectType.GroupList,
@@ -2839,9 +2105,6 @@ function* CreateGroup(action) {
 }
 
 function* DeleteGroup(action) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   if (!seed) {
@@ -2851,19 +2114,10 @@ function* DeleteGroup(action) {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  const group = yield call(() => CommonDB.Groups
-    .where('Hash')
-    .equals(action.payload.hash)
-    .first())
-  if (group !== undefined && group.CreatedBy === address && group.DeleteJson === undefined) {
+  const group = yield call(() => dbAPI.getGroupByHash(action.payload.hash))
+  if (group !== null && group.created_by === address && group.delete_json === undefined) {
     let json = MG.genGroupDelete(action.payload.hash)
-    let result = yield call(() => CommonDB.Groups
-      .where('Hash')
-      .equals(action.payload.hash)
-      .modify(tmp => {
-        tmp.DeletedAt = json.Timestamp
-        tmp.DeleteJson = json
-      }))
+    let result = yield call(() => dbAPI.updateGroupDelete(action.payload.hash, json))
     if (result > 0) {
       let group_response = {
         ObjectType: ObjectType.GroupList,
@@ -2891,28 +2145,22 @@ function* GroupSync() {
 
 export function* LoadGroupList() {
   const address = yield select(state => state.User.Address)
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let group_list = yield call(() => CommonDB.Groups
-    .orderBy('CreatedAt')
-    .reverse()
-    .toArray())
-  group_list = group_list.filter(g => g.IsAccepted === true && (g.CreatedBy === address || g.Member.includes(address)))
+  let group_list = yield call(() => dbAPI.getGroups())
+  group_list = group_list.filter(g => g.is_accepted === true && (g.created_by === address || g.member.includes(address)))
 
   let group_member_map = {}
   for (let i = 0; i < group_list.length; i++) {
     const group = group_list[i]
-    group_member_map[group.Hash] = group.Member
-    group_member_map[group.Hash].push(group.CreatedBy)
+    group_member_map[group.hash] = group.member
+    group_member_map[group.hash].push(group.created_by)
   }
   yield put(setGroupList({ group_list: group_list, group_member_map: group_member_map }))
 
   let total_member = []
   for (let i = 0; i < group_list.length; i++) {
     const group = group_list[i]
-    total_member.push(group.CreatedBy)
-    total_member = [].concat(total_member, group.Member)
+    total_member.push(group.created_by)
+    total_member = [].concat(total_member, group.member)
     total_member = total_member.filter(a => a !== address)
     total_member = [...new Set(total_member)]
   }
@@ -2920,40 +2168,17 @@ export function* LoadGroupList() {
 }
 
 export function* LoadGroupRequestList() {
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    MG = null
-    return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let group_list = yield call(() => CommonDB.Groups
-    .orderBy('CreatedAt')
-    .reverse()
-    .toArray())
-  group_list = group_list.filter(g => g.IsAccepted === false)
+  const address = yield select(state => state.User.Address)
+  let group_list = yield call(() => dbAPI.getGroups())
+  group_list = group_list.filter(g => g.is_accepted === false && (g.created_by === address || g.member.includes(address)))
   yield put(setGroupRequestList(group_list))
 }
 
 function* AcceptGroupRequest({ payload }) {
-  if (CommonDB === null) {
-    yield call(initCommonDB)
-  }
-  let group_request = yield call(() => CommonDB.Groups
-    .where('Hash')
-    .equals(payload.hash)
-    .first())
-  if (group_request !== undefined && group_request.IsAccepted === false) {
-    yield call(() => CommonDB.Groups
-      .where('Hash')
-      .equals(payload.hash)
-      .modify(tmp => {
-        tmp.IsAccepted = true
-      }))
+  const address = yield select(state => state.User.Address)
+  let group_request = yield call(() => dbAPI.getGroupByHash(payload.hash))
+  if (group_request !== null && group_request.is_accepted === false && (group_request.created_by === address || group_request.member.includes(address))) {
+    yield call(() => dbAPI.acceptGroupRequest(payload.hash))
     yield call(LoadGroupRequestList)
     yield call(LoadGroupList)
   }
@@ -2970,7 +2195,7 @@ export function* watchMessenger() {
 
   yield takeEvery('LoadMineBulletin', LoadMineBulletin)
   yield takeEvery('LoadFollowBulletin', LoadFollowBulletin)
-  yield takeEvery('LoadBookmarkBulletin', LoadBookmarkBulletin)
+  yield takeEvery('LoadMarkBulletin', LoadMarkBulletin)
   yield takeLatest('LoadBulletin', LoadBulletin)
   yield takeLatest('RequestRandomBulletin', RequestRandomBulletin)
   yield takeLatest('RequestBulletinAddress', RequestBulletinAddress)

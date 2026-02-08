@@ -4,6 +4,9 @@ const Minute = 60 * 1000
 const Hour = 60 * Minute
 const Day = 24 * Hour
 
+const FileDir = 'file'
+const AvatarDir = 'avatar'
+
 const BulletinPageTab = {
   Mine: 'Mine',
   Follow: 'Follow',
@@ -87,6 +90,9 @@ export {
   Minute,
   Hour,
   Day,
+
+  FileDir,
+  AvatarDir,
 
   OpenPageTab,
   BulletinPageTab,

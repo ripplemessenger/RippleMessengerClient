@@ -2,16 +2,14 @@ import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/UserSlice'
-import { setForwardBulletin, setForwardFlag, setPublishFlag } from '../../store/slices/MessengerSlice'
-
 import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
 import { AiOutlineLink } from "react-icons/ai"
 import { MdPostAdd } from "react-icons/md"
 import { MessageObjectType } from '../../lib/MessengerConst'
 
-const BulletinTools = ({ address, sequence, hash, content, json, is_mark = false }) => {
+const BulletinTools = ({ address, sequence, hash, content, json, is_marked = false }) => {
 
-  const [displayMark, setDisplayMark] = useState(is_mark)
+  const [displayMark, setDisplayMark] = useState(is_marked)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()

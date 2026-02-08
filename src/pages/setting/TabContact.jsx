@@ -24,6 +24,7 @@ export default function TabContact() {
   useEffect(() => {
     console.log(ContactList)
     if (activeTabSetting === SettingPageTab.Contact) {
+      dispatch({ type: 'LoadContactList' })
     }
   }, [dispatch, activeTabSetting])
 
@@ -126,26 +127,26 @@ export default function TabContact() {
                           ContactList.map((contact, index) => (
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
-                                title={contact.Address}>
+                                title={contact.address}>
                                 <div className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                  <AvatarImage address={contact.Address} timestamp={Date.now()} style={'avatar'} />
-                                  <AvatarName address={contact.Address} />
+                                  <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar'} />
+                                  <AvatarName address={contact.address} />
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.IsFollow} onClick={() => { toggleIsFollow(contact.Address) }} />
+                                <ToggleSwitch isChecked={contact.IsFollow} onClick={() => { toggleIsFollow(contact.address) }} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.IsFriend} onClick={() => { toggleIsFriend(contact.Address) }} />
+                                <ToggleSwitch isChecked={contact.IsFriend} onClick={() => { toggleIsFriend(contact.address) }} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <TextTimestamp timestamp={contact.UpdatedAt} />
+                                <TextTimestamp timestamp={contact.updated_at} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 {
                                   contact.IsFollow === false && contact.IsFriend === false &&
                                   <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                    onClick={() => delContact(contact.Address)}>
+                                    onClick={() => delContact(contact.address)}>
                                     Delete
                                   </button>
                                 }

@@ -22,7 +22,7 @@ export default function TabChannel() {
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Channel) {
       let tmp = [...ContactList]
-      tmp.unshift({ Address: Address, Nickname: 'Me' })
+      tmp.unshift({ address: Address, nickname: 'Me' })
       setSpeakerCandidate(tmp)
     }
   }, [dispatch, activeTabSetting])
@@ -103,11 +103,11 @@ export default function TabChannel() {
                   <div className='flex flex-wrap'>
                     {
                       speakerCandidate.map((contact, index) => (
-                        <div key={contact.Address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeSpeaker(contact.Address)}>
-                          <AvatarImage address={contact.Address} timestamp={Date.now()} style={'avatar-sm'} />
+                        <div key={contact.address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeSpeaker(contact.address)}>
+                          <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar-sm'} />
                           <div>
-                            <span className='avatar-name text-xs' title={contact.Address}>
-                              {contact.Nickname}
+                            <span className='avatar-name text-xs' title={contact.address}>
+                              {contact.nickname}
                             </span>
                           </div>
                         </div>
@@ -156,12 +156,12 @@ export default function TabChannel() {
                           ChannelList.map((channel, index) => (
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                {channel.Name}
+                                {channel.name}
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 <div className='flex flex-wrap'>
                                   {
-                                    channel.Speaker.map((speaker, index) => (
+                                    channel.speaker.map((speaker, index) => (
                                       <div key={speaker} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                         <AvatarImage address={speaker} timestamp={Date.now()} style={'avatar-sm'} />
                                         <AvatarName address={speaker} style={'text-xs'} />
@@ -171,11 +171,11 @@ export default function TabChannel() {
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <TextTimestamp timestamp={channel.CreatedAt} />
+                                <TextTimestamp timestamp={channel.created_at} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                  onClick={() => deleteChannel(channel.Name)}>
+                                  onClick={() => deleteChannel(channel.name)}>
                                   Delete
                                 </button>
                               </td>

@@ -327,6 +327,20 @@ function AesDecryptBuffer(buffer, aes_key) {
   }
 }
 
+function Int2Bool(int) {
+  if (int === 1) {
+    return true
+  }
+  return false
+}
+
+function Bool2Int(bool) {
+  if (bool === true) {
+    return 1
+  }
+  return 0
+}
+
 export {
   ConsoleInfo,
   ConsoleWarn,
@@ -353,5 +367,8 @@ export {
   genAESKey,
 
   AesEncryptBuffer,
-  AesDecryptBuffer
+  AesDecryptBuffer,
+
+  Int2Bool,
+  Bool2Int
 }

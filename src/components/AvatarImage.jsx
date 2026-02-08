@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RxAvatar } from "react-icons/rx"
 import { readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
-import * as path from '@tauri-apps/api/path'
+import { AvatarDir } from '../lib/AppConst'
 
 const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
   const { AppBaseDir } = useSelector(state => state.Common)
@@ -12,11 +12,11 @@ const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
   const dispatch = useDispatch()
 
   async function setAvatar() {
-    const is_avater_exist = await exists(`avatar/${address}.png`, {
+    const is_avater_exist = await exists(`${AvatarDir}/${address}.png`, {
       baseDir: BaseDirectory.Resource,
     })
     if (is_avater_exist) {
-      const fileName = `/avatar/${address}.png`
+      const fileName = `/${AvatarDir}/${address}.png`
       const avatarPath = AppBaseDir + fileName
       const bytes = await readFile(avatarPath)
       const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })

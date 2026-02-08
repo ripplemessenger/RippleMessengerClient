@@ -5,7 +5,7 @@ import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { IoAttachSharp } from "react-icons/io5"
-import { FileImageExtRegex } from '../../lib/AppConst'
+import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
 
 const ChatFileLink = ({ address, name, ext, size, hash, timestamp = Date.now() }) => {
 
@@ -24,12 +24,12 @@ const ChatFileLink = ({ address, name, ext, size, hash, timestamp = Date.now() }
   }, [hash, timestamp])
 
   async function setImage() {
-    const is_file_exist = await exists(`file/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
+    const is_file_exist = await exists(`${FileDir}/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
       baseDir: BaseDirectory.Resource,
     })
-    
+
     if (is_file_exist) {
-      const fileName = `/file/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
+      const fileName = `/${FileDir}/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
       const filePath = await path.join(AppBaseDir, fileName)
       const bytes = await readFile(filePath)
       const blob = new Blob([new Uint8Array(bytes)])

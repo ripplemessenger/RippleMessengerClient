@@ -7,6 +7,7 @@ import { SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
+import { setNickname } from '../../store/slices/UserSlice'
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
@@ -43,7 +44,8 @@ export default function TabMe() {
     setDisplayNickname(value)
 
     if (value !== '') {
-      dispatch({ type: 'UpdateNickname', payload: { address: Address, nickname: value } })
+      dispatch({ type: 'ContactAdd', payload: { address: Address, nickname: value } })
+      dispatch(setNickname(value))
     }
   }
 

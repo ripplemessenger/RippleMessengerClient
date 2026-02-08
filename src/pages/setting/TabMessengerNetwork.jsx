@@ -101,19 +101,19 @@ export default function TabMessengerNetwork() {
                         ServerList.map((server, index) => (
                           <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                             <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"                            >
-                              {server.URL}
+                              {server.url}
                             </td>
 
                             <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                               {
-                                server.URL !== CurrentServer &&
+                                server.url !== CurrentServer &&
                                 <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
-                                  onClick={() => useServer(server.URL)}>
+                                  onClick={() => useServer(server.url)}>
                                   Use
                                 </button>
                               }
                               <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                onClick={() => delServer(server.URL)}>
+                                onClick={() => delServer(server.url)}>
                                 Delete
                               </button>
                             </td>

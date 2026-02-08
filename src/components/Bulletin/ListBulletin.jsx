@@ -52,7 +52,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
               </div>
             }
           </div>
-          <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_mark={bulletin.IsMark} />
+          <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_marked={bulletin.is_marked} />
         </div>
       </div>
 

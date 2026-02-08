@@ -112,11 +112,11 @@ export default function TabGroup() {
                   <div className='flex flex-wrap'>
                     {
                       ContactList.map((contact, index) => (
-                        <div key={contact.Address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeMember(contact.Address)}>
-                          <AvatarImage address={contact.Address} timestamp={Date.now()} style={'avatar-sm'} />
+                        <div key={contact.address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeMember(contact.address)}>
+                          <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar-sm'} />
                           <div>
-                            <span className='avatar-name text-xs' title={contact.Address}>
-                              {contact.Nickname}
+                            <span className='avatar-name text-xs' title={contact.address}>
+                              {contact.nickname}
                             </span>
                           </div>
                         </div>

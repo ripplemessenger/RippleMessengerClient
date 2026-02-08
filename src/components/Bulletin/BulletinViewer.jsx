@@ -31,7 +31,7 @@ const BulletinViewer = ({ bulletin }) => {
         <BulletinLink address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} />
         <TextTimestamp timestamp={bulletin.SignedAt} textSize={'text-xs'} />
 
-        <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_mark={bulletin.IsMark} />
+        <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_marked={bulletin.is_marked} />
         <div className={`flex flex-row`}>
 
           <div className='mt-2'>
