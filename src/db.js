@@ -2,6 +2,7 @@ import { path } from '@tauri-apps/api'
 import Database from '@tauri-apps/plugin-sql'
 import { Bool2Int, Int2Bool } from './lib/AppUtil'
 import { MessageObjectType } from './lib/MessengerConst'
+import { BulletinPageSize } from './lib/AppConst'
 
 let dbInstance = null
 
@@ -124,25 +125,26 @@ export async function initDB() {
 
     await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS bulletin_replys (
-      hash TEXT NOT NULL,
+      bulletin_hash TEXT NOT NULL,
       reply_hash TEXT NOT NULL,
 
-      PRIMARY KEY (hash, reply_hash),
-      check (hash != reply_hash),
-      FOREIGN KEY (hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
+      PRIMARY KEY (bulletin_hash, reply_hash),
+      check (bulletin_hash != reply_hash),
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
       FOREIGN KEY (reply_hash) REFERENCES bulletin(hash) ON DELETE CASCADE
     );`)
 
     await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS bulletin_files (
-      hash TEXT NOT NULL,
+      bulletin_hash TEXT NOT NULL,
       file_hash TEXT NOT NULL,
       file_size INTEGER NOT NULL,
       file_name TEXT NOT NULL,
       file_ext TEXT NOT NULL,
 
-      PRIMARY KEY (hash, file_hash),
-      check (hash != file_hash)
+      PRIMARY KEY (bulletin_hash, file_hash),
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
+      FOREIGN KEY (file_hash) REFERENCES file(hash) ON DELETE CASCADE
     );`)
 
     await dbInstance.execute(`
@@ -153,11 +155,12 @@ export async function initDB() {
 
     await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS bulletin_tags (
-      hash TEXT NOT NULL,
+      bulletin_hash TEXT NOT NULL,
+      bulletin_signed_at INTEGER NOT NULL,
       tag_id INTEGER NOT NULL,
 
-      PRIMARY KEY (hash, tag_id),
-      FOREIGN KEY (hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
+      PRIMARY KEY (bulletin_hash, tag_id),
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
       FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
     );`)
 
@@ -208,21 +211,18 @@ export async function initDB() {
       object_type INTEGER DEFAULT 0
     );`)
 
+    await dbInstance.execute("PRAGMA foreign_keys = ON;");
   } catch (error) {
     console.error("init db failed:", error);
   }
 }
 
 export async function getDB() {
-  // console.log(`getDB`)
   const exeDir = await path.resourceDir()
-  // console.log(exeDir)
   const dbPath = await path.join(exeDir, 'app.db')
-  // console.log(dbPath)
   if (!dbInstance) {
     dbInstance = await Database.load(`sqlite:${dbPath}`)
-    // console.log(dbInstance)
-    initDB()
+    await initDB()
   }
   return dbInstance
 }
@@ -592,19 +592,33 @@ export const dbAPI = {
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
       bulletins[i].json = JSON.parse(bulletin.json)
+      bulletins[i].content = bulletins[i].json.Content
       bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+      bulletins[i].tag = []
+      bulletins[i].file = []
+      bulletins[i].quote = []
+      if (bulletins[i].json.Tag !== undefined) {
+        bulletins[i].tag = bulletins[i].json.Tag
+      }
+      if (bulletins[i].json.File !== undefined) {
+        bulletins[i].file = bulletins[i].json.File
+      }
+      if (bulletins[i].json.Quote !== undefined) {
+        bulletins[i].quote = bulletins[i].json.Quote
+      }
     }
     return bulletins
   },
 
-  async getSetBulletins(addresses) {
+  async getBulletinListByAddress(addresses, page) {
     if (!Array.isArray(addresses) || addresses.length === 0) {
       return []
     }
 
     const dbInstance = await getDB()
     const placeholders = addresses.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders})`
+    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at OFFSET ${(page - 1) * BulletinPageSize
+      } LIMIT ${BulletinPageSize}`
     let bulletins = await dbInstance.select(query, addresses)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
@@ -614,12 +628,47 @@ export const dbAPI = {
     return bulletins
   },
 
-  async getMarkBulletins() {
+  async getBulletinListByHash(hashes, page) {
+    if (!Array.isArray(hashes) || hashes.length === 0) {
+      return []
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = hashes.map(() => '?').join(', ');
+    const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at OFFSET ${(page - 1) * BulletinPageSize
+      } LIMIT ${BulletinPageSize}`
+    let bulletins = await dbInstance.select(query, hashes)
+    for (let i = 0; i < bulletins.length; i++) {
+      const bulletin = bulletins[i]
+      bulletins[i].json = JSON.parse(bulletin.json)
+      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+    }
+    return bulletins
+  },
+
+  async getBulletinListByIsmark() {
     const dbInstance = await getDB()
     let bulletins = await dbInstance.select(
       'SELECT * FROM bulletins WHERE is_marked = $1 ORDER BY signed_at DESC',
       [Bool2Int(true)]
     )
+    for (let i = 0; i < bulletins.length; i++) {
+      const bulletin = bulletins[i]
+      bulletins[i].json = JSON.parse(bulletin.json)
+      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+    }
+    return bulletins
+  },
+
+  async getBulletinListByHash(hashes) {
+    if (!Array.isArray(hashes) || hashes.length === 0) {
+      return []
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = hashes.map(() => '?').join(', ');
+    const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at`
+    let bulletins = await dbInstance.select(query, hashes)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
       bulletins[i].json = JSON.parse(bulletin.json)
@@ -637,7 +686,20 @@ export const dbAPI = {
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
       bulletin.json = JSON.parse(bulletin.json)
-      bulletin.is_marked = Int2Bool(bulletin.is_marked)
+      bulletin.content = bulletin.json.Content
+      bulletin.is_marked = JSON.parse(bulletin.is_marked)
+      bulletin.tag = []
+      bulletin.file = []
+      bulletin.quote = []
+      if (bulletin.json.Tag !== undefined) {
+        bulletin.tag = bulletin.json.Tag
+      }
+      if (bulletin.json.File !== undefined) {
+        bulletin.file = bulletin.json.File
+      }
+      if (bulletin.json.Quote !== undefined) {
+        bulletin.quote = bulletin.json.Quote
+      }
       return bulletin
     } else {
       return null
@@ -681,7 +743,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'INSERT INTO bulletins (hash, address, sequence, pre_hash, content, json, signed_at, is_marked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [hash, address, sequence, pre_hash, content, json.stringify(json), signed_at, Bool2Int(false)]
+        [hash, address, sequence, pre_hash, content, JSON.stringify(json), signed_at, Bool2Int(false)]
       )
       return true
     } catch (error) {
@@ -697,6 +759,155 @@ export const dbAPI = {
         'UPDATE bulletins SET is_marked = $1 WHERE hash = $2',
         [Bool2Int(is_marked), hash]
       )
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  // bulletin file
+  async addFilesToBulletin(bulletin_hash, files) {
+    if (!Array.isArray(files) || files.length === 0)
+      return true
+
+    const dbInstance = await getDB()
+    try {
+      for (const file of files) {
+        await dbInstance.execute(
+          `INSERT OR IGNORE INTO bulletin_files (bulletin_hash, file_hash, file_size, file_name, file_ext) VALUES ($1, $2, $3, $4, $5)`,
+          [bulletin_hash, file.Hash, file.Size, file.Name, file.Ext]
+        )
+      }
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  // bulletin reply
+  async getReplyHashListByBulletinHash(hash, page) {
+    const dbInstance = await getDB()
+    const bulletins = await dbInstance.select(
+      `SELECT reply_hash FROM bulletin_replys WHERE bulletin_hash = $1 ORDER BY reply_signed_at DESC OFFSET ${(page - 1) * BulletinPageSize
+      } LIMIT ${BulletinPageSize}`
+      [hash]
+    )
+    const hashes = bulletins.map(bulletin => bulletin.reply_hash)
+    return hashes
+  },
+
+  async getReplyCount(hash) {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      `SELECT COUNT(reply_hash) as count FROM bulletin_replys WHERE bulletin_hash = $1`
+      [hash]
+    )
+    return result ? result.count : 0;
+  },
+
+  async addReplyToBulletins(bulletins, reply_hash, reply_signed_at) {
+    if (!Array.isArray(bulletins) || bulletins.length === 0)
+      return true
+
+    const dbInstance = await getDB()
+    try {
+      for (const bulletin of bulletins) {
+        await dbInstance.execute(
+          `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ($1, $2, $3)`,
+          [bulletin.Hash, reply_hash, reply_signed_at]
+        )
+      }
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  // bulletin tag
+  async getBulletinHashListByTagId(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return []
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = ids.map(() => '?').join(', ');
+    const query = `SELECT DISTINCT bulletin_hash FROM bulletin_tags WHERE tag_id IN(${placeholders})`
+    const bulletins = await dbInstance.select(query, ids)
+    const hashes = bulletins.map(bulletin => bulletin.bulletin_hash)
+    return hashes
+  },
+
+  async getBulletinCountByTagId(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return 0
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = ids.map(() => '?').join(', ');
+    const [result] = await dbInstance.select(
+      `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags tag_id IN(${placeholders})`
+      [hash]
+    )
+    return result ? result.count : 0;
+  },
+
+  async addTagsToBulletin(bulletin_hash, bulletin_signed_at, tagNames) {
+    if (!Array.isArray(tagNames) || tagNames.length === 0)
+      return true
+
+    const dbInstance = await getDB()
+    try {
+      for (const rawName of tagNames) {
+        const name = rawName.trim()
+        if (!name) continue
+
+        await dbInstance.execute(
+          `INSERT OR IGNORE INTO tags (name) VALUES ($1)`,
+          [name]
+        )
+
+        const [row] = await dbInstance.select("SELECT id FROM tags WHERE name = $1", [name])
+        const tagId = row?.id
+
+        if (!tagId) continue
+
+        await dbInstance.execute(
+          `INSERT OR IGNORE INTO bulletin_tags (bulletin_hash, bulletin_signed_at, tag_id) VALUES ($1, $2, $3)`,
+          [bulletin_hash, bulletin_signed_at, tagId]
+        )
+
+      }
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  // tag
+  async getTagIdListByName(names) {
+    if (!Array.isArray(names) || names.length === 0) {
+      return []
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = names.map(() => '?').join(', ');
+    const query = `SELECT id FROM tags WHERE name IN(${placeholders})`
+    const tags = await dbInstance.select(query, names)
+    const ids = tags.map(tag => tag.id)
+    return ids
+  },
+
+  async addTag(name) {
+    try {
+      const dbInstance = await getDB()
+      await dbInstance.execute(
+        "INSERT OR IGNORE INTO tags (name) VALUES ($1)",
+        [name]
+      );
       return true
     } catch (error) {
       console.log(error)
@@ -734,12 +945,11 @@ export const dbAPI = {
   },
 
   async addChannel(created_by, name, member, created_at) {
-    member = JSON.stringify(member)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'INSERT INTO channels (created_by, name, member, created_at)VALUES ($1, $2, $3, $4)',
-        [created_by, name, member, created_at]
+        [created_by, name, JSON.stringify(member), created_at]
       )
       return true
     } catch (error) {
@@ -749,12 +959,11 @@ export const dbAPI = {
   },
 
   async updateChannel(created_by, name, member, created_at) {
-    member = JSON.stringify(member)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'UPDATE channels SET member = $1, created_at = $2 WHERE created_by = $3, name = $4',
-        [member, created_at, created_by, name]
+        [JSON.stringify(member), created_at, created_by, name]
       )
       return true
     } catch (error) {
@@ -1044,7 +1253,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'INSERT INTO private_messages (hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
-        [hash, sour, dest, sequence, pre_hash, is_object ? JSON.stringify(content) : content, json.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
+        [hash, sour, dest, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
       )
       return true
     } catch (error) {
@@ -1248,7 +1457,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'INSERT INTO group_messages (hash, group_hash, address, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
-        [hash, group_hash, address, sequence, pre_hash, is_object ? JSON.stringify(content) : content, json.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
+        [hash, group_hash, address, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
       )
       return true
     } catch (error) {

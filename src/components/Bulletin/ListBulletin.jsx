@@ -17,7 +17,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
   const navigate = useNavigate()
 
   const goto_bulletin = () => {
-    const params = { hash: bulletin.Hash, address: bulletin.Address, sequence: bulletin.Sequence };
+    const params = { hash: bulletin.hash, address: bulletin.address, sequence: bulletin.sequence };
     navigate({
       pathname: '/bulletin_view',
       search: `?${createSearchParams(params)}`
@@ -27,39 +27,39 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
   return (
     <div className={`${textSize}`}>
       <div className={`flex flex-row mx-5px mt-5px`}>
-        <AvatarImage address={bulletin.Address} timestamp={Date.now()} style={'avatar-sm'} />
+        <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} />
         <div className={`flex flex-col`}>
 
           <div className={`flex flex-row justify-between`}>
-            <BulletinLink address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} />
-            <TextTimestamp timestamp={bulletin.SignedAt} textSize={'text-xs'} />
+            <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
+            <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
             {
-              bulletin.Tag.length !== 0 &&
+              bulletin.tag.length !== 0 &&
               <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <FaHashtag />{bulletin.Tag.length}
+                <FaHashtag />{bulletin.tag.length}
               </div>
             }
             {
-              bulletin.Quote.length !== 0 &&
+              bulletin.quote.length !== 0 &&
               <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <AiOutlineLink />{bulletin.Quote.length}
+                <AiOutlineLink />{bulletin.quote.length}
               </div>
             }
             {
-              bulletin.File.length !== 0 &&
+              bulletin.file.length !== 0 &&
               <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <IoAttachSharp />{bulletin.File.length}
+                <IoAttachSharp />{bulletin.file.length}
               </div>
             }
           </div>
-          <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_marked={bulletin.is_marked} />
+          <BulletinTools address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} json={bulletin.json} content={bulletin.content} is_marked={bulletin.is_marked} />
         </div>
       </div>
 
-      {bulletin.Content.length <= BulletinContentPreviewSize ?
-        <BulletinContent content={bulletin.Content} onClick={() => goto_bulletin()} />
+      {bulletin.content.length <= BulletinContentPreviewSize ?
+        <BulletinContent content={bulletin.content} onClick={() => goto_bulletin()} />
         :
-        <BulletinContent content={bulletin.Content.slice(0, BulletinContentPreviewSize)} onClick={() => goto_bulletin()} />
+        <BulletinContent content={bulletin.content.slice(0, BulletinContentPreviewSize)} onClick={() => goto_bulletin()} />
       }
     </div>
   )

@@ -27,6 +27,8 @@ function* handleLogin(action) {
     yield call(ContactAdd, { payload: { address: MasterAddress, nickname: 'RippleMessenger' } })
     yield call(ContactToggleIsFollow, { payload: { contact_address: MasterAddress } })
   }
+  // TODO
+  // Bulletin...
 }
 
 function* handleLogout() {
@@ -86,7 +88,7 @@ function* LoadContactList() {
   let tmp_contact_list = yield call(() => dbAPI.getAllContacts())
   let tmp_follow_list = yield call(() => dbAPI.getMyFollows(address))
   let tmp_friend_list = yield call(() => dbAPI.getMyFriends(address))
-  
+
   let contact_list = []
   let contact_map = {}
   let follow_list = []

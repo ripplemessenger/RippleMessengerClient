@@ -26,12 +26,12 @@ const BulletinViewer = ({ bulletin }) => {
     <div className={`flex flex-row mx-2 mt-2`}>
       <div className={` flex flex-col items-center pt-3`}>
         <div className='items-center flex flex-row justify-center'>
-          <AvatarImage address={bulletin.Address} timestamp={Date.now()} style={'avatar'} />
+          <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar'} />
         </div>
-        <BulletinLink address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} />
-        <TextTimestamp timestamp={bulletin.SignedAt} textSize={'text-xs'} />
+        <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
+        <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
 
-        <BulletinTools address={bulletin.Address} sequence={bulletin.Sequence} hash={bulletin.Hash} json={bulletin.Json} content={bulletin.Content} is_marked={bulletin.is_marked} />
+        <BulletinTools address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} json={bulletin.json} content={bulletin.content} is_marked={bulletin.is_marked} />
         <div className={`flex flex-row`}>
 
           <div className='mt-2'>
@@ -92,17 +92,17 @@ const BulletinViewer = ({ bulletin }) => {
                   }
                 }}
               >
-                {bulletin.Content}
+                {bulletin.content}
               </Markdown>
             </div>
             :
-            <BulletinContent content={bulletin.Content} />
+            <BulletinContent content={bulletin.content} />
         }
 
         {
-          bulletin.Tag !== undefined && bulletin.Tag.length !== 0 &&
+          bulletin.tag !== undefined && bulletin.tag.length !== 0 &&
           <div className='flex flex-wrap'>
-            {bulletin.Tag.map((tag, index) => (
+            {bulletin.tag.map((tag, index) => (
               <div key={tag} className='text-xs text-gray-200 mt-1 px-1'>
                 <TagLink tag={tag} />
               </div>
@@ -110,19 +110,19 @@ const BulletinViewer = ({ bulletin }) => {
           </div>
         }
         {
-          bulletin.Quote !== undefined && bulletin.Quote.length !== 0 &&
+          bulletin.quote !== undefined && bulletin.quote.length !== 0 &&
           <div className='flex flex-wrap'>
-            {bulletin.Quote.map((quote, index) => (
+            {bulletin.quote.map((quote, index) => (
               <div key={quote.Hash} className='text-xs text-gray-200 mt-1 px-1'>
-                <BulletinLink address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.Address} />
+                <BulletinLink address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.address} />
               </div>
             ))}
           </div>
         }
         {
-          bulletin.File !== undefined && bulletin.File.length !== 0 &&
+          bulletin.file !== undefined && bulletin.file.length !== 0 &&
           <div className='flex flex-wrap'>
-            {bulletin.File.map((file, index) => (
+            {bulletin.file.map((file, index) => (
               <div key={file.Hash} className='text-xs text-gray-200 mt-1 px-1'>
                 <BulletinFileViewer name={file.Name} ext={file.Ext} size={file.Size} hash={file.Hash} timestamp={Date.now()} />
               </div>

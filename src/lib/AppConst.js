@@ -17,45 +17,12 @@ const BulletinPageTab = {
   Address: 'Address',
 }
 
-const OpenPageTab = {
-  GenNew: 'Generate',
-  Temp: 'Temp',
-  Saved: 'Saved',
-  Add: 'Add',
-}
-
 const SettingPageTab = {
   Me: 'Me',
   Contact: 'Contact',
   Group: 'Group',
   Channel: 'Channel',
   MessengerNetwork: 'Messenger Network',
-}
-
-const CommonDBSchame = {
-  Servers: `URL&, UpdatedAt`,
-  Avatars: `Address&, Hash, Size, SignedAt, UpdatedAt, Json, IsSaved, [Hash+IsSaved]`,
-  Contacts: `Address&, Nickname, UpdatedAt`,
-  Follows: `[Local+Remote]&, Local, Remote, UpdatedAt`,
-  Friends: `[Local+Remote]&, Local, Remote, UpdatedAt`,
-  Channels: `Name&, CreatedBy, Speaker, CreatedAt`,
-  LocalAccounts: `Address&, Salt, CipherData, UpdatedAt`,
-
-  // TODO
-  Files: `Hash&, Size, UpdatedAt, ChunkLength, ChunkCursor, IsSaved, [Hash+IsSaved]`,
-
-  Bulletins: `Hash&, Address, Sequence, Content, Tag, Quote, File, Json, SignedAt, PreHash, NextHash, IsMark, [Address+Sequence]`,
-  BulletinReplys: `[Hash+ReplyHash]&, SignedAt`,
-
-  ECDHS: `[SelfAddress+PairAddress+Partition+Sequence]&, SelfAddress, PairAddress, Partition, Sequence, AesKey, PrivateKey, PublicKey, SelfJson, PairJson`,
-
-  PrivateMessages: `Hash&, Sour, Dest, Sequence, PreHash, Content, SignedAt, Json, Confirmed, Readed, IsObject, ObjectType, [Sour+Dest+Confirmed]`,
-  // TODO
-  PrivateChatFiles: `EHash&, Hash, Size, Address1, Address2`,
-
-  Groups: `Hash&, Name, CreatedBy, Member, CreatedAt, CreateJson, DeleteddAt, DeleteJson, IsAccepted`,
-  GroupMessages: `Hash&, GroupHash, Address, Sequence, PreHash, Content, SignedAt, Json, Confirmed, Readed, IsObject, ObjectType, [GroupHash+Address], [GroupHash+Confirmed]`,
-  GroupChatFiles: `EHash&, Hash, Size, GroupHash`,
 }
 
 const DefaultBulletinCacheSize = 0
@@ -72,7 +39,9 @@ const SessionType = {
 const DefaultPartition = 90 * 24 * 3600
 
 const NonceMax = 2 ** 32 - 1
+// 1M
 const FileChunkSize = 1024 * 1024
+// 64M
 const FileMaxSize = 64 * 1024 * 1024
 const FileImageExtRegex = /^(png|jpe?g|gif|webp)$/i
 
@@ -94,11 +63,8 @@ export {
   FileDir,
   AvatarDir,
 
-  OpenPageTab,
   BulletinPageTab,
   SettingPageTab,
-
-  CommonDBSchame,
 
   DefaultBulletinCacheSize,
   MessageInterval,

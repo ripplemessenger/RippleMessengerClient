@@ -23,7 +23,7 @@ export default function BulletinViewPage() {
 
   useEffect(() => {
     if (DisplayBulletin !== null && DisplayBulletin !== undefined) {
-      dispatch({ type: 'RequestReplyBulletin', payload: { hash: DisplayBulletin.Hash, page: 1 } })
+      dispatch({ type: 'RequestReplyBulletin', payload: { hash: DisplayBulletin.hash, page: 1 } })
     }
   }, [dispatch, DisplayBulletin])
 
@@ -51,7 +51,7 @@ export default function BulletinViewPage() {
       }
       {
         DisplayBulletinReplyTotalPage > 1 &&
-        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.Hash }} />
+        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
       }
       {
         DisplayBulletin !== null && DisplayBulletin !== undefined &&
@@ -73,7 +73,7 @@ export default function BulletinViewPage() {
       }
       {
         DisplayBulletinReplyTotalPage > 1 &&
-        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.Hash }} />
+        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
       }
     </div >
   )

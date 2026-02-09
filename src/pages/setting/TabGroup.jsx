@@ -164,18 +164,18 @@ export default function TabGroup() {
                       GroupRequestList.map((request, index) => (
                         <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                            {request.Name}
+                            {request.name}
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                              <AvatarImage address={request.CreatedBy} timestamp={Date.now()} style={'avatar'} />
-                              <AvatarName address={request.CreatedBy} />
+                              <AvatarImage address={request.created_by} timestamp={Date.now()} style={'avatar'} />
+                              <AvatarName address={request.created_by} />
                             </div>
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <div className='flex flex-wrap'>
                               {
-                                request.Member.map((member, index) => (
+                                request.member.map((member, index) => (
                                   <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                     <AvatarImage address={member} timestamp={Date.now()} style={'avatar-sm'} />
                                     <AvatarName address={member} style={'text-xs'} />
@@ -185,7 +185,7 @@ export default function TabGroup() {
                             </div>
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                            <TextTimestamp timestamp={request.CreatedAt} />
+                            <TextTimestamp timestamp={request.created_at} />
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
@@ -237,19 +237,19 @@ export default function TabGroup() {
                           GroupList.map((group, index) => (
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                {group.Name}
+                                {group.name}
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
-                                title={group.CreatedBy}>
+                                title={group.created_by}>
                                 <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                                  <AvatarImage address={group.CreatedBy} timestamp={Date.now()} style={'avatar'} />
-                                  <AvatarName address={group.CreatedBy} />
+                                  <AvatarImage address={group.created_by} timestamp={Date.now()} style={'avatar'} />
+                                  <AvatarName address={group.created_by} />
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 <div className='flex flex-wrap'>
                                   {
-                                    group.Member.map((member, index) => (
+                                    group.member.map((member, index) => (
                                       <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                         <AvatarImage address={member} timestamp={Date.now()} style={'avatar-sm'} />
                                         <AvatarName address={member} style={'text-xs'} />
@@ -259,19 +259,19 @@ export default function TabGroup() {
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <TextTimestamp timestamp={group.CreatedAt} />
+                                <TextTimestamp timestamp={group.created_at} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 {
-                                  group.DeleteJson !== undefined ?
+                                  group.delete_json !== null ?
                                     <div>
-                                      Deleted <TextTimestamp timestamp={group.DeletedAt} />
+                                      Deleted <TextTimestamp timestamp={group.deleted_at} />
                                     </div>
                                     :
                                     <div>
                                       {
-                                        group.CreatedBy === Address && <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                          onClick={() => delGroup(group.Hash)}>
+                                        group.created_by === Address && <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
+                                          onClick={() => delGroup(group.hash)}>
                                           Delete
                                         </button>}
                                     </div>

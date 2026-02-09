@@ -235,61 +235,31 @@ function* CacheBulletin(bulletin_json) {
   let address = rippleKeyPairs.deriveAddress(bulletin_json.PublicKey)
   let bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
   if (bulletin_db === null) {
-    let tag = []
-    if (bulletin_json.Tag) {
-      tag = bulletin_json.Tag
-    }
-    let quote = []
-    if (bulletin_json.Quote) {
-      quote = bulletin_json.Quote
-    }
-    let file = []
-    if (bulletin_json.File) {
-      file = bulletin_json.File
-      for (let i = 0; i < file.length; i++) {
-        const f = file[i]
-        console.log(f)
-        let chunk_length = Math.ceil(f.Size / FileChunkSize)
-        let file = yield call(() => dbAPI.getFileByHash(f.Hash))
-        if (file === null) {
-          yield call(() => dbAPI.addFile(f.hash, f.size, Date.now(), chunk_length, 0, false))
-        }
-        yield fork(FetchBulletinFile, { payload: { hash: f.Hash } })
+    let new_bulletin_hash = QuarterSHA512Message(bulletin_json)
+    let result = yield call(() => dbAPI.addBulletin(new_bulletin_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
+    if (result) {
+      if (bulletin_json.Tag) {
+        yield call(() => dbAPI.addTagsToBulletin(new_bulletin_hash, bulletin_json.Timestamp, bulletin_json.Tag))
       }
-    }
-    let new_bulletin = {
-      Hash: QuarterSHA512Message(bulletin_json),
-      Address: address,
-      Sequence: bulletin_json.Sequence,
-      Content: bulletin_json.Content,
-      Tag: tag,
-      Quote: quote,
-      File: file,
-      Json: bulletin_json,
-      SignedAt: bulletin_json.Timestamp,
-      PreHash: bulletin_json.PreHash,
-      IsMark: false
-    }
-    let result = yield call(() => safeAddItem(CommonDB, 'Bulletins', 'Hash', new_bulletin))
-    if (result && quote.length > 0) {
-      for (let i = 0; i < quote.length; i++) {
-        const q = quote[i]
-        let q_db = yield call(() => CommonDB.BulletinReplys
-          .where({ Hash: q.Hash, ReplyHash: new_bulletin.Hash })
-          .first())
-        if (q_db === undefined) {
-          yield call(() => CommonDB.BulletinReplys.add({
-            Hash: q.Hash,
-            ReplyHash: new_bulletin.Hash,
-            SignedAt: new_bulletin.SignedAt
-          }))
+      if (bulletin_json.Quote) {
+        yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, new_bulletin_hash, bulletin_json.Timestamp))
+      }
+      if (bulletin_json.File) {
+        yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
+        for (let i = 0; i < bulletin_json.File.length; i++) {
+          const f = bulletin_json.File[i]
+          let chunk_length = Math.ceil(f.Size / FileChunkSize)
+          let file = yield call(() => dbAPI.getFileByHash(f.Hash))
+          if (file === null) {
+            yield call(() => dbAPI.addFile(f.hash, f.size, Date.now(), chunk_length, 0, false))
+          }
+          yield fork(FetchBulletinFile, { payload: { hash: f.Hash } })
         }
       }
     }
-    return { result: true, bulletin: new_bulletin }
-  } else {
-    return { result: false, bulletin: bulletin_db }
+    bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
   }
+  return bulletin_db
 }
 
 function* handelMessengerEvent(action) {
@@ -510,6 +480,7 @@ function* handelMessengerEvent(action) {
                 tmp_list.push(group.create_json)
               }
             }
+            console.log(tmp_list)
             if (tmp_list.length > 0) {
               let group_response = {
                 ObjectType: ObjectType.GroupList,
@@ -578,12 +549,13 @@ function* handelMessengerEvent(action) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
         if (checkBulletinSchema(json)) {
           if (VerifyJsonSignature(json)) {
-            let tmp = yield call(CacheBulletin, json)
-            yield put(setRandomBulletin(tmp.bulletin))
-            if (tmp.result) {
-              let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
-              yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
-            }
+            let bulletin = yield call(CacheBulletin, json)
+            yield put(setRandomBulletin(bulletin))
+            // TODO fetch next bulletin
+            // if (tmp.result) {
+            //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
+            //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+            // }
           }
         }
       } else if (json.ObjectType === ObjectType.BulletinAddressList) {
@@ -596,7 +568,7 @@ function* handelMessengerEvent(action) {
           const bulletin = json.List[i]
           if (VerifyJsonSignature(bulletin)) {
             const b = yield call(CacheBulletin, bulletin)
-            replys.push(b.bulletin)
+            replys.push(b)
           }
         }
         yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
@@ -607,7 +579,7 @@ function* handelMessengerEvent(action) {
           const bulletin = json.List[i]
           if (VerifyJsonSignature(bulletin)) {
             const b = yield call(CacheBulletin, bulletin)
-            tag_bulletin_list.push(b.bulletin)
+            tag_bulletin_list.push(b)
           }
         }
         yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
@@ -1099,6 +1071,7 @@ function* ReConnnect() {
 
 export function* LoadServerList() {
   let server_list = yield call(() => dbAPI.getAllServers())
+  console.log(server_list)
   if (server_list.length === 0) {
     const timestamp = Date.now()
     yield call(() => dbAPI.addServer(DefaultServer, timestamp))
@@ -1108,7 +1081,7 @@ export function* LoadServerList() {
     })
   }
   yield put(setServerList(server_list))
-  yield put(setCurrentServer(server_list[0].URL))
+  yield put(setCurrentServer(server_list[0].url))
   yield call(ReConnnect)
 }
 
@@ -1251,10 +1224,11 @@ function* LoadMineBulletin() {
   } else {
     yield put(setCurrentBulletinSequence(0))
   }
+  console.log(bulletins)
   yield put(setMineBulletinList(bulletins))
 }
 
-function* LoadFollowBulletin() {
+function* LoadFollowBulletin({ payload }) {
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   if (!seed) {
@@ -1270,8 +1244,8 @@ function* LoadFollowBulletin() {
       follow_address_list.push(follow.remote)
       yield fork(RequestNextBulletin, { payload: { address: follow.remote } })
     }
-
-    let bulletins = yield call(() => dbAPI.getSetBulletins(follow_address_list))
+    // TODO page
+    let bulletins = yield call(() => dbAPI.getBulletinListByAddress(follow_address_list, payload.page))
     bulletins = bulletins.reverse()
     yield put(setFollowBulletinList(bulletins))
   } else {
@@ -1279,8 +1253,9 @@ function* LoadFollowBulletin() {
   }
 }
 
-function* LoadMarkBulletin() {
-  let bulletins = yield call(() => dbAPI.getMarkBulletins())
+function* LoadMarkBulletin({ payload }) {
+  // TODO page
+  let bulletins = yield call(() => dbAPI.getBulletinListByIsmark(payload.page))
   yield put(setBookmarkBulletinList(bulletins))
 }
 
@@ -1339,24 +1314,10 @@ function* RequestReplyBulletin({ payload }) {
   const connect_status = yield select(state => state.Messenger.MessengerConnStatus)
   if (!connect_status) {
     const display_bulletin = yield select(state => state.Messenger.DisplayBulletin)
-    let reply_hash_list = yield call(() => CommonDB.BulletinReplys
-      .orderBy('SignedAt')
-      .filter(item => {
-        return item.Hash === display_bulletin.Hash
-      })
-      .offset((payload.page - 1) * BulletinPageSize)
-      .limit(BulletinPageSize)
-      .toArray())
-    reply_hash_list = reply_hash_list.map(item => item.ReplyHash)
-    let replys = yield call(() => CommonDB.Bulletins.bulkGet(reply_hash_list))
-
-    let total = yield call(() => CommonDB.BulletinReplys
-      .orderBy('SignedAt')
-      .filter(item => {
-        return item.Hash === display_bulletin.Hash
-      })
-      .count())
-    let total_page = calcTotalPage(total, BulletinPageSize)
+    let reply_hash_list = yield call(() => dbAPI.getReplyHashListByBulletinHash(display_bulletin.Hash))
+    let replys = yield call(() => dbAPI.getBulletinListByHash(reply_hash_list))
+    let reply_count = yield call(() => dbAPI.getReplyCount(display_bulletin.Hash))
+    let total_page = calcTotalPage(reply_count, BulletinPageSize)
     yield put(setDisplayBulletinReplyList({ List: replys, Page: 1, TotalPage: total_page }))
   } else {
     const seed = yield select(state => state.User.Seed)
@@ -1376,34 +1337,12 @@ function* RequestTagBulletin({ payload }) {
   yield put(setTagBulletinList({ List: [], Page: 1, TotalPage: 1 }))
   const connect_status = yield select(state => state.Messenger.MessengerConnStatus)
   if (!connect_status) {
-    let tag_bulletin_list = yield call(() => CommonDB.Bulletins
-      .orderBy('SignedAt')
-      .filter(item => {
-        for (let i = 0; i < payload.tag.length; i++) {
-          const tmp_tag = payload.tag[i]
-          if (!item.Tag.includes(tmp_tag)) {
-            return false
-          }
-        }
-        return true
-      })
-      .offset((payload.page - 1) * BulletinPageSize)
-      .limit(BulletinPageSize)
-      .toArray())
-    let total = yield call(() => CommonDB.Bulletins
-      .orderBy('SignedAt')
-      .filter(item => {
-        for (let i = 0; i < payload.tag.length; i++) {
-          const tmp_tag = payload.tag[i]
-          if (!item.Tag.includes(tmp_tag)) {
-            return false
-          }
-        }
-        return true
-      })
-      .count())
+    let tag_ids = yield call(() => dbAPI.getTagIdListByName(payload.tag))
+    let bulletin_hashes = yield call(() => dbAPI.getBulletinHashListByTagId(tag_ids))
+    let bulletins = yield call(() => dbAPI.getBulletinListByHash(bulletin_hashes, payload.page))
+    let total = bulletin_hashes.length
     let total_page = calcTotalPage(total, BulletinPageSize)
-    yield put(setTagBulletinList({ List: tag_bulletin_list, Page: 1, TotalPage: total_page }))
+    yield put(setTagBulletinList({ List: bulletins, Page: 1, TotalPage: total_page }))
   } else {
     const seed = yield select(state => state.User.Seed)
     if (!seed) {
@@ -1440,21 +1379,19 @@ function* PublishBulletin(action) {
   } else {
     bulletin_json = MG.genBulletinJson(last_bulletin.sequence + 1, last_bulletin.hash, tag, quote, file, action.payload.content, timestamp)
   }
-  let new_bulletin = {
-    Hash: QuarterSHA512Message(bulletin_json),
-    Address: address,
-    Sequence: bulletin_json.Sequence,
-    Content: bulletin_json.Content,
-    Tag: tag,
-    Quote: quote,
-    File: file,
-    Json: bulletin_json,
-    SignedAt: timestamp,
-    // CreatedAt: timestamp,
-    PreHash: bulletin_json.PreHash,
-    IsMark: false
+  let bulletin_json_hash = QuarterSHA512Message(bulletin_json)
+  let result = yield call(() => dbAPI.addBulletin(bulletin_json_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
+  if (result) {
+    if (bulletin_json.Tag) {
+      yield call(() => dbAPI.addTagsToBulletin(new_bulletin_hash, bulletin_json.Timestamp, bulletin_json.Tag))
+    }
+    if (bulletin_json.Quote) {
+      yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, new_bulletin_hash, bulletin_json.Timestamp))
+    }
+    if (bulletin_json.File) {
+      yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
+    }
   }
-  let result = yield call(() => CommonDB.Bulletins.add(new_bulletin))
   yield put(setCurrentBulletinSequence(bulletin_json.Sequence))
   yield put(setPublishTagList([]))
   yield put(setPublishQuoteList([]))
@@ -1603,14 +1540,10 @@ function* ComposeSpeakerDel({ payload }) {
   yield put(setComposeSpeakerList(new_list))
 }
 
-function* RefreshChannelMessageList() {
+function* RefreshChannelMessageList({ payload }) {
   const CurrentChannel = yield select(state => state.Messenger.CurrentChannel)
-  const bulletins = yield call(() => CommonDB.Bulletins
-    .where('Address')
-    .anyOf(CurrentChannel.speaker)
-    // .reverse()
-    .sortBy('SignedAt')
-  )
+  // TODO page
+  const bulletins = yield call(() => dbAPI.getBulletinListByAddress(CurrentChannel.speaker, payload.page))
   yield put(setCurrentChannelBulletinList(bulletins))
 }
 
