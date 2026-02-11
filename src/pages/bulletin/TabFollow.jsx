@@ -3,17 +3,18 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { BulletinPageTab } from '../../lib/AppConst'
 import ListBulletin from '../../components/Bulletin/ListBulletin'
+import PageList from '../../components/PageList'
 
 export default function TabFollow() {
   const { Address } = useSelector(state => state.User)
-  const { activeTabBulletin, MessengerConnStatus, FollowBulletinList } = useSelector(state => state.Messenger)
+  const { activeTabBulletin, MessengerConnStatus, FollowBulletinList, FollowBulletinTotalPage, FollowBulletinPage } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Follow) {
-      dispatch({ type: 'LoadFollowBulletin' })
+      dispatch({ type: 'LoadFollowBulletin', payload: { page: 1 } })
     }
   }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
 
@@ -26,6 +27,10 @@ export default function TabFollow() {
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
+            {
+              FollowBulletinTotalPage > 1 &&
+              <PageList current_page={FollowBulletinPage} total_page={FollowBulletinTotalPage} dispatch_type={'LoadFollowBulletin'} payload={{}} />
+            }
             <div className={`mt-1 flex-1 justify-center`}>
               {
                 FollowBulletinList.length === 0 ?

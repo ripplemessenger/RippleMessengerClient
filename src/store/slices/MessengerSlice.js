@@ -22,9 +22,18 @@ const MessengerSlice = createSlice({
 
     // bulletin display
     activeTabBulletin: BulletinPageTab.Mine,
+
     MineBulletinList: [],
+    MineBulletinPage: 1,
+    MineBulletinTotalPage: 1,
+
     FollowBulletinList: [],
+    FollowBulletinPage: 1,
+    FollowBulletinTotalPage: 1,
+
     BookmarkBulletinList: [],
+    BookmarkBulletinPage: 1,
+    BookmarkBulletinTotalPage: 1,
 
     DisplayBulletin: null,
     DisplayBulletinReplyList: [],
@@ -56,6 +65,7 @@ const MessengerSlice = createSlice({
     // group
     GroupList: [],
     GroupMemberMap: {},
+
     // for handshake
     TotalGroupMemberList: [],
     ComposeMemberList: [],
@@ -104,7 +114,6 @@ const MessengerSlice = createSlice({
       state.DisplayBulletinReplyList = []
     },
     setDisplayBulletinReplyList: (state, action) => {
-      console.log(action)
       state.DisplayBulletinReplyList = action.payload.List
       state.DisplayBulletinReplyPage = action.payload.Page
       state.DisplayBulletinReplyTotalPage = action.payload.TotalPage
@@ -113,13 +122,19 @@ const MessengerSlice = createSlice({
       state.RandomBulletin = action.payload
     },
     setMineBulletinList: (state, action) => {
-      state.MineBulletinList = action.payload
+      state.MineBulletinPage = action.payload.Page
+      state.MineBulletinTotalPage = action.payload.TotalPage
+      state.MineBulletinList = action.payload.List
     },
     setFollowBulletinList: (state, action) => {
-      state.FollowBulletinList = action.payload
+      state.FollowBulletinPage = action.payload.Page
+      state.FollowBulletinTotalPage = action.payload.TotalPage
+      state.FollowBulletinList = action.payload.List
     },
     setBookmarkBulletinList: (state, action) => {
-      state.BookmarkBulletinList = action.payload
+      state.BookmarkBulletinPage = action.payload.Page
+      state.BookmarkBulletinTotalPage = action.payload.TotalPage
+      state.BookmarkBulletinList = action.payload.List
     },
     setBulletinAddressList: (state, action) => {
       state.BulletinAddressPage = action.payload.Page

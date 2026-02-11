@@ -1,4 +1,3 @@
-import Dexie from 'dexie'
 import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
 import { decryptWithPassword } from '../../lib/AppUtil'
@@ -15,7 +14,6 @@ function* handleLogin(action) {
     nickname = contact.nickname
   }
   yield put(loginSuccess({ seed: action.payload.seed, address: action.payload.address, nickname: nickname }))
-  yield call(LoadServerList)
   yield call(LoadContactList)
   yield call(LoadGroupList)
   yield call(LoadChannelList)
@@ -29,6 +27,7 @@ function* handleLogin(action) {
   }
   // TODO
   // Bulletin...
+  yield call(LoadServerList)
 }
 
 function* handleLogout() {

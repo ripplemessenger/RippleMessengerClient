@@ -148,6 +148,25 @@ function getMemberByIndex(members, index) {
   return sortedMembers[index]
 }
 
+function bulletin2Display(bulletin) {
+  bulletin.json = JSON.parse(bulletin.json)
+  bulletin.content = bulletin.json.Content
+  bulletin.is_marked = JSON.parse(bulletin.is_marked)
+  bulletin.tag = []
+  bulletin.file = []
+  bulletin.quote = []
+  if (bulletin.json.Tag !== undefined) {
+    bulletin.tag = bulletin.json.Tag
+  }
+  if (bulletin.json.File !== undefined) {
+    bulletin.file = bulletin.json.File
+  }
+  if (bulletin.json.Quote !== undefined) {
+    bulletin.quote = bulletin.json.Quote
+  }
+  return bulletin
+}
+
 export {
   AddressToName,
 
@@ -168,5 +187,6 @@ export {
   calcTotalPage,
   trimEndCommasAndValidate,
   getMemberIndex,
-  getMemberByIndex
+  getMemberByIndex,
+  bulletin2Display
 }

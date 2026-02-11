@@ -3,6 +3,7 @@ import Database from '@tauri-apps/plugin-sql'
 import { Bool2Int, Int2Bool } from './lib/AppUtil'
 import { MessageObjectType } from './lib/MessengerConst'
 import { BulletinPageSize } from './lib/AppConst'
+import { bulletin2Display } from './lib/MessengerUtil'
 
 let dbInstance = null
 
@@ -127,6 +128,7 @@ export async function initDB() {
     CREATE TABLE IF NOT EXISTS bulletin_replys (
       bulletin_hash TEXT NOT NULL,
       reply_hash TEXT NOT NULL,
+      reply_signed_at INTEGER NOT NULL,
 
       PRIMARY KEY (bulletin_hash, reply_hash),
       check (bulletin_hash != reply_hash),
@@ -583,10 +585,10 @@ export const dbAPI = {
   },
 
   // bulletin
-  async getMyBulletins(address) {
+  async getMyBulletins(address, page) {
     const dbInstance = await getDB()
     let bulletins = await dbInstance.select(
-      'SELECT * FROM bulletins WHERE address = $1 ORDER BY sequence DESC',
+      `SELECT * FROM bulletins WHERE address = $1 ORDER BY sequence DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
       [address]
     )
     for (let i = 0; i < bulletins.length; i++) {
@@ -610,22 +612,41 @@ export const dbAPI = {
     return bulletins
   },
 
-  async getBulletinListByAddress(addresses, page) {
+  async getMyBulletinCount(address) {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      `SELECT COUNT(hash) as count FROM bulletins WHERE address = $1`,
+      [address]
+    )
+    return result ? result.count : 0;
+  },
+
+  async getBulletinListByAddresses(addresses, page) {
     if (!Array.isArray(addresses) || addresses.length === 0) {
       return []
     }
 
     const dbInstance = await getDB()
     const placeholders = addresses.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at OFFSET ${(page - 1) * BulletinPageSize
-      } LIMIT ${BulletinPageSize}`
+    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     let bulletins = await dbInstance.select(query, addresses)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
-      bulletins[i].json = JSON.parse(bulletin.json)
-      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+      bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
+  },
+
+  async getBulletinCountByAddresses(addresses) {
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+      return 0
+    }
+
+    const dbInstance = await getDB()
+    const placeholders = addresses.map(() => '?').join(', ');
+    const query = `SELECT COUNT(hash) as count FROM bulletins WHERE address IN (${placeholders})`
+    let [result] = await dbInstance.select(query, addresses)
+    return result ? result.count : 0;
   },
 
   async getBulletinListByHash(hashes, page) {
@@ -635,13 +656,11 @@ export const dbAPI = {
 
     const dbInstance = await getDB()
     const placeholders = hashes.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at OFFSET ${(page - 1) * BulletinPageSize
-      } LIMIT ${BulletinPageSize}`
+    const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     let bulletins = await dbInstance.select(query, hashes)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
-      bulletins[i].json = JSON.parse(bulletin.json)
-      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+      bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
   },
@@ -654,12 +673,12 @@ export const dbAPI = {
     )
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
-      bulletins[i].json = JSON.parse(bulletin.json)
-      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+      bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
   },
 
+  // to display
   async getBulletinListByHash(hashes) {
     if (!Array.isArray(hashes) || hashes.length === 0) {
       return []
@@ -671,8 +690,7 @@ export const dbAPI = {
     let bulletins = await dbInstance.select(query, hashes)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
-      bulletins[i].json = JSON.parse(bulletin.json)
-      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
+      bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
   },
@@ -685,21 +703,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
-      bulletin.json = JSON.parse(bulletin.json)
-      bulletin.content = bulletin.json.Content
-      bulletin.is_marked = JSON.parse(bulletin.is_marked)
-      bulletin.tag = []
-      bulletin.file = []
-      bulletin.quote = []
-      if (bulletin.json.Tag !== undefined) {
-        bulletin.tag = bulletin.json.Tag
-      }
-      if (bulletin.json.File !== undefined) {
-        bulletin.file = bulletin.json.File
-      }
-      if (bulletin.json.Quote !== undefined) {
-        bulletin.quote = bulletin.json.Quote
-      }
+      bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
       return null
@@ -714,8 +718,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
-      bulletin.json = JSON.parse(bulletin.json)
-      bulletin.is_marked = Int2Bool(bulletin.is_marked)
+      bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
       return null
@@ -730,8 +733,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
-      bulletin.json = JSON.parse(bulletin.json)
-      bulletin.is_marked = Int2Bool(bulletin.is_marked)
+      bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
       return null
@@ -790,10 +792,10 @@ export const dbAPI = {
   async getReplyHashListByBulletinHash(hash, page) {
     const dbInstance = await getDB()
     const bulletins = await dbInstance.select(
-      `SELECT reply_hash FROM bulletin_replys WHERE bulletin_hash = $1 ORDER BY reply_signed_at DESC OFFSET ${(page - 1) * BulletinPageSize
-      } LIMIT ${BulletinPageSize}`
+      `SELECT reply_hash FROM bulletin_replys WHERE bulletin_hash = $1 ORDER BY reply_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
       [hash]
     )
+    console.log(bulletins)
     const hashes = bulletins.map(bulletin => bulletin.reply_hash)
     return hashes
   },
@@ -801,7 +803,7 @@ export const dbAPI = {
   async getReplyCount(hash) {
     const dbInstance = await getDB()
     const [result] = await dbInstance.select(
-      `SELECT COUNT(reply_hash) as count FROM bulletin_replys WHERE bulletin_hash = $1`
+      `SELECT COUNT(reply_hash) as count FROM bulletin_replys WHERE bulletin_hash = $1`,
       [hash]
     )
     return result ? result.count : 0;
@@ -811,6 +813,7 @@ export const dbAPI = {
     if (!Array.isArray(bulletins) || bulletins.length === 0)
       return true
 
+    console.log(bulletins)
     const dbInstance = await getDB()
     try {
       for (const bulletin of bulletins) {
@@ -848,7 +851,7 @@ export const dbAPI = {
     const dbInstance = await getDB()
     const placeholders = ids.map(() => '?').join(', ');
     const [result] = await dbInstance.select(
-      `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags tag_id IN(${placeholders})`
+      `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags tag_id IN(${placeholders})`,
       [hash]
     )
     return result ? result.count : 0;

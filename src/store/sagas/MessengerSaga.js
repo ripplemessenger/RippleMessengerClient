@@ -1,7 +1,6 @@
 import { Buffer } from 'buffer'
 import Elliptic from 'elliptic'
 import * as rippleKeyPairs from 'ripple-keypairs'
-import Dexie from 'dexie'
 import * as path from '@tauri-apps/api/path'
 import { open, readFile, writeFile, remove, mkdir, stat, SeekMode } from '@tauri-apps/plugin-fs'
 import { call, delay, put, select, fork, takeEvery, takeLatest } from 'redux-saga/effects'
@@ -11,7 +10,7 @@ import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
 import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
 import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setCurrentChannelBulletinList, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList } from '../slices/MessengerSlice'
-import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message, safeAddItem } from '../../lib/AppUtil'
+import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { BlobToUint32, calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/UserSlice'
 import { dbAPI } from '../../db'
@@ -474,13 +473,12 @@ function* handelMessengerEvent(action) {
             let tmp_list = []
             for (let i = 0; i < group_list.length; i++) {
               const group = group_list[i]
-              if (group.delete_json !== undefined) {
+              if (group.delete_json !== null) {
                 tmp_list.push(group.delete_json)
               } else {
                 tmp_list.push(group.create_json)
               }
             }
-            console.log(tmp_list)
             if (tmp_list.length > 0) {
               let group_response = {
                 ObjectType: ObjectType.GroupList,
@@ -1210,7 +1208,7 @@ function* RequestNextBulletin({ payload }) {
   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
 }
 
-function* LoadMineBulletin() {
+function* LoadMineBulletin({ payload }) {
   const seed = yield select(state => state.User.Seed)
   const address = yield select(state => state.User.Address)
   if (!seed) {
@@ -1218,14 +1216,15 @@ function* LoadMineBulletin() {
     return
   }
 
-  let bulletins = yield call(() => dbAPI.getMyBulletins(address))
+  let bulletins = yield call(() => dbAPI.getMyBulletins(address, payload.page))
   if (bulletins.length > 0) {
     yield put(setCurrentBulletinSequence(bulletins[0].sequence))
   } else {
     yield put(setCurrentBulletinSequence(0))
   }
-  console.log(bulletins)
-  yield put(setMineBulletinList(bulletins))
+  let total = yield call(() => dbAPI.getMyBulletinCount(address))
+  let total_page = calcTotalPage(total, BulletinPageSize)
+  yield put(setMineBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
 }
 
 function* LoadFollowBulletin({ payload }) {
@@ -1244,12 +1243,13 @@ function* LoadFollowBulletin({ payload }) {
       follow_address_list.push(follow.remote)
       yield fork(RequestNextBulletin, { payload: { address: follow.remote } })
     }
-    // TODO page
-    let bulletins = yield call(() => dbAPI.getBulletinListByAddress(follow_address_list, payload.page))
-    bulletins = bulletins.reverse()
-    yield put(setFollowBulletinList(bulletins))
+
+    let bulletins = yield call(() => dbAPI.getBulletinListByAddresses(follow_address_list, payload.page))
+    let total = yield call(() => dbAPI.getBulletinCountByAddresses(follow_address_list))
+    let total_page = calcTotalPage(total, BulletinPageSize)
+    yield put(setFollowBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
   } else {
-    yield put(setFollowBulletinList([]))
+    yield put(setFollowBulletinList({ List: [], Page: 0, TotalPage: 0 }))
   }
 }
 
@@ -1310,13 +1310,18 @@ function* RequestBulletinAddress({ payload }) {
 }
 
 function* RequestReplyBulletin({ payload }) {
+  console.log(payload)
   yield put(setDisplayBulletinReplyList({ List: [], Page: 1, TotalPage: 1 }))
   const connect_status = yield select(state => state.Messenger.MessengerConnStatus)
   if (!connect_status) {
     const display_bulletin = yield select(state => state.Messenger.DisplayBulletin)
-    let reply_hash_list = yield call(() => dbAPI.getReplyHashListByBulletinHash(display_bulletin.Hash))
+    console.log(display_bulletin)
+    let reply_hash_list = yield call(() => dbAPI.getReplyHashListByBulletinHash(display_bulletin.hash, payload.page))
+    console.log(reply_hash_list)
     let replys = yield call(() => dbAPI.getBulletinListByHash(reply_hash_list))
-    let reply_count = yield call(() => dbAPI.getReplyCount(display_bulletin.Hash))
+    console.log(replys)
+    let reply_count = yield call(() => dbAPI.getReplyCount(display_bulletin.hash))
+    console.log(reply_count)
     let total_page = calcTotalPage(reply_count, BulletinPageSize)
     yield put(setDisplayBulletinReplyList({ List: replys, Page: 1, TotalPage: total_page }))
   } else {
@@ -1383,20 +1388,20 @@ function* PublishBulletin(action) {
   let result = yield call(() => dbAPI.addBulletin(bulletin_json_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
   if (result) {
     if (bulletin_json.Tag) {
-      yield call(() => dbAPI.addTagsToBulletin(new_bulletin_hash, bulletin_json.Timestamp, bulletin_json.Tag))
+      yield call(() => dbAPI.addTagsToBulletin(bulletin_json_hash, bulletin_json.Timestamp, bulletin_json.Tag))
     }
     if (bulletin_json.Quote) {
-      yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, new_bulletin_hash, bulletin_json.Timestamp))
+      yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, bulletin_json_hash, bulletin_json.Timestamp))
     }
     if (bulletin_json.File) {
-      yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
+      yield call(() => dbAPI.addFilesToBulletin(bulletin_json_hash, bulletin_json.File))
     }
   }
   yield put(setCurrentBulletinSequence(bulletin_json.Sequence))
   yield put(setPublishTagList([]))
   yield put(setPublishQuoteList([]))
   yield put(setPublishFileList([]))
-  yield call(LoadMineBulletin)
+  yield call(LoadMineBulletin, { payload: { page: 1 } })
   yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
 }
 
@@ -1543,7 +1548,7 @@ function* ComposeSpeakerDel({ payload }) {
 function* RefreshChannelMessageList({ payload }) {
   const CurrentChannel = yield select(state => state.Messenger.CurrentChannel)
   // TODO page
-  const bulletins = yield call(() => dbAPI.getBulletinListByAddress(CurrentChannel.speaker, payload.page))
+  const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(CurrentChannel.speaker, payload.page))
   yield put(setCurrentChannelBulletinList(bulletins))
 }
 
@@ -2077,9 +2082,13 @@ function* GroupSync() {
 }
 
 export function* LoadGroupList() {
+  ConsoleError(`LoadGroupList2`)
   const address = yield select(state => state.User.Address)
+  ConsoleError(address)
   let group_list = yield call(() => dbAPI.getGroups())
+  console.log(group_list)
   group_list = group_list.filter(g => g.is_accepted === true && (g.created_by === address || g.member.includes(address)))
+  console.log(group_list)
 
   let group_member_map = {}
   for (let i = 0; i < group_list.length; i++) {

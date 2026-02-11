@@ -2,20 +2,21 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { BulletinPageTab } from '../../lib/AppConst'
-import ListBulletin from '../../components/Bulletin/ListBulletin'
 import { setPublishFlag } from '../../store/slices/MessengerSlice'
 import { MdPostAdd } from "react-icons/md"
+import ListBulletin from '../../components/Bulletin/ListBulletin'
+import PageList from '../../components/PageList'
 
 export default function TabMine() {
   const { Address } = useSelector(state => state.User)
-  const { MessengerConnStatus, MineBulletinList, activeTabBulletin } = useSelector(state => state.Messenger)
+  const { MessengerConnStatus, MineBulletinList, MineBulletinTotalPage, MineBulletinPage, activeTabBulletin } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Mine) {
-      dispatch({ type: 'LoadMineBulletin' })
+      dispatch({ type: 'LoadMineBulletin', payload: { page: 1 } })
     }
   }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
 
@@ -28,22 +29,27 @@ export default function TabMine() {
             <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
           </div>
 
-
-          <div className={`mt-1 flex-1 justify-center`}>
+          <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
             {
-              MineBulletinList.length === 0 ?
-                <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-                  <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-                    no bulletin yet...
-                  </h3>
-                </div>
-                :
-                MineBulletinList.map((bulletin, index) => (
-                  <div key={bulletin.hash} className='text-xs text-gray-200 mt-1 p-1'>
-                    <ListBulletin bulletin={bulletin} />
-                  </div>
-                ))
+              MineBulletinTotalPage > 1 &&
+              <PageList current_page={MineBulletinPage} total_page={MineBulletinTotalPage} dispatch_type={'LoadMineBulletin'} payload={{}} />
             }
+            <div className={`mt-1 flex-1 justify-center`}>
+              {
+                MineBulletinList.length === 0 ?
+                  <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
+                    <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
+                      no bulletin yet...
+                    </h3>
+                  </div>
+                  :
+                  MineBulletinList.map((bulletin, index) => (
+                    <div key={bulletin.hash} className='text-xs text-gray-200 mt-1 p-1'>
+                      <ListBulletin bulletin={bulletin} />
+                    </div>
+                  ))
+              }
+            </div>
           </div>
         </div>
       </div>

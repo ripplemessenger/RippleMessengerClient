@@ -47,6 +47,16 @@ const BulletinViewer = ({ bulletin }) => {
 
       <div className={`min-w-[800px] p-2`}>
         {
+          bulletin.tag !== undefined && bulletin.tag.length !== 0 &&
+          <div className='flex flex-wrap'>
+            {bulletin.tag.map((tag, index) => (
+              <div key={tag} className='text-xs text-gray-200 mt-1 px-1'>
+                <TagLink tag={tag} />
+              </div>
+            ))}
+          </div>
+        }
+        {
           isMarkdown ?
             <div className={`p-2 rounded-lg bg-neutral-200 dark:bg-neutral-700`}>
               <Markdown
@@ -97,17 +107,6 @@ const BulletinViewer = ({ bulletin }) => {
             </div>
             :
             <BulletinContent content={bulletin.content} />
-        }
-
-        {
-          bulletin.tag !== undefined && bulletin.tag.length !== 0 &&
-          <div className='flex flex-wrap'>
-            {bulletin.tag.map((tag, index) => (
-              <div key={tag} className='text-xs text-gray-200 mt-1 px-1'>
-                <TagLink tag={tag} />
-              </div>
-            ))}
-          </div>
         }
         {
           bulletin.quote !== undefined && bulletin.quote.length !== 0 &&
