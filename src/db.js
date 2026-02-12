@@ -1,6 +1,6 @@
 import { path } from '@tauri-apps/api'
 import Database from '@tauri-apps/plugin-sql'
-import { Bool2Int, Int2Bool } from './lib/AppUtil'
+import { Bool2Int, ConsoleError, Int2Bool } from './lib/AppUtil'
 import { MessageObjectType } from './lib/MessengerConst'
 import { BulletinPageSize } from './lib/AppConst'
 import { bulletin2Display } from './lib/MessengerUtil'
@@ -132,8 +132,8 @@ export async function initDB() {
 
       PRIMARY KEY (bulletin_hash, reply_hash),
       check (bulletin_hash != reply_hash),
-      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
-      FOREIGN KEY (reply_hash) REFERENCES bulletin(hash) ON DELETE CASCADE
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletins(hash) ON DELETE CASCADE,
+      FOREIGN KEY (reply_hash) REFERENCES bulletins(hash) ON DELETE CASCADE
     );`)
 
     await dbInstance.execute(`
@@ -145,8 +145,8 @@ export async function initDB() {
       file_ext TEXT NOT NULL,
 
       PRIMARY KEY (bulletin_hash, file_hash),
-      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
-      FOREIGN KEY (file_hash) REFERENCES file(hash) ON DELETE CASCADE
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletins(hash) ON DELETE CASCADE,
+      FOREIGN KEY (file_hash) REFERENCES files(hash) ON DELETE CASCADE
     );`)
 
     await dbInstance.execute(`
@@ -162,8 +162,8 @@ export async function initDB() {
       tag_id INTEGER NOT NULL,
 
       PRIMARY KEY (bulletin_hash, tag_id),
-      FOREIGN KEY (bulletin_hash) REFERENCES bulletin(hash) ON DELETE CASCADE,
-      FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
+      FOREIGN KEY (bulletin_hash) REFERENCES bulletins(hash) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
     );`)
 
     await dbInstance.execute(`
@@ -249,7 +249,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO servers (url, updated_at)VALUES ($1, $2)',
+        'INSERT INTO servers (url, updated_at) VALUES ($1, $2)',
         [url, updated_at]
       )
       return true
@@ -303,7 +303,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO contacts (address, nickname, updated_at)VALUES ($1, $2, $3)',
+        'INSERT INTO contacts (address, nickname, updated_at) VALUES ($1, $2, $3)',
         [address, nickname, timestamp]
       )
       return true
@@ -357,7 +357,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO accounts (address, salt, cipher_data, updated_at)VALUES ($1, $2, $3, $4)',
+        'INSERT INTO accounts (address, salt, cipher_data, updated_at) VALUES ($1, $2, $3, $4)',
         [address, salt, cipher_data, timestamp]
       )
       return true
@@ -416,7 +416,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO follows (local, remote, updated_at)VALUES ($1, $2, $3)',
+        'INSERT INTO follows (local, remote, updated_at) VALUES ($1, $2, $3)',
         [local, remote, timestamp]
       )
       return true
@@ -461,7 +461,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO friends (local, remote, updated_at)VALUES ($1, $2, $3)',
+        'INSERT INTO friends (local, remote, updated_at) VALUES ($1, $2, $3)',
         [local, remote, timestamp]
       )
       return true
@@ -532,7 +532,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, json, is_saved)VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, json, is_saved) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [address, hash, size, signed_at, updated_at, json, is_saved]
       )
       return true
@@ -593,21 +593,7 @@ export const dbAPI = {
     )
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
-      bulletins[i].json = JSON.parse(bulletin.json)
-      bulletins[i].content = bulletins[i].json.Content
-      bulletins[i].is_marked = JSON.parse(bulletin.is_marked)
-      bulletins[i].tag = []
-      bulletins[i].file = []
-      bulletins[i].quote = []
-      if (bulletins[i].json.Tag !== undefined) {
-        bulletins[i].tag = bulletins[i].json.Tag
-      }
-      if (bulletins[i].json.File !== undefined) {
-        bulletins[i].file = bulletins[i].json.File
-      }
-      if (bulletins[i].json.Quote !== undefined) {
-        bulletins[i].quote = bulletins[i].json.Quote
-      }
+      bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
   },
@@ -618,7 +604,7 @@ export const dbAPI = {
       `SELECT COUNT(hash) as count FROM bulletins WHERE address = $1`,
       [address]
     )
-    return result ? result.count : 0;
+    return result ? result.count : 0
   },
 
   async getBulletinListByAddresses(addresses, page) {
@@ -643,32 +629,16 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = addresses.map(() => '?').join(', ');
+    const placeholders = addresses.map(() => '?').join(', ')
     const query = `SELECT COUNT(hash) as count FROM bulletins WHERE address IN (${placeholders})`
     let [result] = await dbInstance.select(query, addresses)
-    return result ? result.count : 0;
+    return result ? result.count : 0
   },
 
-  async getBulletinListByHash(hashes, page) {
-    if (!Array.isArray(hashes) || hashes.length === 0) {
-      return []
-    }
-
-    const dbInstance = await getDB()
-    const placeholders = hashes.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
-    let bulletins = await dbInstance.select(query, hashes)
-    for (let i = 0; i < bulletins.length; i++) {
-      const bulletin = bulletins[i]
-      bulletins[i] = bulletin2Display(bulletin)
-    }
-    return bulletins
-  },
-
-  async getBulletinListByIsmark() {
+  async getBulletinListByIsmark(page) {
     const dbInstance = await getDB()
     let bulletins = await dbInstance.select(
-      'SELECT * FROM bulletins WHERE is_marked = $1 ORDER BY signed_at DESC',
+      `SELECT * FROM bulletins WHERE is_marked = $1 ORDER BY signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
       [Bool2Int(true)]
     )
     for (let i = 0; i < bulletins.length; i++) {
@@ -678,18 +648,27 @@ export const dbAPI = {
     return bulletins
   },
 
-  // to display
+  async getBulletinCountByIsmark() {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      `SELECT COUNT(hash) as count FROM bulletins WHERE is_marked = $1`,
+      [Bool2Int(true)]
+    )
+    return result ? result.count : 0
+  },
+
   async getBulletinListByHash(hashes) {
     if (!Array.isArray(hashes) || hashes.length === 0) {
       return []
     }
 
     const dbInstance = await getDB()
-    const placeholders = hashes.map(() => '?').join(', ');
+    const placeholders = hashes.map(() => '?').join(', ')
     const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at`
     let bulletins = await dbInstance.select(query, hashes)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
+      // to display
       bulletins[i] = bulletin2Display(bulletin)
     }
     return bulletins
@@ -703,6 +682,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
+      // to display
       bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
@@ -718,6 +698,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
+      // to display
       bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
@@ -733,6 +714,7 @@ export const dbAPI = {
     )
     if (bulletins.length > 0) {
       let bulletin = bulletins[0]
+      // to display
       bulletin = bulletin2Display(bulletin)
       return bulletin
     } else {
@@ -806,7 +788,7 @@ export const dbAPI = {
       `SELECT COUNT(reply_hash) as count FROM bulletin_replys WHERE bulletin_hash = $1`,
       [hash]
     )
-    return result ? result.count : 0;
+    return result ? result.count : 0
   },
 
   async addReplyToBulletins(bulletins, reply_hash, reply_signed_at) {
@@ -830,31 +812,29 @@ export const dbAPI = {
   },
 
   // bulletin tag
-  async getBulletinHashListByTagId(ids) {
+  async getBulletinHashListByTagId(ids, page) {
     if (!Array.isArray(ids) || ids.length === 0) {
       return []
     }
 
     const dbInstance = await getDB()
-    const placeholders = ids.map(() => '?').join(', ');
-    const query = `SELECT DISTINCT bulletin_hash FROM bulletin_tags WHERE tag_id IN(${placeholders})`
+    const placeholders = ids.map(() => '?').join(', ')
+    const query = `SELECT DISTINCT bulletin_hash FROM bulletin_tags WHERE tag_id IN(${placeholders}) ORDER BY bulletin_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     const bulletins = await dbInstance.select(query, ids)
     const hashes = bulletins.map(bulletin => bulletin.bulletin_hash)
     return hashes
   },
 
-  async getBulletinCountByTagId(ids) {
+  async getBulletinHashCountByTagId(ids) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      return 0
+      return []
     }
 
     const dbInstance = await getDB()
-    const placeholders = ids.map(() => '?').join(', ');
-    const [result] = await dbInstance.select(
-      `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags tag_id IN(${placeholders})`,
-      [hash]
-    )
-    return result ? result.count : 0;
+    const placeholders = ids.map(() => '?').join(', ')
+    const query = `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags WHERE tag_id IN(${placeholders})`
+    const [result] = await dbInstance.select(query, ids)
+    return result ? result.count : 0
   },
 
   async addTagsToBulletin(bulletin_hash, bulletin_signed_at, tagNames) {
@@ -927,7 +907,7 @@ export const dbAPI = {
     )
     for (let i = 0; i < channels.length; i++) {
       const channel = channels[i]
-      channels[i].member = JSON.parse(channel.member)
+      channels[i].speaker = JSON.parse(channel.speaker)
     }
     return channels
   },
@@ -935,24 +915,25 @@ export const dbAPI = {
   async getChannelByName(created_by, name) {
     const dbInstance = await getDB()
     const channels = await dbInstance.select(
-      'SELECT * FROM channels WHERE created_by = $1, name = $2 LIMIT 1',
+      'SELECT * FROM channels WHERE created_by = $1 AND name = $2 LIMIT 1',
       [created_by, name]
     )
     if (channels.length > 0) {
       let channel = channels[0]
-      channel.member = JSON.parse(channel.member)
+      channel.speaker = JSON.parse(channel.speaker)
       return channel
     } else {
       return null
     }
   },
 
-  async addChannel(created_by, name, member, created_at) {
+  async addChannel(created_by, name, speaker, created_at) {
+    console.log(created_by, name, speaker, created_at)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO channels (created_by, name, member, created_at)VALUES ($1, $2, $3, $4)',
-        [created_by, name, JSON.stringify(member), created_at]
+        'INSERT INTO channels (created_by, name, speaker, created_at) VALUES ($1, $2, $3, $4)',
+        [created_by, name, JSON.stringify(speaker), created_at]
       )
       return true
     } catch (error) {
@@ -961,12 +942,12 @@ export const dbAPI = {
     }
   },
 
-  async updateChannel(created_by, name, member, created_at) {
+  async updateChannel(created_by, name, speaker, created_at) {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'UPDATE channels SET member = $1, created_at = $2 WHERE created_by = $3, name = $4',
-        [JSON.stringify(member), created_at, created_by, name]
+        'UPDATE channels SET speaker = $1, created_at = $2 WHERE created_by = $3 AND name = $4',
+        [JSON.stringify(speaker), created_at, created_by, name]
       )
       return true
     } catch (error) {
@@ -1008,7 +989,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO files (hash, size, updated_at, chunk_length, chunk_cursor, is_saved)VALUES ($1, $2, $3, $4, $5, $6)',
+        'INSERT INTO files (hash, size, updated_at, chunk_length, chunk_cursor, is_saved) VALUES ($1, $2, $3, $4, $5, $6)',
         [hash, size, updated_at, chunk_length, chunk_cursor, Bool2Int(is_saved)]
       )
       return true
@@ -1067,7 +1048,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO private_chat_files (ehash, address1, address2, hash, size)VALUES ($1, $2, $3, $4, $5)',
+        'INSERT INTO private_chat_files (ehash, address1, address2, hash, size) VALUES ($1, $2, $3, $4, $5)',
         [ehash, address1, address2, hash, size]
       )
       return true
@@ -1091,7 +1072,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO group_chat_files (ehash, group_hash, hash, size)VALUES ($1, $2, $3, $4)',
+        'INSERT INTO group_chat_files (ehash, group_hash, hash, size) VALUES ($1, $2, $3, $4)',
         [ehash, group_hash, hash, size]
       )
       return true
@@ -1115,7 +1096,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, private_key, public_key, self_json)VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, private_key, public_key, self_json) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [self_address, pair_address, partition, sequence, private_key, public_key, JSON.stringify(self_json)]
       )
       return true
@@ -1129,12 +1110,13 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json)VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [self_address, pair_address, partition, sequence, aes_key, private_key, public_key, JSON.stringify(self_json), JSON.stringify(pair_json)]
       )
       return true
     } catch (error) {
       console.log(error)
+      ConsoleError(error)
       return false
     }
   },
@@ -1319,7 +1301,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO groups (hash, name, created_by, member, created_at, create_json, is_accepted)VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        'INSERT INTO groups (hash, name, created_by, member, created_at, create_json, is_accepted) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [hash, name, created_by, JSON.stringify(member), created_at, JSON.stringify(create_json), Bool2Int(is_accepted)]
       )
       return true

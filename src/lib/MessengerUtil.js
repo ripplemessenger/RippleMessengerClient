@@ -118,11 +118,12 @@ function genNonce() {
 }
 
 function calcTotalPage(total, page_size) {
-  let total_page = Math.floor(total / page_size)
-  if (total_page !== total / page_size) {
-    total_page + 1
+  const t = Number(total)
+  const p = Number(page_size)
+  if (!Number.isInteger(t) || !Number.isInteger(p) || t < 0 || p <= 0) {
+    return 1
   }
-  return total_page
+  return Math.ceil(t / p)
 }
 
 function trimEndCommasAndValidate(str) {

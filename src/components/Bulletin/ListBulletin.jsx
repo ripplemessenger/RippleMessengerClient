@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { createSearchParams, useNavigate } from 'react-router-dom'
 import BulletinContent from './BulletinContent'
@@ -31,7 +30,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
         <div className={`flex flex-col`}>
 
           <div className={`flex flex-row justify-between`}>
-            <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
+            <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} timestamp={Date.now()} />
             <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
             {
               bulletin.tag.length !== 0 &&

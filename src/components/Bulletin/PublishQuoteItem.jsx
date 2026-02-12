@@ -10,7 +10,7 @@ const PublishQuoteItem = ({ address, sequence, hash }) => {
 
   return (
     <div className='flex flex-row'>
-      <BulletinLink address={address} sequence={sequence} hash={hash} />
+      <BulletinLink address={address} sequence={sequence} hash={hash} timestamp={Date.now()} />
       <div className='quote-del' onClick={() => dispatch({ type: 'BulletinQuoteDel', payload: { Hash: hash } })}>
         X
       </div>

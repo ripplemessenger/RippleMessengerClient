@@ -189,7 +189,7 @@ export default function TabGroup() {
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
-                              onClick={() => acceptGroupRequest(request.Hash)}>
+                              onClick={() => acceptGroupRequest(request.hash)}>
                               Join
                             </button>
                           </td>

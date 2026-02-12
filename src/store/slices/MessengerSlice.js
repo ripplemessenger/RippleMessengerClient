@@ -54,7 +54,9 @@ const MessengerSlice = createSlice({
     // channel
     ChannelList: [],
     CurrentChannel: null,
-    CurrentChannelBulletinList: [],
+    ChannelBulletinList: [],
+    ChannelBulletinPage: 1,
+    ChannelBulletinTotalPage: 1,
     ComposeSpeakerList: [],
 
     // private
@@ -157,8 +159,10 @@ const MessengerSlice = createSlice({
     setCurrentChannel: (state, action) => {
       state.CurrentChannel = action.payload
     },
-    setCurrentChannelBulletinList: (state, action) => {
-      state.CurrentChannelBulletinList = action.payload
+    setChannelBulletinList: (state, action) => {
+      state.ChannelBulletinList = action.payload.List
+      state.ChannelBulletinPage = action.payload.Page
+      state.ChannelBulletinTotalPage = action.payload.TotalPage
     },
     setComposeSpeakerList: (state, action) => {
       state.ComposeSpeakerList = action.payload
@@ -221,7 +225,7 @@ export const {
   // channel
   setChannelList,
   setCurrentChannel,
-  setCurrentChannelBulletinList,
+  setChannelBulletinList,
   setComposeSpeakerList,
 
   // session

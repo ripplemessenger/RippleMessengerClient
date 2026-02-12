@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import TextTimestamp from '../TextTimestamp'
@@ -16,8 +15,8 @@ const ListChannel = ({ channel, textSize = 'text-base' }) => {
         <GrChannel className="channel-icon" />
         <div className={`flex flex-col justify-between`}>
           <div className={`flex flex-row justify-between px-1`}>
-            <ChannelName name={channel.Name} />
-            <TextTimestamp timestamp={channel.CreatedAt} textSize={'text-xs'} />
+            <ChannelName name={channel.name} />
+            <TextTimestamp timestamp={channel.created_at} textSize={'text-xs'} />
           </div>
           <div className={`flex flex-row justify-between`}>
             {channel.recent_msg}

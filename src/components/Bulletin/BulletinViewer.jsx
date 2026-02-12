@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
 import BulletinLink from './BulletinLink'
 import BulletinContent from './BulletinContent'
-import BulletinFileLink from './BulletinFileLink'
 import TextTimestamp from '../../components/TextTimestamp'
 import BulletinTools from './BulletinTools'
 
@@ -28,7 +27,7 @@ const BulletinViewer = ({ bulletin }) => {
         <div className='items-center flex flex-row justify-center'>
           <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar'} />
         </div>
-        <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
+        <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} timestamp={Date.now()} />
         <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
 
         <BulletinTools address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} json={bulletin.json} content={bulletin.content} is_marked={bulletin.is_marked} />
@@ -113,7 +112,7 @@ const BulletinViewer = ({ bulletin }) => {
           <div className='flex flex-wrap'>
             {bulletin.quote.map((quote, index) => (
               <div key={quote.Hash} className='text-xs text-gray-200 mt-1 px-1'>
-                <BulletinLink address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.address} />
+                <BulletinLink address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.address} timestamp={Date.now()} />
               </div>
             ))}
           </div>

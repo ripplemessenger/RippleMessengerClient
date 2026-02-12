@@ -3,17 +3,18 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { BulletinPageTab } from '../../lib/AppConst'
 import ListBulletin from '../../components/Bulletin/ListBulletin'
+import PageList from '../../components/PageList'
 
 export default function TabBookmark() {
   const { Address } = useSelector(state => state.User)
-  const { MessengerConnStatus, BookmarkBulletinList, activeTabBulletin } = useSelector(state => state.Messenger)
+  const { MessengerConnStatus, BookmarkBulletinList, BookmarkBulletinPage, BookmarkBulletinTotalPage, activeTabBulletin } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Bookmark) {
-      dispatch({ type: 'LoadMarkBulletin' })
+      dispatch({ type: 'LoadBookmarkBulletin', payload: { page: 1 } })
     }
   }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
 
@@ -26,21 +27,27 @@ export default function TabBookmark() {
           </div>
 
 
-          <div className={`mt-1 flex-1 justify-center`}>
+          <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
             {
-              BookmarkBulletinList.length === 0 ?
-                <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-                  <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-                    no bulletin yet...
-                  </h3>
-                </div>
-                :
-                BookmarkBulletinList.map((bulletin, index) => (
-                  <div key={bulletin.Hash} className='text-xs text-gray-200 mt-1 p-1'>
-                    <ListBulletin bulletin={bulletin} />
-                  </div>
-                ))
+              BookmarkBulletinTotalPage > 1 &&
+              <PageList current_page={BookmarkBulletinPage} total_page={BookmarkBulletinTotalPage} dispatch_type={'LoadBookmarkBulletin'} payload={{}} />
             }
+            <div className={`mt-1 flex-1 justify-center`}>
+              {
+                BookmarkBulletinList.length === 0 ?
+                  <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
+                    <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
+                      no bulletin yet...
+                    </h3>
+                  </div>
+                  :
+                  BookmarkBulletinList.map((bulletin, index) => (
+                    <div key={bulletin.Hash} className='text-xs text-gray-200 mt-1 p-1'>
+                      <ListBulletin bulletin={bulletin} />
+                    </div>
+                  ))
+              }
+            </div>
           </div>
         </div>
       </div>

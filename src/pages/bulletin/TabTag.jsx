@@ -67,26 +67,27 @@ export default function TabTag() {
               }
             </div>
           }
-
-          {
-            TagBulletinTotalPage > 1 &&
-            <PageList current_page={TagBulletinPage} total_page={TagBulletinTotalPage} dispatch_type={'RequestTagBulletin'} payload={{ tag: SearchTagList }} />
-          }
-          <div className={`mt-1 flex-1 justify-center`}>
+          <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
             {
-              TagBulletinList.length === 0 ?
-                <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-                  <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-                    no bulletin yet...
-                  </h3>
-                </div>
-                :
-                TagBulletinList.map((bulletin, index) => (
-                  <div key={bulletin.Hash} className='text-xs text-gray-200 mt-1 p-1'>
-                    <ListBulletin bulletin={bulletin} />
-                  </div>
-                ))
+              TagBulletinTotalPage > 1 &&
+              <PageList current_page={TagBulletinPage} total_page={TagBulletinTotalPage} dispatch_type={'RequestTagBulletin'} payload={{ tag: SearchTagList }} />
             }
+            <div className={`mt-1 flex-1 justify-center`}>
+              {
+                TagBulletinList.length === 0 ?
+                  <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
+                    <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
+                      no bulletin yet...
+                    </h3>
+                  </div>
+                  :
+                  TagBulletinList.map((bulletin, index) => (
+                    <div key={bulletin.Hash} className='text-xs text-gray-200 mt-1 p-1'>
+                      <ListBulletin bulletin={bulletin} />
+                    </div>
+                  ))
+              }
+            </div>
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ const GroupMessage = ({ message }) => {
           }
           {
             typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.Bulletin &&
-            <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Address} />
+            <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Address} timestamp={Date.now()} />
           }
           {
             typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.GroupChatFile &&
