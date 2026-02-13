@@ -860,8 +860,11 @@ function* handelMessengerEvent(action) {
       }
     }
   } else if (action.type === 'FetchBulletinFile') {
+    // TODO is need
+    console.log(action.payload)
     yield fork(FetchBulletinFile, { payload: { hash: action.payload.hash } })
   } else if (action.type === 'FetchPrivateChatFile') {
+    // TODO is need
     console.log(action.payload)
     yield fork(FetchPrivateChatFile, { payload: action.payload })
   }
@@ -881,7 +884,7 @@ function genFileNonce() {
 
 function* FetchBulletinFile({ payload }) {
   let file = yield call(() => dbAPI.getFileByHash(payload.hash))
-  if (file !== null && file.is_saved === 0) {
+  if (file !== null && file.is_saved === false) {
     let nonce = genFileNonce()
     let tmp = {
       Type: FileRequestType.File,
@@ -900,9 +903,7 @@ function* FetchBulletinFile({ payload }) {
 }
 
 function* SaveBulletinFile({ payload }) {
-  console.log(payload)
   const file = yield call(() => dbAPI.getFileByHash(payload.hash))
-  console.log(file)
   if (file && file.is_saved) {
     const base_dir = yield select(state => state.Common.AppBaseDir)
     const sour_file_path = yield call(() => path.join(base_dir, FileDir, payload.hash.substring(0, 3), payload.hash.substring(3, 6), payload.hash))
