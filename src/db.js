@@ -3,7 +3,7 @@ import Database from '@tauri-apps/plugin-sql'
 import { Bool2Int, ConsoleError, Int2Bool } from './lib/AppUtil'
 import { MessageObjectType } from './lib/MessengerConst'
 import { BulletinPageSize } from './lib/AppConst'
-import { bulletin2Display } from './lib/MessengerUtil'
+import { bulletin2Display, groupMessage2Display, privateMessage2Display } from './lib/MessengerUtil'
 
 let dbInstance = null
 
@@ -1122,6 +1122,7 @@ export const dbAPI = {
   },
 
   async updateHandshake(self_address, pair_address, partition, sequence, aes_key, self_json, pair_json) {
+    console.log(self_address, pair_address, partition, sequence, aes_key, self_json, pair_json)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
@@ -1157,15 +1158,11 @@ export const dbAPI = {
   async getPrivateSession(sour, dest) {
     const dbInstance = await getDB()
     let msgs = await dbInstance.select(
-      'SELECT * FROM private_messages WHERE (sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1) ORDER BY signed_at DESC',
+      'SELECT * FROM private_messages WHERE (sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1) ORDER BY signed_at ASC',
       [sour, dest]
     )
     for (let i = 0; i < msgs.length; i++) {
-      const msg = msgs[i]
-      msg[i].json = JSON.parse(msg.json)
-      msg[i].is_marked = Int2Bool(msg.is_marked)
-      msg[i].is_readed = Int2Bool(msg.is_readed)
-      msg[i].is_object = Int2Bool(msg.is_object)
+      msgs[i] = privateMessage2Display(msgs[i])
     }
     return msgs
   },
@@ -1177,11 +1174,7 @@ export const dbAPI = {
       [sour, dest]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.json = JSON.parse(msg.json)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = privateMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1195,11 +1188,7 @@ export const dbAPI = {
       [sour, dest, Bool2Int(true)]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = privateMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1213,11 +1202,7 @@ export const dbAPI = {
       [sour, dest, Bool2Int(false)]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = privateMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1234,6 +1219,7 @@ export const dbAPI = {
   },
 
   async addPrivateMessage(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object) {
+    console.log(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
@@ -1343,15 +1329,11 @@ export const dbAPI = {
   async getGroupSession(group_hash) {
     const dbInstance = await getDB()
     let msgs = await dbInstance.select(
-      'SELECT * FROM group_messages WHERE group_hash = $1 ORDER BY signed_at DESC',
+      'SELECT * FROM group_messages WHERE group_hash = $1 ORDER BY signed_at ASC',
       [group_hash]
     )
     for (let i = 0; i < msgs.length; i++) {
-      const msg = msgs[i]
-      msg[i].json = JSON.parse(msg.json)
-      msg[i].is_marked = Int2Bool(msg.is_marked)
-      msg[i].is_readed = Int2Bool(msg.is_readed)
-      msg[i].is_object = Int2Bool(msg.is_object)
+      msgs[i] = groupMessage2Display(msgs[i])
     }
     return msgs
   },
@@ -1372,11 +1354,7 @@ export const dbAPI = {
       [group_hash, address]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.json = JSON.parse(msg.json)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1390,11 +1368,7 @@ export const dbAPI = {
       [group_hash, address, Bool2Int(true)]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1408,11 +1382,7 @@ export const dbAPI = {
       [group_hash, address, Bool2Int(false)]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1426,11 +1396,21 @@ export const dbAPI = {
       [group_hash]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.json = JSON.parse(msg.json)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
+      return msg
+    } else {
+      return null
+    }
+  },
+
+  async getLastGroupMemberMessage(group_hash, address) {
+    const dbInstance = await getDB()
+    const msgs = await dbInstance.select(
+      'SELECT * FROM group_messages WHERE group_hash = $1 AND address = $2 ORDER BY sequence DESC LIMIT 1',
+      [group_hash, address]
+    )
+    if (msgs.length > 0) {
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1468,15 +1448,11 @@ export const dbAPI = {
   async getGroupMessageBySequence(group_hash, address, sequence) {
     const dbInstance = await getDB()
     const msgs = await dbInstance.select(
-      'SELECT * FROM group_messages WHERE group_hash = $1 AND address = $2 AND sequence = $3 DESC LIMIT 1',
+      'SELECT * FROM group_messages WHERE group_hash = $1 AND address = $2 AND sequence = $3 LIMIT 1',
       [group_hash, address, sequence]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null
@@ -1486,15 +1462,11 @@ export const dbAPI = {
   async getGroupMessageByHash(group_hash, hash) {
     const dbInstance = await getDB()
     const msgs = await dbInstance.select(
-      'SELECT * FROM group_messages WHERE group_hash = $1 AND hash = $2 DESC LIMIT 1',
+      'SELECT * FROM group_messages WHERE group_hash = $1 AND hash = $2 LIMIT 1',
       [group_hash, hash]
     )
     if (msgs.length > 0) {
-      let msg = msgs[0]
-      msg.is_confirmed = Int2Bool(msg.is_confirmed)
-      msg.is_marked = Int2Bool(msg.is_marked)
-      msg.is_readed = Int2Bool(msg.is_readed)
-      msg.is_object = Int2Bool(msg.is_object)
+      const msg = groupMessage2Display(msgs[0])
       return msg
     } else {
       return null

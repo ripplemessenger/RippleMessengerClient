@@ -460,10 +460,13 @@ function* handelMessengerEvent(action) {
           break
         case ActionCode.PrivateMessageSync:
           if (checkPrivateMessageSyncSchema(json) && VerifyJsonSignature(json)) {
-            let unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
-            for (let i = 0; i < unsyncMessageList.length; i++) {
-              const msg = unsyncMessageList[i]
-              yield call(SendMessage, { msg: msg.json })
+            const friend = yield call(() => dbAPI.getFriend(address, ob_address))
+            if (friend !== null) {
+              let unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
+              for (let i = 0; i < unsyncMessageList.length; i++) {
+                const msg = unsyncMessageList[i]
+                yield call(SendMessage, { msg: msg.json })
+              }
             }
           }
           break
@@ -492,32 +495,42 @@ function* handelMessengerEvent(action) {
           if (checkGroupMessageSyncSchema(json) && VerifyJsonSignature(json)) {
             let timestamp = Date.now()
             let group = yield call(() => dbAPI.getGroupByHash(json.Hash))
-            // console.log(group)
+            console.log(group)
             if (group === null) {
               yield call(GroupSync)
             } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
               const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
               let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-              // console.log(ecdh)
+              console.log(ecdh)
               if (ecdh === null && address !== ob_address) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
               } else if (ecdh.aes_key === null) {
-                yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
+                yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
               } else {
                 let tmp_msg_list = []
                 if (json.Sequence === 0) {
                   tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
                 } else {
                   let current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
+                  console.log(current_msg)
                   if (current_msg !== null) {
                     tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
+                  } else {
+                    let last_group_member_msg = yield call(() => dbAPI.getLastGroupMemberMessage(json.Hash, json.Address))
+                    let group_member_sequence = 0
+                    if (last_group_member_msg !== null) {
+                      group_member_sequence = last_group_member_msg.sequence
+                    }
+                    let group_msg_sync_request = MG.genGroupMessageSync(json.Hash, json.Address, group_member_sequence, json.Address)
+                    yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
                   }
                 }
+                console.log(tmp_msg_list)
                 if (tmp_msg_list.length > 0) {
                   let list = []
                   for (let i = 0; i < tmp_msg_list.length; i++) {
                     const tmp_msg = tmp_msg_list[i]
-                    let tmp_msg_json = tmp_msg.Json
+                    let tmp_msg_json = JSON.parse(tmp_msg.json)
                     let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
                     tmp_msg_json.Content = encrypt_content
                     delete tmp_msg_json["ObjectType"]
@@ -603,11 +616,12 @@ function* handelMessengerEvent(action) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
         if (checkECDHHandshakeSchema(json)) {
           let friend = yield call(() => dbAPI.getFriend(address, ob_address))
-          // console.log(friend)
+          console.log(friend)
           const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
-          // console.log(total_member_list)
+          console.log(total_member_list)
           if (friend !== null || total_member_list.includes(ob_address)) {
             let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
+            console.log(ecdh)
             if (ecdh === null) {
               const ec = new Elliptic.ec('secp256k1')
               const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
@@ -621,13 +635,13 @@ function* handelMessengerEvent(action) {
               yield call(SendMessage, { msg: JSON.stringify(self_json) })
             } else {
               const ec = new Elliptic.ec('secp256k1')
-              const self_key_pair = ec.keyFromPrivate(ecdh.PrivateKey, 'hex')
-              const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh.PublicKey, json.Self, ob_address, timestamp)
+              const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
+              const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp)
               const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
               const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
               const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-              yield call(() => dbAPI.updateHandshake(aes_key, self_json, json, address, ob_address, DefaultPartition, json.Sequence))
-              if (json.Pair === undefined) {
+              yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
+              if (json.Pair === "") {
                 yield call(SendMessage, { msg: JSON.stringify(self_json) })
               }
             }
@@ -771,7 +785,7 @@ function* handelMessengerEvent(action) {
             if (ecdh === null) {
               yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
             } else if (ecdh.aes_key === null) {
-              yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
+              yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
             } else {
               let unCachedMessageAddress = []
               for (let i = 0; i < json.List.length; i++) {
@@ -810,8 +824,6 @@ function* handelMessengerEvent(action) {
                         }
 
                         const ehash = GroupFileEHash(json.GroupHash, verify_json.Content.Hash)
-                        console.log(verify_json.Content.Hash)
-                        console.log(ehash)
                         let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
                         if (group_chat_file === null) {
                           yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, verify_json.Content.Hash, verify_json.Content.Size))
@@ -831,7 +843,6 @@ function* handelMessengerEvent(action) {
                 }
               }
               unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
-              console.log(unCachedMessageAddress)
               for (let i = 0; i < unCachedMessageAddress.length; i++) {
                 const msg_address = unCachedMessageAddress[i]
                 let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
@@ -1004,7 +1015,6 @@ function* FetchChatFile({ payload }) {
 }
 
 function* SaveChatFile({ payload }) {
-  console.log(payload)
   const file = yield call(() => dbAPI.getFileByHash(payload.hash))
   if (file && file.is_saved) {
     const base_dir = yield select(state => state.Common.AppBaseDir)
@@ -1603,7 +1613,7 @@ export function* LoadSessionList() {
     return
   }
   // private
-  let friend_list = yield call(() => dbAPI.getMyFollows(address))
+  let friend_list = yield call(() => dbAPI.getMyFriends(address))
   let session_list = []
   for (let i = 0; i < friend_list.length; i++) {
     const friend = friend_list[i]
@@ -1615,6 +1625,7 @@ export function* LoadSessionList() {
     const group = group_list[i]
     let member = [...group.member]
     member.push(group.created_by)
+    member = [...new Set(member)]
     if (member.includes(address)) {
       session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, updated_at: Date.now() })
     }
@@ -1649,7 +1660,6 @@ function* SyncPrivateMessage({ payload }) {
 }
 
 function* InitHandshake(payload) {
-  // console.log(payload)
   const self_seed = yield select(state => state.User.Seed)
   const self_address = yield select(state => state.User.Address)
   if (payload.pair_address === self_address) {
@@ -1690,10 +1700,11 @@ function* LoadCurrentSession({ payload }) {
         if (ecdh.aes_key !== null) {
           // aes ready, handsake already done, ready to chat
           session.aes_key = ecdh.aes_key
+          yield call(SyncPrivateMessage, { payload: { local: self_address, remote: pair_address } })
         } else {
           // my-sk-pk exist, aes not ready
           // send self-not-ready-json
-          yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
+          yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
         }
       }
 
@@ -1708,8 +1719,6 @@ function* LoadCurrentSession({ payload }) {
       yield put(setCurrentSession(session))
 
       yield call(RefreshPrivateMessageList)
-
-      yield call(SyncPrivateMessage, { payload: { local: self_address, remote: pair_address } })
       break
     case SessionType.Group:
       let group_session = { type: SessionType.Group, hash: payload.hash, name: payload.name, member: payload.member, updated_at: payload.updated_at }
@@ -1746,6 +1755,7 @@ function* SendContent({ payload }) {
   let timestamp = Date.now()
   const self_address = yield select(state => state.User.Address)
   const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+  console.log(CurrentSession)
   console.log(CurrentSession)
   switch (CurrentSession.type) {
     case SessionType.Private:
@@ -1810,10 +1820,10 @@ function* SendContent({ payload }) {
             yield call(() => dbAPI.addFile(payload.content.Hash, payload.content.Size, Date.now(), chunk_length, 0, false))
           }
 
-          const ehash = GroupFileEHash(json.GroupHash, payload.content.Hash)
+          const ehash = GroupFileEHash(CurrentSession.hash, payload.content.Hash)
           let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
           if (group_chat_file === null) {
-            yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, payload.content.Hash, payload.content.Size))
+            yield call(() => dbAPI.addGroupFile(ehash, CurrentSession.hash, payload.content.Hash, payload.content.Size))
           }
         }
       }
@@ -1821,20 +1831,20 @@ function* SendContent({ payload }) {
 
       let tmp_group_session = { ...CurrentSession }
       tmp_group_session.current_sequence = CurrentSession.current_sequence + 1
-      tmp_group_session.current_hash = group_hash
+      tmp_group_session.current_hash = group_msg_hash
       yield put(setCurrentSession(tmp_group_session))
 
       yield call(RefreshGroupMessageList)
       for (let i = 0; i < tmp_group_session.member.length; i++) {
         const member = tmp_group_session.member[i]
-        let tmp_msg_json = group_msg_json
+        let tmp_msg_json = JSON.parse(JSON.stringify(group_msg_json))
         if (member !== self_address) {
           const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, member)
           let ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
           if (ecdh === null) {
             yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: member })
           } else if (ecdh.aes_key === null) {
-            yield fork(SendMessage, { msg: JSON.stringify(ecdh.SelfJson) })
+            yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
           } else {
             let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
             tmp_msg_json.Content = encrypt_content

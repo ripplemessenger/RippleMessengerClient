@@ -12,41 +12,39 @@ const PrivateMessage = ({ message }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { Address } = useSelector(state => state.User)
-
+  // console.log(message)
   return (
-    <div className={`flex ${message.Sour !== Address ? 'mr-auto flex-row' : 'ml-auto flex-row-reverse'}`}>
-      <div>
-        <div className={`flex flex-col  ${message.Sour !== Address ? 'items-start' : 'items-end'}`}>
-          <div className={`flex ${message.Sour !== Address ? 'mr-auto flex-row' : 'ml-auto flex-row-reverse'}`}>
-            <AvatarImage address={message.Sour} timestamp={Date.now()} style={'avatar-sm'} />
-            <div className={`flex flex-col justify-between`}>
-              <div className={`rounded-full px-1 border border-gray-400 shrink-0`} onClick={() => { dispatch(setDisplayJson({ json: message.Json, isExpand: true })) }}>
-                <span className={`text-xs text-gray-500 dark:text-slate-200 text-left`}>
-                  #{message.Sequence}
-                </span>
-              </div>
-              <TextTimestamp timestamp={message.SignedAt} textSize={'text-xs'} />
-            </div>
+    <div className={`flex ${message.sour !== Address ? 'mr-auto flex-row' : 'ml-auto flex-row-reverse'}`}>
+      <AvatarImage address={message.sour} timestamp={Date.now()} style={'avatar-sm'} />
+
+      <div className={`flex flex-col ${message.sour !== Address ? 'items-start' : 'items-end'}`}>
+        <div className={`flex flex-row justify-between`}>
+          <div className={`rounded-full px-1 border border-gray-400 shrink-0`} onClick={() => { dispatch(setDisplayJson({ json: message.json, isExpand: true })) }}>
+            <span className={`text-xs text-gray-500 dark:text-slate-200 text-left`}>
+              #{message.sequence}
+            </span>
           </div>
+          <TextTimestamp timestamp={message.signed_at} textSize={'text-xs'} />
         </div>
-        <div className={`${message.Sour !== Address ? 'mr-auto' : 'ml-auto'}`}>
+
+        <div className={`${message.sour !== Address ? 'mr-auto' : 'ml-auto'}`}>
           {
-            typeof message.Content === "string" &&
+            message.is_object === false &&
             <span className={`w-full text-base text-slate-800 dark:text-slate-200`} >
-              {message.Content}
+              {message.content}
             </span>
           }
           {
-            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.Bulletin &&
-            <BulletinLink address={message.Content.Address} sequence={message.Content.Sequence} hash={message.Content.Hash} sour_address={message.Sour} timestamp={Date.now()} />
+            message.is_object === true && message.content.ObjectType === MessageObjectType.Bulletin &&
+            <BulletinLink address={message.content.Address} sequence={message.content.Sequence} hash={message.content.Hash} sour_address={message.sour} timestamp={Date.now()} />
           }
           {
-            typeof message.Content === "object" && message.Content.ObjectType === MessageObjectType.PrivateChatFile &&
-            <ChatFileLink name={message.Content.Name} ext={message.Content.Ext} size={message.Content.Size} hash={message.Content.Hash} timestamp={Date.now()} />
+            message.is_object === true && message.content.ObjectType === MessageObjectType.PrivateChatFile &&
+            <ChatFileLink address={message.sour} name={message.content.Name} ext={message.content.Ext} size={message.content.Size} hash={message.content.Hash} timestamp={Date.now()} />
           }
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 

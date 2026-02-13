@@ -2,7 +2,7 @@ import CryptoJS from 'crypto-js'
 import { Buffer } from 'buffer'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import { Epoch } from './MessengerConst'
-import { ConsoleWarn, HalfSHA512, QuarterSHA512Message, QuarterSHA512WordArray } from './AppUtil'
+import { ConsoleWarn, HalfSHA512, Int2Bool, QuarterSHA512Message, QuarterSHA512WordArray } from './AppUtil'
 import { NonceMax } from './AppConst'
 
 function AddressToName(address_map, address) {
@@ -168,6 +168,30 @@ function bulletin2Display(bulletin) {
   return bulletin
 }
 
+function privateMessage2Display(msg) {
+  msg.json = JSON.parse(msg.json)
+  msg.is_confirmed = Int2Bool(msg.is_confirmed)
+  msg.is_marked = Int2Bool(msg.is_marked)
+  msg.is_readed = Int2Bool(msg.is_readed)
+  msg.is_object = Int2Bool(msg.is_object)
+  if (msg.is_object) {
+    msg.content = JSON.parse(msg.content)
+  }
+  return msg
+}
+
+function groupMessage2Display(msg) {
+  msg.json = JSON.parse(msg.json)
+  msg.is_confirmed = Int2Bool(msg.is_confirmed)
+  msg.is_marked = Int2Bool(msg.is_marked)
+  msg.is_readed = Int2Bool(msg.is_readed)
+  msg.is_object = Int2Bool(msg.is_object)
+  if (msg.is_object) {
+    msg.content = JSON.parse(msg.content)
+  }
+  return msg
+}
+
 export {
   AddressToName,
 
@@ -189,5 +213,7 @@ export {
   trimEndCommasAndValidate,
   getMemberIndex,
   getMemberByIndex,
-  bulletin2Display
+  bulletin2Display,
+  privateMessage2Display,
+  groupMessage2Display
 }

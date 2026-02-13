@@ -106,7 +106,7 @@ export default function ChatHomePage() {
                   {
                     CurrentSessionMessageList.length > 0 ?
                       CurrentSessionMessageList.map((message, index) => (
-                        <div key={message.Hash} className='mt-1 px-1'>
+                        <div key={message.hash} className='mt-1 px-1'>
                           <PrivateMessage message={message} />
                         </div>
                       ))
@@ -153,7 +153,7 @@ export default function ChatHomePage() {
                   {
                     CurrentSessionMessageList.length > 0 ?
                       CurrentSessionMessageList.map((message, index) => (
-                        <div key={message.Hash} className='mt-1 px-1'>
+                        <div key={message.hash} className='mt-1 px-1'>
                           <GroupMessage message={message} />
                         </div>
                       ))

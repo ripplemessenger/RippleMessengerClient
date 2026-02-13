@@ -25,8 +25,7 @@ function* handleLogin(action) {
     yield call(ContactAdd, { payload: { address: MasterAddress, nickname: 'RippleMessenger' } })
     yield call(ContactToggleIsFollow, { payload: { contact_address: MasterAddress } })
   }
-  // TODO
-  // Bulletin...
+  // TODO Bulletin handle batch...
   yield call(LoadServerList)
 }
 
@@ -167,6 +166,7 @@ export function* ContactToggleIsFriend({ payload }) {
     yield put(setSessionList([...session_list_old, { type: SessionType.Private, address: contact_address, updated_at: Date.now() }]))
   }
   yield call(LoadContactList)
+  yield call(LoadSessionList)
 }
 
 export function* watchUser() {
