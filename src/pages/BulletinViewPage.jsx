@@ -66,7 +66,7 @@ export default function BulletinViewPage() {
           </div>
           :
           DisplayBulletinReplyList.map((bulletin, index) => (
-            <div key={bulletin.Hash} >
+            <div key={bulletin.hash} >
               <BulletinViewer bulletin={bulletin} />
             </div>
           ))

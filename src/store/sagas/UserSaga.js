@@ -99,7 +99,7 @@ function* LoadContactList() {
       for (let j = 0; j < tmp_follow_list.length; j++) {
         const follow = tmp_follow_list[j]
         if (follow.remote === contact.address) {
-          contact.IsFollow = true
+          contact.is_follow = true
           follow_list.push(follow.remote)
           break
         }
@@ -107,16 +107,16 @@ function* LoadContactList() {
       for (let j = 0; j < tmp_friend_list.length; j++) {
         const friend = tmp_friend_list[j]
         if (friend.remote === contact.address) {
-          contact.IsFriend = true
+          contact.is_friend = true
           friend_list.push(friend.remote)
           break
         }
       }
-      if (contact.IsFollow === undefined) {
-        contact.IsFollow = false
+      if (contact.is_follow === undefined) {
+        contact.is_follow = false
       }
-      if (contact.IsFriend === undefined) {
-        contact.IsFriend = false
+      if (contact.is_friend === undefined) {
+        contact.is_friend = false
       }
       contact_list.push(contact)
     }

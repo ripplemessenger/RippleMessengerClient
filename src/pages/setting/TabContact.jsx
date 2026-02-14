@@ -134,17 +134,17 @@ export default function TabContact() {
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.IsFollow} onClick={() => { toggleIsFollow(contact.address) }} />
+                                <ToggleSwitch isChecked={contact.is_follow} onClick={() => { toggleIsFollow(contact.address) }} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.IsFriend} onClick={() => { toggleIsFriend(contact.address) }} />
+                                <ToggleSwitch isChecked={contact.is_friend} onClick={() => { toggleIsFriend(contact.address) }} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 <TextTimestamp timestamp={contact.updated_at} />
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 {
-                                  contact.IsFollow === false && contact.IsFriend === false &&
+                                  contact.is_follow === false && contact.is_friend === false &&
                                   <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
                                     onClick={() => delContact(contact.address)}>
                                     Delete

@@ -41,7 +41,7 @@ export default function TabFollow() {
                   </div>
                   :
                   FollowBulletinList.map((bulletin, index) => (
-                    <div key={bulletin.Hash} className='text-xs text-gray-200 mt-1 p-1'>
+                    <div key={bulletin.hash} className='text-xs text-gray-200 mt-1 p-1'>
                       <ListBulletin bulletin={bulletin} />
                     </div>
                   ))

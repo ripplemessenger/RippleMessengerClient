@@ -37,7 +37,7 @@ export default function TabRandom() {
           <div className={`mt-1 flex-1 justify-center`}>
             {
               bulletin !== null &&
-              <div key={bulletin.Hash}>
+              <div key={bulletin.hash}>
                 <BulletinViewer bulletin={bulletin} />
               </div>
             }
