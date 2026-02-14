@@ -332,7 +332,6 @@ function* handelMessengerEvent(action) {
           }
           break
         case ActionCode.FileRequest:
-          console.log(json.Hash)
           if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
             if (json.FileType === FileRequestType.Avatar) {
               let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
@@ -556,107 +555,94 @@ function* handelMessengerEvent(action) {
       }
     } else if (json.ObjectType) {
       let timestamp = Date.now()
-      if (json.ObjectType === ObjectType.Bulletin) {
+      if (json.ObjectType === ObjectType.Bulletin && checkBulletinSchema(json) && VerifyJsonSignature(json)) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkBulletinSchema(json) && VerifyJsonSignature(json)) {
-          let bulletin = yield call(CacheBulletin, json)
-          yield put(setRandomBulletin(bulletin))
-          // TODO fetch next bulletin
-          // if (tmp.result) {
-          //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
-          //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
-          // }
-        }
-      } else if (json.ObjectType === ObjectType.BulletinAddressList) {
-        console.log(json)
-        if (checkBulletinAddressListSchema(json)) {
-          yield put(setBulletinAddressList(json))
-        }
-      } else if (json.ObjectType === ObjectType.ReplyBulletinList) {
-        if (checkReplyBulletinListSchema(json)) {
-          let replys = []
-          for (let i = 0; i < json.List.length; i++) {
-            const bulletin = json.List[i]
-            if (VerifyJsonSignature(bulletin)) {
-              const b = yield call(CacheBulletin, bulletin)
-              replys.push(b)
-            }
+        let bulletin = yield call(CacheBulletin, json)
+        yield put(setRandomBulletin(bulletin))
+        // TODO fetch next bulletin
+        // if (tmp.result) {
+        //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
+        //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+        // }
+      } else if (json.ObjectType === ObjectType.BulletinAddressList && checkBulletinAddressListSchema(json)) {
+        yield put(setBulletinAddressList(json))
+      } else if (json.ObjectType === ObjectType.ReplyBulletinList && checkReplyBulletinListSchema(json)) {
+        let replys = []
+        for (let i = 0; i < json.List.length; i++) {
+          const bulletin = json.List[i]
+          if (VerifyJsonSignature(bulletin)) {
+            const b = yield call(CacheBulletin, bulletin)
+            replys.push(b)
           }
         }
         yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
-      } else if (json.ObjectType === ObjectType.TagBulletinList) {
-        if (checkTagBulletinListSchema(json)) {
-          let tag_bulletin_list = []
-          for (let i = 0; i < json.List.length; i++) {
-            const bulletin = json.List[i]
-            if (VerifyJsonSignature(bulletin)) {
-              const b = yield call(CacheBulletin, bulletin)
-              tag_bulletin_list.push(b)
-            }
+      } else if (json.ObjectType === ObjectType.TagBulletinList && checkTagBulletinListSchema(json)) {
+        let tag_bulletin_list = []
+        for (let i = 0; i < json.List.length; i++) {
+          const bulletin = json.List[i]
+          if (VerifyJsonSignature(bulletin)) {
+            const b = yield call(CacheBulletin, bulletin)
+            tag_bulletin_list.push(b)
           }
         }
         yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
-      } else if (json.ObjectType === ObjectType.AvatarList) {
-        if (checkAvatarListSchema(json)) {
-          for (let i = 0; i < json.List.length; i++) {
-            const avatar = json.List[i]
-            if (VerifyJsonSignature(avatar)) {
-              const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
-              let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
-              if (db_avatar !== undefined) {
-                if (db_avatar.SignedAt < avatar.Timestamp) {
-                  if (db_avatar.Hash === avatar.Hash) {
-                    yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
-                  } else {
-                    yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
-                    yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
-                  }
+      } else if (json.ObjectType === ObjectType.AvatarList && checkAvatarListSchema(json)) {
+        for (let i = 0; i < json.List.length; i++) {
+          const avatar = json.List[i]
+          if (VerifyJsonSignature(avatar)) {
+            const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
+            let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
+            if (db_avatar !== undefined) {
+              if (db_avatar.SignedAt < avatar.Timestamp) {
+                if (db_avatar.Hash === avatar.Hash) {
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
+                } else {
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
+                  yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
                 }
               }
             }
           }
         }
-      } else if (json.ObjectType === ObjectType.ECDH) {
+      } else if (json.ObjectType === ObjectType.ECDH && checkECDHHandshakeSchema(json) && json.To === address && VerifyJsonSignature(json)) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkECDHHandshakeSchema(json) && json.To === address && VerifyJsonSignature(json)) {
-          let friend = yield call(() => dbAPI.getFriend(address, ob_address))
-          console.log(friend)
-          const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
-          console.log(total_member_list)
-          if (friend !== null || total_member_list.includes(ob_address)) {
-            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
-            console.log(ecdh)
-            if (ecdh === null) {
-              const ec = new Elliptic.ec('secp256k1')
-              const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
-              const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
-              const ecdh_pk = self_key_pair.getPublic('hex')
-              const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp)
-              const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-              const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
-              const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-              yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
-              yield call(SendMessage, { msg: JSON.stringify(self_json) })
-            } else {
-              const ec = new Elliptic.ec('secp256k1')
-              const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
-              const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp)
-              const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-              const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
-              const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-              yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
-              if (json.Pair === "") {
-                yield call(SendMessage, { msg: JSON.stringify(self_json) })
-              }
-            }
+        let friend = yield call(() => dbAPI.getFriend(address, ob_address))
+        console.log(friend)
+        const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
+        console.log(total_member_list)
+        if (friend !== null || total_member_list.includes(ob_address)) {
+          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
+          console.log(ecdh)
+          if (ecdh === null) {
+            const ec = new Elliptic.ec('secp256k1')
+            const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
+            const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
+            const ecdh_pk = self_key_pair.getPublic('hex')
+            const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp)
+            const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+            const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
+            const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
+            yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
+            yield call(SendMessage, { msg: JSON.stringify(self_json) })
           } else {
-            // Strangers do nothing
+            const ec = new Elliptic.ec('secp256k1')
+            const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
+            const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp)
+            const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+            const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
+            const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
+            yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
+            if (json.Pair === "") {
+              yield call(SendMessage, { msg: JSON.stringify(self_json) })
+            }
           }
+        } else {
+          // Strangers do nothing
         }
-      } else if (json.ObjectType === ObjectType.PrivateMessage) {
+      } else if (json.ObjectType === ObjectType.PrivateMessage && checkPrivateMessageSchema(json) && VerifyJsonSignature(json)) {
         // private
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkPrivateMessageSchema(json) && (json.To === address || ob_address === address) && VerifyJsonSignature(json)) {
+        if (json.To === address || ob_address === address) {
           if (ob_address !== address) {
             let friend = yield call(() => dbAPI.getFriend(address, ob_address))
             if (friend !== null) {
@@ -757,116 +743,112 @@ function* handelMessengerEvent(action) {
             }
           }
         }
-      } else if (json.ObjectType === ObjectType.GroupList) {
-        if (checkGroupListSchema(json)) {
-          for (let i = 0; i < json.List.length; i++) {
-            const group_json = json.List[i]
-            let db_g = yield call(() => dbAPI.getGroupByHash(group_json.Hash))
-            if (group_json.ObjectType === ObjectType.GroupCreate && VerifyJsonSignature(group_json)) {
-              if (db_g === null) {
-                const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
-                if (created_by === address) {
-                  yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
-                  yield call(LoadSessionList)
-                  yield call(LoadGroupList)
-                } else if (group_json.Member.includes(address)) {
-                  yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
-                  yield call(LoadGroupRequestList)
-                }
+      } else if (json.ObjectType === ObjectType.GroupList && checkGroupListSchema(json)) {
+        for (let i = 0; i < json.List.length; i++) {
+          const group_json = json.List[i]
+          let db_g = yield call(() => dbAPI.getGroupByHash(group_json.Hash))
+          if (group_json.ObjectType === ObjectType.GroupCreate && VerifyJsonSignature(group_json)) {
+            if (db_g === null) {
+              const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
+              if (created_by === address) {
+                yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
+                yield call(LoadSessionList)
+                yield call(LoadGroupList)
+              } else if (group_json.Member.includes(address)) {
+                yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
+                yield call(LoadGroupRequestList)
               }
-            } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
-              if (db_g !== null) {
-                yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
-              }
+            }
+          } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
+            if (db_g !== null) {
+              yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
             }
           }
         }
-      } else if (json.ObjectType === ObjectType.GroupMessageList) {
-        if (checkGroupMessageListSchema(json)) {
-          const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-          let group = yield call(() => dbAPI.getGroupByHash(json.GroupHash))
-          if (group === null) {
-            yield call(GroupSync)
-          } else if (group.is_accepted === true) {
-            const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-            if (ecdh === null) {
-              yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-            } else if (ecdh.aes_key === null) {
-              yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
-            } else {
-              let unCachedMessageAddress = []
-              for (let i = 0; i < json.List.length; i++) {
-                const group_msg = json.List[i]
-                const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
-                let pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
-                if (pre_message !== undefined
-                  || (pre_message === undefined && group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
-                  let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
-                  let content_json = deriveJson(content)
-                  if (content_json && checkMessageObjectSchema(content_json)) {
-                    content = content_json
-                  }
-                  let verify_json = {
-                    ObjectType: ObjectType.GroupMessage,
-                    GroupHash: json.GroupHash,
-                    Sequence: group_msg.Sequence,
-                    PreHash: group_msg.PreHash,
-                    Confirm: group_msg.Confirm,
-                    Content: content,
-                    Timestamp: group_msg.Timestamp,
-                    PublicKey: group_msg.PublicKey,
-                    Signature: group_msg.Signature
-                  }
-                  if (verify_json.Confirm === undefined) {
-                    delete verify_json["Confirm"]
-                  }
-                  if (VerifyJsonSignature(verify_json)) {
-                    let hash = QuarterSHA512Message(verify_json)
-                    if (typeof verify_json.Content === 'object') {
-                      if (verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
-                        let chunk_length = Math.ceil(verify_json.Content.Size / FileChunkSize)
-                        let file = yield call(() => dbAPI.getFileByHash(verify_json.Content.Hash))
-                        if (file === null) {
-                          yield call(() => dbAPI.addFile(verify_json.Content.Hash, verify_json.Content.Size, Date.now(), chunk_length, 0, false))
-                        }
+      } else if (json.ObjectType === ObjectType.GroupMessageList && checkGroupMessageListSchema(json)) {
+        const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+        let group = yield call(() => dbAPI.getGroupByHash(json.GroupHash))
+        if (group === null) {
+          yield call(GroupSync)
+        } else if (group.is_accepted === true) {
+          const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+          if (ecdh === null) {
+            yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
+          } else if (ecdh.aes_key === null) {
+            yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
+          } else {
+            let unCachedMessageAddress = []
+            for (let i = 0; i < json.List.length; i++) {
+              const group_msg = json.List[i]
+              const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
+              let pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
+              if (pre_message !== undefined
+                || (pre_message === undefined && group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
+                let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
+                let content_json = deriveJson(content)
+                if (content_json && checkMessageObjectSchema(content_json)) {
+                  content = content_json
+                }
+                let verify_json = {
+                  ObjectType: ObjectType.GroupMessage,
+                  GroupHash: json.GroupHash,
+                  Sequence: group_msg.Sequence,
+                  PreHash: group_msg.PreHash,
+                  Confirm: group_msg.Confirm,
+                  Content: content,
+                  Timestamp: group_msg.Timestamp,
+                  PublicKey: group_msg.PublicKey,
+                  Signature: group_msg.Signature
+                }
+                if (verify_json.Confirm === undefined) {
+                  delete verify_json["Confirm"]
+                }
+                if (VerifyJsonSignature(verify_json)) {
+                  let hash = QuarterSHA512Message(verify_json)
+                  if (typeof verify_json.Content === 'object') {
+                    if (verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
+                      let chunk_length = Math.ceil(verify_json.Content.Size / FileChunkSize)
+                      let file = yield call(() => dbAPI.getFileByHash(verify_json.Content.Hash))
+                      if (file === null) {
+                        yield call(() => dbAPI.addFile(verify_json.Content.Hash, verify_json.Content.Size, Date.now(), chunk_length, 0, false))
+                      }
 
-                        const ehash = GroupFileEHash(json.GroupHash, verify_json.Content.Hash)
-                        let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
-                        if (group_chat_file === null) {
-                          yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, verify_json.Content.Hash, verify_json.Content.Size))
-                        }
-                      }
-                    }
-                    let is_readed = false
-                    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-                    if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-                      is_readed = true
-                    }
-                    const add_result = yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'))
-                    if (add_result) {
-                      if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-                        yield call(RefreshGroupMessageList)
-                      } else {
-                        yield call(LoadSessionList)
+                      const ehash = GroupFileEHash(json.GroupHash, verify_json.Content.Hash)
+                      let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
+                      if (group_chat_file === null) {
+                        yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, verify_json.Content.Hash, verify_json.Content.Size))
                       }
                     }
                   }
-                } else {
-                  unCachedMessageAddress.push(msg_address)
+                  let is_readed = false
+                  const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+                  if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+                    is_readed = true
+                  }
+                  const add_result = yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'))
+                  if (add_result) {
+                    if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+                      yield call(RefreshGroupMessageList)
+                    } else {
+                      yield call(LoadSessionList)
+                    }
+                  }
                 }
+              } else {
+                unCachedMessageAddress.push(msg_address)
               }
-              unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
-              for (let i = 0; i < unCachedMessageAddress.length; i++) {
-                const msg_address = unCachedMessageAddress[i]
-                let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
-                if (last_msg === null) {
-                  let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, 0, ob_address)
-                  yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
-                } else {
-                  let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, last_msg.sequence, ob_address)
-                  yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
-                }
+            }
+            unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
+            for (let i = 0; i < unCachedMessageAddress.length; i++) {
+              const msg_address = unCachedMessageAddress[i]
+              let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
+              if (last_msg === null) {
+                let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, 0, ob_address)
+                yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
+              } else {
+                let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, last_msg.sequence, ob_address)
+                yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
               }
             }
           }
@@ -1623,8 +1605,8 @@ export function* LoadSessionList() {
   for (let i = 0; i < friend_list.length; i++) {
     const friend = friend_list[i]
     const new_msg_count = yield call(() => dbAPI.getPrivateNewMessageCount(address, friend.remote))
-    const last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, friend.remote))
-    session_list.push({ type: SessionType.Private, address: friend.remote, new_msg_count: new_msg_count, updated_at: last_msg === null ? Epoch : last_msg.signed_at })
+    const last_msg_signed_at = yield call(() => dbAPI.getLastPrivateMessageSignedAt(address, friend.remote))
+    session_list.push({ type: SessionType.Private, address: friend.remote, new_msg_count: new_msg_count, updated_at: last_msg_signed_at })
   }
   // group
   let group_list = yield select(state => state.Messenger.GroupList)
@@ -1635,8 +1617,8 @@ export function* LoadSessionList() {
     member = [...new Set(member)]
     if (member.includes(address)) {
       const new_msg_count = yield call(() => dbAPI.getGroupNewMessageCount(group.hash))
-      const last_msg = yield call(() => dbAPI.getLastGroupMessage(group.hash))
-      session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, new_msg_count: new_msg_count, updated_at: last_msg === null ? Epoch : last_msg.signed_at })
+      const last_msg_signed_at = yield call(() => dbAPI.getLastGroupMessageSignedAt(group.hash))
+      session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, new_msg_count: new_msg_count, updated_at: last_msg_signed_at })
     }
   }
   console.log(session_list)

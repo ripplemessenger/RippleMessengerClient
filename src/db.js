@@ -1,7 +1,7 @@
 import { path } from '@tauri-apps/api'
 import Database from '@tauri-apps/plugin-sql'
 import { Bool2Int, ConsoleError, Int2Bool } from './lib/AppUtil'
-import { MessageObjectType } from './lib/MessengerConst'
+import { Epoch, MessageObjectType } from './lib/MessengerConst'
 import { BulletinPageSize } from './lib/AppConst'
 import { bulletin2Display, groupMessage2Display, privateMessage2Display } from './lib/MessengerUtil'
 
@@ -1190,6 +1190,19 @@ export const dbAPI = {
     }
   },
 
+  async getLastPrivateMessageSignedAt(sour, dest) {
+    const dbInstance = await getDB()
+    let msgs = await dbInstance.select(
+      'SELECT * FROM private_messages WHERE (sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1) ORDER BY signed_at DESC LIMIT 1',
+      [sour, dest]
+    )
+    if (msgs.length > 0) {
+      return privateMessage2Display(msgs[0]).signed_at
+    } else {
+      return Epoch
+    }
+  },
+
   async getLastPrivateMessage(sour, dest) {
     const dbInstance = await getDB()
     const msgs = await dbInstance.select(
@@ -1434,17 +1447,16 @@ export const dbAPI = {
     }
   },
 
-  async getLastGroupMessage(group_hash) {
+  async getLastGroupMessageSignedAt(group_hash) {
     const dbInstance = await getDB()
     const msgs = await dbInstance.select(
       'SELECT * FROM group_messages WHERE group_hash = $1 ORDER BY signed_at DESC LIMIT 1',
       [group_hash]
     )
     if (msgs.length > 0) {
-      const msg = groupMessage2Display(msgs[0])
-      return msg
+      return groupMessage2Display(msgs[0]).signed_at
     } else {
-      return null
+      return Epoch
     }
   },
 
