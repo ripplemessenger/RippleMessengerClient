@@ -5,7 +5,7 @@ import * as path from '@tauri-apps/api/path'
 import { open, readFile, writeFile, remove, mkdir, stat, SeekMode } from '@tauri-apps/plugin-fs'
 import { call, delay, put, select, fork, takeEvery, takeLatest } from 'redux-saga/effects'
 import { eventChannel, END } from 'redux-saga'
-import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema } from '../../lib/MessageSchemaVerifier'
+import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkBulletinAddressListSchema, checkTagBulletinListSchema, checkAvatarListSchema } from '../../lib/MessageSchemaVerifier'
 import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
 import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
@@ -554,59 +554,63 @@ function* handelMessengerEvent(action) {
         default:
           break
       }
-    } else if (json.ObjectType && (json.To === undefined || json.To === address)) {
+    } else if (json.ObjectType) {
       let timestamp = Date.now()
       if (json.ObjectType === ObjectType.Bulletin) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkBulletinSchema(json)) {
-          if (VerifyJsonSignature(json)) {
-            let bulletin = yield call(CacheBulletin, json)
-            yield put(setRandomBulletin(bulletin))
-            // TODO fetch next bulletin
-            // if (tmp.result) {
-            //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
-            //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
-            // }
-          }
+        if (checkBulletinSchema(json) && VerifyJsonSignature(json)) {
+          let bulletin = yield call(CacheBulletin, json)
+          yield put(setRandomBulletin(bulletin))
+          // TODO fetch next bulletin
+          // if (tmp.result) {
+          //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
+          //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+          // }
         }
       } else if (json.ObjectType === ObjectType.BulletinAddressList) {
         console.log(json)
-        yield put(setBulletinAddressList(json))
+        if (checkBulletinAddressListSchema(json)) {
+          yield put(setBulletinAddressList(json))
+        }
       } else if (json.ObjectType === ObjectType.ReplyBulletinList) {
-        console.log(json)
-        let replys = []
-        for (let i = 0; i < json.List.length; i++) {
-          const bulletin = json.List[i]
-          if (VerifyJsonSignature(bulletin)) {
-            const b = yield call(CacheBulletin, bulletin)
-            replys.push(b)
+        if (checkReplyBulletinListSchema(json)) {
+          let replys = []
+          for (let i = 0; i < json.List.length; i++) {
+            const bulletin = json.List[i]
+            if (VerifyJsonSignature(bulletin)) {
+              const b = yield call(CacheBulletin, bulletin)
+              replys.push(b)
+            }
           }
         }
         yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
       } else if (json.ObjectType === ObjectType.TagBulletinList) {
-        console.log(json)
-        let tag_bulletin_list = []
-        for (let i = 0; i < json.List.length; i++) {
-          const bulletin = json.List[i]
-          if (VerifyJsonSignature(bulletin)) {
-            const b = yield call(CacheBulletin, bulletin)
-            tag_bulletin_list.push(b)
+        if (checkTagBulletinListSchema(json)) {
+          let tag_bulletin_list = []
+          for (let i = 0; i < json.List.length; i++) {
+            const bulletin = json.List[i]
+            if (VerifyJsonSignature(bulletin)) {
+              const b = yield call(CacheBulletin, bulletin)
+              tag_bulletin_list.push(b)
+            }
           }
         }
         yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
       } else if (json.ObjectType === ObjectType.AvatarList) {
-        for (let i = 0; i < json.List.length; i++) {
-          const avatar = json.List[i]
-          if (VerifyJsonSignature(avatar)) {
-            const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
-            let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
-            if (db_avatar !== undefined) {
-              if (db_avatar.SignedAt < avatar.Timestamp) {
-                if (db_avatar.Hash === avatar.Hash) {
-                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
-                } else {
-                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
-                  yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
+        if (checkAvatarListSchema(json)) {
+          for (let i = 0; i < json.List.length; i++) {
+            const avatar = json.List[i]
+            if (VerifyJsonSignature(avatar)) {
+              const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
+              let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
+              if (db_avatar !== undefined) {
+                if (db_avatar.SignedAt < avatar.Timestamp) {
+                  if (db_avatar.Hash === avatar.Hash) {
+                    yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
+                  } else {
+                    yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
+                    yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
+                  }
                 }
               }
             }
@@ -614,7 +618,7 @@ function* handelMessengerEvent(action) {
         }
       } else if (json.ObjectType === ObjectType.ECDH) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkECDHHandshakeSchema(json)) {
+        if (checkECDHHandshakeSchema(json) && json.To === address && VerifyJsonSignature(json)) {
           let friend = yield call(() => dbAPI.getFriend(address, ob_address))
           console.log(friend)
           const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
@@ -652,7 +656,7 @@ function* handelMessengerEvent(action) {
       } else if (json.ObjectType === ObjectType.PrivateMessage) {
         // private
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-        if (checkPrivateMessageSchema(json)) {
+        if (checkPrivateMessageSchema(json) && (json.To === address || ob_address === address) && VerifyJsonSignature(json)) {
           if (ob_address !== address) {
             let friend = yield call(() => dbAPI.getFriend(address, ob_address))
             if (friend !== null) {
