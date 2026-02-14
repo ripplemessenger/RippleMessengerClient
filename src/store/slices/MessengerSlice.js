@@ -61,6 +61,7 @@ const MessengerSlice = createSlice({
 
     // private
     SessionList: [],
+    SessionNewMsgCount: 0,
     CurrentSession: null,
     CurrentSessionMessageList: [],
 
@@ -171,6 +172,12 @@ const MessengerSlice = createSlice({
     // session
     setSessionList: (state, action) => {
       state.SessionList = action.payload
+      let count = 0
+      for (let i = 0; i < action.payload.length; i++) {
+        const session = action.payload[i]
+        count += session.new_msg_count
+      }
+      state.SessionNewMsgCount = count
     },
     setCurrentSession: (state, action) => {
       state.CurrentSession = action.payload

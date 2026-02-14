@@ -28,7 +28,7 @@ import JsonDiv from './components/JsonDiv'
 function App() {
   const [isDark, setIsDark] = useLocalStorage('isDark', false)
 
-  const { MessengerConnStatus } = useSelector(state => state.Messenger)
+  const { MessengerConnStatus, SessionNewMsgCount } = useSelector(state => state.Messenger)
   const { Address, IsAuth, FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.User)
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -127,6 +127,7 @@ function App() {
                     path="/chat"
                     icon={<IoChatboxEllipsesOutline className="icon" />}
                     label="Chat"
+                    count={SessionNewMsgCount}
                   />
                   <NavBarIconLink
                     path="/setting"

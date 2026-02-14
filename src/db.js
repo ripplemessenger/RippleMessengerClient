@@ -1167,6 +1167,29 @@ export const dbAPI = {
     return msgs
   },
 
+  async getPrivateNewMessageCount(sour, dest) {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      'SELECT COUNT(DISTINCT hash) as count FROM private_messages WHERE ((sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1)) AND is_readed = $3',
+      [sour, dest, Bool2Int(false)]
+    )
+    return result ? result.count : 0
+  },
+
+  async readPrivateSession(sour, dest) {
+    try {
+      const dbInstance = await getDB()
+      await dbInstance.execute(
+        'UPDATE private_messages SET is_readed = $3 WHERE (sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1)',
+        [sour, dest, Bool2Int(true)]
+      )
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
   async getLastPrivateMessage(sour, dest) {
     const dbInstance = await getDB()
     const msgs = await dbInstance.select(
@@ -1219,7 +1242,6 @@ export const dbAPI = {
   },
 
   async addPrivateMessage(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object) {
-    console.log(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
@@ -1336,6 +1358,29 @@ export const dbAPI = {
       msgs[i] = groupMessage2Display(msgs[i])
     }
     return msgs
+  },
+
+  async getGroupNewMessageCount(group_hash) {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      'SELECT COUNT(DISTINCT hash) as count FROM group_messages WHERE group_hash = $1 AND is_readed = $2',
+      [group_hash, Bool2Int(false)]
+    )
+    return result ? result.count : 0
+  },
+
+  async readGroupSession(group_hash) {
+    try {
+      const dbInstance = await getDB()
+      await dbInstance.execute(
+        'UPDATE group_messages SET is_readed = $2 WHERE group_hash = $1',
+        [group_hash, Bool2Int(true)]
+      )
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
   },
 
   async getUnsyncGroupSession(group_hash, signed_at) {

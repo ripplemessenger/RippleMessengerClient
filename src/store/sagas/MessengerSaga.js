@@ -675,32 +675,36 @@ function* handelMessengerEvent(action) {
 
                 let last_msg = yield call(() => dbAPI.getLastPrivateMessage(ob_address, address))
                 const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+                let is_readed = false
+                if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
+                  is_readed = true
+                }
+                let add_result = false
                 if (last_msg === null) {
                   if (json.Sequence === 1 && json.PreHash === GenesisHash) {
                     // first msg, save
-                    yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
-                    if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
-                      yield call(RefreshPrivateMessageList)
-                    } else {
-                      // TODO: unread message count
-                    }
+                    add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
+
                   } else {
                     // request first msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: ob_address } })
                   }
                 } else {
-                  // (last_msg !== undefined)
                   if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
                     // chained msg, save
-                    yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
-                    if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
-                      yield call(RefreshPrivateMessageList)
-                    } else {
-                      // TODO: unread message count
-                    }
+                    add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
+
                   } else if (last_msg.sequence + 1 < json.Sequence) {
                     // unchained msg, request next msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: ob_address } })
+                  }
+                }
+
+                if (add_result) {
+                  if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
+                    yield call(RefreshPrivateMessageList)
+                  } else {
+                    yield call(LoadSessionList)
                   }
                 }
               }
@@ -830,12 +834,18 @@ function* handelMessengerEvent(action) {
                         }
                       }
                     }
-                    yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, false, typeof verify_json.Content === 'object'))
+                    let is_readed = false
                     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
                     if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-                      yield call(RefreshGroupMessageList)
-                    } else {
-                      // TODO: unread message count
+                      is_readed = true
+                    }
+                    const add_result = yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'))
+                    if (add_result) {
+                      if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+                        yield call(RefreshGroupMessageList)
+                      } else {
+                        yield call(LoadSessionList)
+                      }
                     }
                   }
                 } else {
@@ -859,14 +869,6 @@ function* handelMessengerEvent(action) {
         }
       }
     }
-  } else if (action.type === 'FetchBulletinFile') {
-    // TODO is need
-    console.log(action.payload)
-    yield fork(FetchBulletinFile, { payload: { hash: action.payload.hash } })
-  } else if (action.type === 'FetchPrivateChatFile') {
-    // TODO is need
-    console.log(action.payload)
-    yield fork(FetchPrivateChatFile, { payload: action.payload })
   }
 }
 
@@ -891,7 +893,6 @@ function* FetchBulletinFile({ payload }) {
       Nonce: nonce,
       Hash: file.hash,
       ChunkCursor: file.chunk_cursor + 1,
-      // Address: address,
       Timestamp: Date.now()
     }
     FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
@@ -1080,7 +1081,6 @@ function* ReConnnect() {
 
 export function* LoadServerList() {
   let server_list = yield call(() => dbAPI.getAllServers())
-  console.log(server_list)
   if (server_list.length === 0) {
     const timestamp = Date.now()
     yield call(() => dbAPI.addServer(DefaultServer, timestamp))
@@ -1618,7 +1618,9 @@ export function* LoadSessionList() {
   let session_list = []
   for (let i = 0; i < friend_list.length; i++) {
     const friend = friend_list[i]
-    session_list.push({ type: SessionType.Private, address: friend.remote, updated_at: Date.now() })
+    const new_msg_count = yield call(() => dbAPI.getPrivateNewMessageCount(address, friend.remote))
+    const last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, friend.remote))
+    session_list.push({ type: SessionType.Private, address: friend.remote, new_msg_count: new_msg_count, updated_at: last_msg === null ? Epoch : last_msg.signed_at })
   }
   // group
   let group_list = yield select(state => state.Messenger.GroupList)
@@ -1628,9 +1630,12 @@ export function* LoadSessionList() {
     member.push(group.created_by)
     member = [...new Set(member)]
     if (member.includes(address)) {
-      session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, updated_at: Date.now() })
+      const new_msg_count = yield call(() => dbAPI.getGroupNewMessageCount(group.hash))
+      const last_msg = yield call(() => dbAPI.getLastGroupMessage(group.hash))
+      session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, new_msg_count: new_msg_count, updated_at: last_msg === null ? Epoch : last_msg.signed_at })
     }
   }
+  console.log(session_list)
   yield put(setSessionList(session_list))
 }
 
@@ -1678,7 +1683,6 @@ function* InitHandshake(payload) {
 
 function* LoadCurrentSession({ payload }) {
   const seed = yield select(state => state.User.Seed)
-  const self_seed = yield select(state => state.User.Seed)
   const self_address = yield select(state => state.User.Address)
   if (!seed) {
     MG = null
@@ -1718,7 +1722,8 @@ function* LoadCurrentSession({ payload }) {
         session.current_hash = GenesisHash
       }
       yield put(setCurrentSession(session))
-
+      yield call(() => dbAPI.readPrivateSession(self_address, pair_address))
+      yield call(LoadSessionList)
       yield call(RefreshPrivateMessageList)
       break
     case SessionType.Group:
@@ -1733,6 +1738,8 @@ function* LoadCurrentSession({ payload }) {
           group_session.current_hash = GenesisHash
         }
         yield put(setCurrentSession(group_session))
+        yield call(() => dbAPI.readGroupSession(payload.hash))
+        yield call(LoadSessionList)
         yield call(RefreshGroupMessageList)
         yield call(RequestGroupMessageSync, { payload: { hash: group_session.hash } })
       }
