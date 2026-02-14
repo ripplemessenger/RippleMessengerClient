@@ -333,6 +333,7 @@ function* handelMessengerEvent(action) {
           break
         case ActionCode.FileRequest:
           if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
+            console.log(json)
             if (json.FileType === FileRequestType.Avatar) {
               let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
               if (avatar !== null) {
@@ -414,7 +415,7 @@ function* handelMessengerEvent(action) {
               if (group_member_map[json.GroupHash] && group_member_map[json.GroupHash].includes(ob_address)) {
                 let index = getMemberIndex(group_member_map[json.GroupHash], address)
                 const index_u32 = Uint32ToBuffer(index)
-                let group_chat_file = yield call(() => dbAPI.getFileByHash(json.Hash))
+                let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(json.Hash))
                 if (group_chat_file !== null) {
                   let file = yield call(() => dbAPI.getFileByHash(group_chat_file.hash))
                   if (file !== undefined && file.is_saved) {// && file.chunk_length >= json.ChunkCursor) {
@@ -422,10 +423,10 @@ function* handelMessengerEvent(action) {
                     const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
                     const nonce = Uint32ToBuffer(json.Nonce)
 
+                    const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+                    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
                     if (file.size <= FileChunkSize) {
                       const content = yield call(() => readFile(file_path))
-                      const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                      let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
                       if (ecdh !== null && ecdh.aes_key !== null) {
                         const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
                         yield call(SendMessage, { msg: Buffer.concat([nonce, index_u32, encrypted_content]) })
@@ -440,8 +441,6 @@ function* handelMessengerEvent(action) {
                         const bytesRead = yield call(() => fileHandle.read(buffer))
                         if (bytesRead > 0) {
                           const chunk = buffer.slice(0, bytesRead)
-                          const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
                           if (ecdh !== null && ecdh.aes_key !== null) {
                             const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
                             yield call(SendMessage, { msg: Buffer.concat([nonce, index_u32, encrypted_chunk]) })
@@ -494,13 +493,11 @@ function* handelMessengerEvent(action) {
           if (checkGroupMessageSyncSchema(json) && VerifyJsonSignature(json)) {
             let timestamp = Date.now()
             let group = yield call(() => dbAPI.getGroupByHash(json.Hash))
-            console.log(group)
             if (group === null) {
               yield call(GroupSync)
             } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
               const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
               let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-              console.log(ecdh)
               if (ecdh === null && address !== ob_address) {
                 yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
               } else if (ecdh.aes_key === null) {
@@ -511,7 +508,6 @@ function* handelMessengerEvent(action) {
                   tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
                 } else {
                   let current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
-                  console.log(current_msg)
                   if (current_msg !== null) {
                     tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
                   } else {
@@ -524,7 +520,6 @@ function* handelMessengerEvent(action) {
                     yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
                   }
                 }
-                console.log(tmp_msg_list)
                 if (tmp_msg_list.length > 0) {
                   let list = []
                   for (let i = 0; i < tmp_msg_list.length; i++) {

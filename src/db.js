@@ -1,6 +1,6 @@
 import { path } from '@tauri-apps/api'
 import Database from '@tauri-apps/plugin-sql'
-import { Bool2Int, ConsoleError, Int2Bool } from './lib/AppUtil'
+import { Bool2Int, Int2Bool } from './lib/AppUtil'
 import { Epoch, MessageObjectType } from './lib/MessengerConst'
 import { BulletinPageSize } from './lib/AppConst'
 import { bulletin2Display, groupMessage2Display, privateMessage2Display } from './lib/MessengerUtil'
@@ -777,7 +777,6 @@ export const dbAPI = {
       `SELECT reply_hash FROM bulletin_replys WHERE bulletin_hash = $1 ORDER BY reply_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
       [hash]
     )
-    console.log(bulletins)
     const hashes = bulletins.map(bulletin => bulletin.reply_hash)
     return hashes
   },
@@ -795,7 +794,6 @@ export const dbAPI = {
     if (!Array.isArray(bulletins) || bulletins.length === 0)
       return true
 
-    console.log(bulletins)
     const dbInstance = await getDB()
     try {
       for (const bulletin of bulletins) {
@@ -928,7 +926,6 @@ export const dbAPI = {
   },
 
   async addChannel(created_by, name, speaker, created_at) {
-    console.log(created_by, name, speaker, created_at)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
@@ -1116,13 +1113,11 @@ export const dbAPI = {
       return true
     } catch (error) {
       console.log(error)
-      ConsoleError(error)
       return false
     }
   },
 
   async updateHandshake(self_address, pair_address, partition, sequence, aes_key, self_json, pair_json) {
-    console.log(self_address, pair_address, partition, sequence, aes_key, self_json, pair_json)
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
@@ -1442,6 +1437,19 @@ export const dbAPI = {
     if (msgs.length > 0) {
       const msg = groupMessage2Display(msgs[0])
       return msg
+    } else {
+      return null
+    }
+  },
+
+  async getLastGroupMessage(group_hash) {
+    const dbInstance = await getDB()
+    const msgs = await dbInstance.select(
+      'SELECT * FROM group_messages WHERE group_hash = $1 ORDER BY signed_at DESC LIMIT 1',
+      [group_hash]
+    )
+    if (msgs.length > 0) {
+      return groupMessage2Display(msgs[0])
     } else {
       return null
     }
