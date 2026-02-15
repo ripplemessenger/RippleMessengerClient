@@ -44,7 +44,7 @@ const BulletinFileViewer = ({ name, ext, size, hash, timestamp = Date.now() }) =
             <img
               src={fileImage}
               alt={`${name}.${ext}`}
-              className={`max-w-[300px] max-h-[300px] object-contain`}
+              className={`max-w-[600px] max-h-[600px] object-contain`}
             />
           </div>
           :

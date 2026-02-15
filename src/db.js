@@ -607,14 +607,14 @@ export const dbAPI = {
     return result ? result.count : 0
   },
 
-  async getBulletinListByAddresses(addresses, page) {
+  async getBulletinListByAddresses(addresses, page, order) {
     if (!Array.isArray(addresses) || addresses.length === 0) {
       return []
     }
 
     const dbInstance = await getDB()
     const placeholders = addresses.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
+    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at ${order} LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     let bulletins = await dbInstance.select(query, addresses)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]

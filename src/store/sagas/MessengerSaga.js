@@ -8,8 +8,8 @@ import { eventChannel, END } from 'redux-saga'
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkBulletinAddressListSchema, checkTagBulletinListSchema, checkAvatarListSchema } from '../../lib/MessageSchemaVerifier'
 import MessageGenerator from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
-import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, Minute, SessionType } from '../../lib/AppConst'
-import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, setTotalGroupMemberList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList, setChannelBulletinList } from '../slices/MessengerSlice'
+import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, SessionType } from '../../lib/AppConst'
+import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList, setChannelBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { BlobToUint32, calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/UserSlice'
@@ -554,11 +554,12 @@ function* handelMessengerEvent(action) {
         let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
         let bulletin = yield call(CacheBulletin, json)
         yield put(setRandomBulletin(bulletin))
-        // TODO fetch next bulletin
-        // if (tmp.result) {
-        //   let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
-        //   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
-        // }
+        const follow_list = yield select(state => state.User.FollowList)
+        const subscribe_list = yield select(state => state.Messenger.SubscribeList)
+        if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address)) {
+          let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
+          yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+        }
       } else if (json.ObjectType === ObjectType.BulletinAddressList && checkBulletinAddressListSchema(json)) {
         yield put(setBulletinAddressList(json))
       } else if (json.ObjectType === ObjectType.ReplyBulletinList && checkReplyBulletinListSchema(json)) {
@@ -588,8 +589,8 @@ function* handelMessengerEvent(action) {
             const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
             let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
             if (db_avatar !== undefined) {
-              if (db_avatar.SignedAt < avatar.Timestamp) {
-                if (db_avatar.Hash === avatar.Hash) {
+              if (db_avatar.signed_at < avatar.Timestamp) {
+                if (db_avatar.hash === avatar.Hash) {
                   yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
                 } else {
                   yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
@@ -897,7 +898,7 @@ function* SaveBulletinFile({ payload }) {
     yield call(() => writeFile(dest_file_path, content))
     yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
   } else {
-    yield put(setFlashNoticeMessage({ message: 'file not exist, fetching from server...', duration: 2000 }))
+    yield put(setFlashNoticeMessage({ message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from server...`, duration: 2000 }))
     yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
   }
 }
@@ -1010,7 +1011,7 @@ function* SaveChatFile({ payload }) {
     yield call(() => writeFile(dest_file_path, content))
     yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
   } else {
-    yield put(setFlashNoticeMessage({ message: 'file not exist, fetching from friend, make sure friend is online...', duration: 2000 }))
+    yield put(setFlashNoticeMessage({ message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from online friend or group member...`, duration: 3000 }))
     yield call(FetchChatFile, { payload: { hash: payload.hash, size: payload.size } })
   }
 }
@@ -1097,7 +1098,6 @@ function* ServerUse({ payload }) {
 
 // avatar
 function* CheckAvatar({ payload }) {
-  // console.log(payload)
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
   if (db_avatar === null) {
     console.log(`new avatar wanted...`)
@@ -1230,7 +1230,7 @@ function* LoadFollowBulletin({ payload }) {
       yield fork(RequestNextBulletin, { payload: { address: follow.remote } })
     }
 
-    const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(follow_address_list, payload.page))
+    const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(follow_address_list, payload.page, 'DESC'))
     const total = yield call(() => dbAPI.getBulletinCountByAddresses(follow_address_list))
     const total_page = calcTotalPage(total, BulletinPageSize)
     yield put(setFollowBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
@@ -1529,7 +1529,7 @@ function* ComposeSpeakerDel({ payload }) {
 
 function* RefreshChannelMessageList({ payload }) {
   const CurrentChannel = yield select(state => state.Messenger.CurrentChannel)
-  const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(CurrentChannel.speaker, payload.page))
+  const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(CurrentChannel.speaker, payload.page, 'ASC'))
   const total = yield call(() => dbAPI.getBulletinCountByAddresses(CurrentChannel.speaker))
   const total_page = calcTotalPage(total, BulletinPageSize)
   yield put(setChannelBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
@@ -1561,14 +1561,13 @@ export function* LoadChannelList() {
 }
 
 function* LoadCurrentChannel({ payload }) {
-  yield put(setDisplayBulletinReplyList({ List: [], Page: 1, TotalPage: 1 }))
+  yield put(setChannelBulletinList({ List: [], Page: 1, TotalPage: 1 }))
   const channel = { name: payload.name, speaker: payload.speaker, updated_at: payload.created_at }
   yield put(setCurrentChannel(channel))
   yield call(RefreshChannelMessageList, { payload: { page: 1 } })
 }
 
 export function* SubscribeChannel() {
-  const address = yield select(state => state.User.Address)
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1577,14 +1576,8 @@ export function* SubscribeChannel() {
   if (MG === null) {
     yield call(initMessageGenerator, seed)
   }
-  const channel_list = yield call(() => dbAPI.getMyChannels(address))
-  let subscribe_address_list = []
-  for (let i = 0; i < channel_list.length; i++) {
-    const channel = channel_list[i]
-    subscribe_address_list = subscribe_address_list.concat(...channel.speaker)
-  }
-  subscribe_address_list = [...new Set(subscribe_address_list)]
-  let subscribe_request = MG.genBulletinSubscribe(subscribe_address_list)
+  const subscribe_list = yield select(state => state.Messenger.SubscribeList)
+  let subscribe_request = MG.genBulletinSubscribe(subscribe_list)
   yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
 }
 
@@ -1908,7 +1901,7 @@ function* SendFile({ payload }) {
       let chunk_length = Math.ceil(file_info.size / FileChunkSize)
       let file = yield call(() => dbAPI.getFileByHash(hash))
       if (file === null) {
-        yield call(() => dbAPI.addFile(hash, file_info.size, Date.now(), chunk_length, chunk_cursor, true))
+        yield call(() => dbAPI.addFile(hash, file_info.size, Date.now(), chunk_length, chunk_length, true))
       } else {
         yield call(() => dbAPI.localFileSaved(hash, chunk_length, Date.now()))
       }
@@ -2076,24 +2069,7 @@ export function* LoadGroupList() {
   const address = yield select(state => state.User.Address)
   let group_list = yield call(() => dbAPI.getGroups())
   group_list = group_list.filter(g => g.is_accepted === true && (g.created_by === address || g.member.includes(address)))
-
-  let group_member_map = {}
-  for (let i = 0; i < group_list.length; i++) {
-    const group = group_list[i]
-    group_member_map[group.hash] = group.member
-    group_member_map[group.hash].push(group.created_by)
-  }
-  yield put(setGroupList({ group_list: group_list, group_member_map: group_member_map }))
-
-  let total_member = []
-  for (let i = 0; i < group_list.length; i++) {
-    const group = group_list[i]
-    total_member.push(group.created_by)
-    total_member = [].concat(total_member, group.member)
-    total_member = total_member.filter(a => a !== address)
-    total_member = [...new Set(total_member)]
-  }
-  yield put(setTotalGroupMemberList(total_member))
+  yield put(setGroupList({ group_list: group_list, address: address }))
 }
 
 export function* LoadGroupRequestList() {

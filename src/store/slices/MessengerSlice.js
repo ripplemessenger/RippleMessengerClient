@@ -53,6 +53,8 @@ const MessengerSlice = createSlice({
 
     // channel
     ChannelList: [],
+    // for follow
+    SubscribeList: [],
     CurrentChannel: null,
     ChannelBulletinList: [],
     ChannelBulletinPage: 1,
@@ -71,6 +73,7 @@ const MessengerSlice = createSlice({
 
     // for handshake
     TotalGroupMemberList: [],
+
     ComposeMemberList: [],
     GroupRequestList: [],
   },
@@ -155,7 +158,15 @@ const MessengerSlice = createSlice({
 
     // channel
     setChannelList: (state, action) => {
-      state.ChannelList = action.payload
+      const channel_list = action.payload
+      state.ChannelList = channel_list
+      let subscribe_list = []
+      for (let i = 0; i < channel_list.length; i++) {
+        const channel = channel_list[i]
+        subscribe_list = subscribe_list.concat(...channel.speaker)
+      }
+      subscribe_list = [...new Set(subscribe_list)]
+      state.SubscribeList = subscribe_list
     },
     setCurrentChannel: (state, action) => {
       state.CurrentChannel = action.payload
@@ -188,11 +199,26 @@ const MessengerSlice = createSlice({
 
     // group
     setGroupList: (state, action) => {
-      state.GroupList = action.payload.group_list
-      state.GroupMemberMap = action.payload.group_member_map
-    },
-    setTotalGroupMemberList: (state, action) => {
-      state.TotalGroupMemberList = action.payload
+      const group_list = action.payload.group_list
+      state.GroupList = group_list
+
+      let group_member_map = {}
+      for (let i = 0; i < group_list.length; i++) {
+        const group = group_list[i]
+        group_member_map[group.hash] = group.member
+        group_member_map[group.hash].push(group.created_by)
+      }
+      state.GroupMemberMap = group_member_map
+
+      let total_member = []
+      for (let i = 0; i < group_list.length; i++) {
+        const group = group_list[i]
+        total_member.push(group.created_by)
+        total_member = [].concat(total_member, group.member)
+        total_member = total_member.filter(a => a !== action.payload.address)
+        total_member = [...new Set(total_member)]
+      }
+      state.TotalGroupMemberList = total_member
     },
     setComposeMemberList: (state, action) => {
       state.ComposeMemberList = action.payload
@@ -242,7 +268,6 @@ export const {
 
   // group
   setGroupList,
-  setTotalGroupMemberList,
   setComposeMemberList,
   setGroupRequestList,
 } = MessengerSlice.actions

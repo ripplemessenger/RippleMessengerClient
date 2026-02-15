@@ -21,8 +21,9 @@ const UserSlice = createSlice({
     ContactMap: {},
     activeTabSetting: SettingPageTab.Me,
 
-    // friend
+    // follow
     FollowList: [],
+    // friend
     FriendList: [],
   },
   reducers: {
