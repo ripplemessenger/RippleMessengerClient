@@ -46,8 +46,8 @@ function* handleLogout() {
 
 // Account
 function* LoadAccountList() {
-  let local_account_list = yield call(() => dbAPI.getAllAccounts())
-  yield put(loadAccountListSuccess({ local_account_list: local_account_list }))
+  let account_list = yield call(() => dbAPI.getAllAccounts())
+  yield put(loadAccountListSuccess({ account_list: account_list }))
 }
 
 function* AccountAdd({ payload }) {
@@ -66,7 +66,7 @@ function* AccountDel({ payload }) {
     try {
       let tmpSeed = decryptWithPassword(payload.password, account.salt, account.cipher_data)
       if (tmpSeed !== '') {
-        yield call(() => dbAPI.deleteContactByAddress(payload.address))
+        yield call(() => dbAPI.deleteAccountByAddress(payload.address))
         yield put(loadAccountListStart())
         yield put(setUserError(null))
       } else {

@@ -46,14 +46,16 @@ export default function TabGroup() {
   }
 
   const createGroup = async () => {
-    dispatch({
-      type: 'CreateGroup',
-      payload: {
-        name: groupName
-      }
-    })
-    setGroupName('')
-    setShowCreateGroup(false)
+    if (groupName !== '') {
+      dispatch({
+        type: 'CreateGroup',
+        payload: {
+          name: groupName
+        }
+      })
+      setGroupName('')
+      setShowCreateGroup(false)
+    }
   }
 
   const delGroup = async (hash) => {

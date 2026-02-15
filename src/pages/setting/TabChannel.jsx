@@ -47,14 +47,16 @@ export default function TabChannel() {
   }
 
   const createChannel = async () => {
-    dispatch({
-      type: 'CreateChannel',
-      payload: {
-        name: channelName
-      }
-    })
-    setChannelName('')
-    setShowCreateChannel(false)
+    if (channelName !== '') {
+      dispatch({
+        type: 'CreateChannel',
+        payload: {
+          name: channelName
+        }
+      })
+      setChannelName('')
+      setShowCreateChannel(false)
+    }
   }
 
   const deleteChannel = async (name) => {

@@ -66,7 +66,7 @@ const UserSlice = createSlice({
       state.AccountList = []
     },
     loadAccountListSuccess: (state, action) => {
-      state.AccountList = action.payload.local_account_list
+      state.AccountList = action.payload.account_list
     },
 
     // contact
