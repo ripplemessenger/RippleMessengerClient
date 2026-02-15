@@ -670,7 +670,6 @@ function* handelMessengerEvent(action) {
                   if (json.Sequence === 1 && json.PreHash === GenesisHash) {
                     // first msg, save
                     add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
-
                   } else {
                     // request first msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: ob_address } })
@@ -679,7 +678,6 @@ function* handelMessengerEvent(action) {
                   if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
                     // chained msg, save
                     add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
-
                   } else if (last_msg.sequence + 1 < json.Sequence) {
                     // unchained msg, request next msg
                     yield call(SyncPrivateMessage, { payload: { local: address, remote: ob_address } })
@@ -689,9 +687,8 @@ function* handelMessengerEvent(action) {
                 if (add_result) {
                   if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
                     yield call(RefreshPrivateMessageList)
-                  } else {
-                    yield call(LoadSessionList)
                   }
+                  yield call(LoadSessionList)
                 }
               }
             }
@@ -804,17 +801,7 @@ function* handelMessengerEvent(action) {
                   let hash = QuarterSHA512Message(verify_json)
                   if (typeof verify_json.Content === 'object') {
                     if (verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
-                      let chunk_length = Math.ceil(verify_json.Content.Size / FileChunkSize)
-                      let file = yield call(() => dbAPI.getFileByHash(verify_json.Content.Hash))
-                      if (file === null) {
-                        yield call(() => dbAPI.addFile(verify_json.Content.Hash, verify_json.Content.Size, Date.now(), chunk_length, 0, false))
-                      }
-
-                      const ehash = GroupFileEHash(json.GroupHash, verify_json.Content.Hash)
-                      let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
-                      if (group_chat_file === null) {
-                        yield call(() => dbAPI.addGroupFile(ehash, json.GroupHash, verify_json.Content.Hash, verify_json.Content.Size))
-                      }
+                      yield call(FetchGroupChatFile, { payload: { group_hash: json.GroupHash, hash: verify_json.Content.Hash, size: verify_json.Content.Size } })
                     }
                   }
                   let is_readed = false
@@ -826,9 +813,8 @@ function* handelMessengerEvent(action) {
                   if (add_result) {
                     if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
                       yield call(RefreshGroupMessageList)
-                    } else {
-                      yield call(LoadSessionList)
                     }
+                    yield call(LoadSessionList)
                   }
                 }
               } else {
@@ -1794,21 +1780,6 @@ function* SendContent({ payload }) {
 
       let group_msg_json = MG.genGroupMessage(CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_group_msg, payload.content, timestamp)
       let group_msg_hash = QuarterSHA512Message(group_msg_json)
-      if (typeof payload.content === 'object') {
-        if (payload.content.ObjectType === MessageObjectType.GroupChatFile) {
-          let chunk_length = Math.ceil(payload.content.Size / FileChunkSize)
-          let file = yield call(() => dbAPI.getFileByHash(payload.content.Hash))
-          if (file === null) {
-            yield call(() => dbAPI.addFile(payload.content.Hash, payload.content.Size, Date.now(), chunk_length, 0, false))
-          }
-
-          const ehash = GroupFileEHash(CurrentSession.hash, payload.content.Hash)
-          let group_chat_file = yield call(() => dbAPI.getFileByHash(ehash))
-          if (group_chat_file === null) {
-            yield call(() => dbAPI.addGroupFile(ehash, CurrentSession.hash, payload.content.Hash, payload.content.Size))
-          }
-        }
-      }
       yield call(() => dbAPI.addGroupMessage(group_msg_hash, CurrentSession.hash, self_address, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, group_msg_json, group_msg_json.Timestamp, false, false, true, typeof payload.content === 'object'))
 
       let tmp_group_session = { ...CurrentSession }
