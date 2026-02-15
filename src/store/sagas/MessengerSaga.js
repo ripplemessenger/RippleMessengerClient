@@ -62,7 +62,7 @@ function createSwitchEventChannel(client) {
                 mkdir(avatar_dir, { recursive: true })
                 let avatar_path = `${avatar_dir}/${request.Address}.png`
                 await writeFile(avatar_path, content)
-                await dbAPI.updateAvatarIsSaved(request.Address, 1, Date.now())
+                await dbAPI.updateAvatarIsSaved(request.Address, true, Date.now())
               }
             } else if (request.Type === FileRequestType.File) {
               let content = event.data.slice(4)
@@ -588,12 +588,12 @@ function* handelMessengerEvent(action) {
           if (VerifyJsonSignature(avatar)) {
             const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
             let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
-            if (db_avatar !== undefined) {
+            if (db_avatar !== null) {
               if (db_avatar.signed_at < avatar.Timestamp) {
                 if (db_avatar.hash === avatar.Hash) {
-                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 1))
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, true))
                 } else {
-                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, 0))
+                  yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, false))
                   yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
                 }
               }
@@ -1087,7 +1087,7 @@ function* CheckAvatar({ payload }) {
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
   if (db_avatar === null) {
     console.log(`new avatar wanted...`)
-    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, "", Epoch, 0))
+    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, "", Epoch, false))
   }
 }
 
@@ -1105,7 +1105,7 @@ function* SaveSelfAvatar({ payload }) {
 
   let avatar_json = MG.genAvatarJson(payload.hash, payload.size, payload.timestamp)
   if (db_avatar !== null) {
-    yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, 1))
+    yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
   }
 
   let avatar_response = {

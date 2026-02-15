@@ -533,7 +533,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, json, is_saved) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [address, hash, size, signed_at, updated_at, json, is_saved]
+        [address, hash, size, signed_at, updated_at, json, Bool2Int(is_saved)]
       )
       return true
     } catch (error) {
@@ -547,7 +547,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'UPDATE avatar_files SET hash = $1, size = $2, signed_at = $3, updated_at = $4, json = $5, is_saved = $6 WHERE address = $7',
-        [hash, size, signed_at, updated_at, json, is_saved, address]
+        [hash, size, signed_at, updated_at, json, Bool2Int(is_saved), address]
       )
       return true
     } catch (error) {
@@ -575,7 +575,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'UPDATE avatar_files SET is_saved = $1, updated_at = $2 WHERE address = $3',
-        [is_saved, updated_at, address]
+        [Bool2Int(is_saved), updated_at, address]
       )
       return true
     } catch (error) {
