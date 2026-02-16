@@ -1,16 +1,34 @@
+import * as rippleKeyPairs from 'ripple-keypairs'
 import { QuarterSHA512Message } from './AppUtil'
 import { ActionCode, FileRequestType, ObjectType } from './MessengerConst'
 import { Sign } from './MessengerUtil'
 
-export default class MessageGenerator {
-  constructor(public_key, private_key) {
+let mgInstance = null
+
+export function initMessageGenerator(seed) {
+  const keypair = rippleKeyPairs.deriveKeypair(seed)
+  return new MessageGenerator(seed, keypair.publicKey, keypair.privateKey)
+}
+
+export function getMessageGenerator(seed) {
+  if (mgInstance === null) {
+    mgInstance = initMessageGenerator(seed)
+  } else if (mgInstance.Seed !== seed) {
+    mgInstance = initMessageGenerator(seed)
+  }
+  return mgInstance
+}
+
+class MessageGenerator {
+  constructor(seed, public_key, private_key) {
+    this.Seed = seed
     this.PublicKey = public_key
     this.PrivateKey = private_key
   }
 
-  sign(msg) {
-    return Sign(msg, this.PrivateKey)
-  }
+  // sign(msg) {
+  //   return Sign(msg, mg.PrivateKey)
+  // }
 
   signJson(json) {
     let json_hash = QuarterSHA512Message(json)
@@ -18,107 +36,121 @@ export default class MessageGenerator {
     json.Signature = sig
     return json
   }
+}
 
-  genDeclare() {
+
+export const mgAPI = {
+  // server
+  genDeclare(seed) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.Declare,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
   // avatar
-  genAvatarRequest(list) {
+  genAvatarRequest(seed, list) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.AvatarRequest,
       List: list,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
-  genAvatarJson(hash, size, timestamp) {
+  genAvatarJson(seed, hash, size, timestamp) {
+    const mg = getMessageGenerator(seed)
     let json = {
       ObjectType: ObjectType.Avatar,
       Hash: hash,
       Size: size,
       Timestamp: timestamp,
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
   // bulletin
-  genBulletinRandomRequest() {
+  genBulletinRandomRequest(seed) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.BulletinRandomRequest,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
-  genBulletinAddressListRequest(page) {
+  genBulletinAddressListRequest(seed, page) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.BulletinAddressListRequest,
       Page: page,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
-  genBulletinRequest(address, sequence, to) {
+  genBulletinRequest(seed, address, sequence, to) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.BulletinRequest,
       Address: address,
       Sequence: sequence,
       To: to,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    json = this.signJson(json)
+    json = mg.signJson(json)
     return JSON.stringify(json)
-  }
+  },
 
-  genBulletinAddressRequest(page) {
+  genBulletinAddressRequest(seed, page) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.BulletinAddressRequest,
       Page: page,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    json = this.signJson(json)
+    json = mg.signJson(json)
     return JSON.stringify(json)
-  }
+  },
 
-  genReplyBulletinRequest(hash, page) {
+  genReplyBulletinRequest(seed, hash, page) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.ReplyBulletinRequest,
       Hash: hash,
       Page: page,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    json = this.signJson(json)
+    json = mg.signJson(json)
     return JSON.stringify(json)
-  }
+  },
 
-  genTagBulletinRequest(tag, page) {
+  genTagBulletinRequest(seed, tag, page) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.TagBulletinRequest,
       Tag: tag,
       Page: page,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    json = this.signJson(json)
+    json = mg.signJson(json)
     return JSON.stringify(json)
-  }
+  },
 
-  genFileRequest(type, hash, nonce, chunk_cursor, to) {
+  genFileRequest(seed, type, hash, nonce, chunk_cursor, to) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.FileRequest,
       FileType: type,
@@ -127,12 +159,13 @@ export default class MessageGenerator {
       Nonce: nonce,
       ChunkCursor: chunk_cursor,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
-  genGroupFileRequest(group_hash, hash, nonce, chunk_cursor) {
+  genGroupFileRequest(seed, group_hash, hash, nonce, chunk_cursor) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.FileRequest,
       FileType: FileRequestType.GroupChatFile,
@@ -141,13 +174,14 @@ export default class MessageGenerator {
       Nonce: nonce,
       ChunkCursor: chunk_cursor,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
   // not a message, a bulletin json
-  genBulletinJson(sequence, pre_hash, tag, quote, file, content, timestamp) {
+  genBulletinJson(seed, sequence, pre_hash, tag, quote, file, content, timestamp) {
+    const mg = getMessageGenerator(seed)
     let tmp_json = {
       ObjectType: ObjectType.Bulletin,
       Sequence: sequence,
@@ -157,7 +191,7 @@ export default class MessageGenerator {
       File: file,
       Content: content,
       Timestamp: timestamp,
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
     if (tag === null || tag.length == 0) {
       delete tmp_json["Tag"]
@@ -168,21 +202,23 @@ export default class MessageGenerator {
     if (file === null || file.length == 0) {
       delete tmp_json["File"]
     }
-    return this.signJson(tmp_json)
-  }
+    return mg.signJson(tmp_json)
+  },
 
-  genBulletinSubscribe(list) {
+  genBulletinSubscribe(seed, list) {
+    const mg = getMessageGenerator(seed)
     let tmp_json = {
       Action: ActionCode.BulletinSubscribe,
       List: list,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return this.signJson(tmp_json)
-  }
+    return mg.signJson(tmp_json)
+  },
 
   // chat
-  genECDHHandshake(partition, sequence, ecdh_pk, pair, address, timestamp) {
+  genECDHHandshake(seed, partition, sequence, ecdh_pk, pair, address, timestamp) {
+    const mg = getMessageGenerator(seed)
     let json = {
       ObjectType: ObjectType.ECDH,
       Partition: partition,
@@ -191,24 +227,26 @@ export default class MessageGenerator {
       Pair: pair,
       To: address,
       Timestamp: timestamp,
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
-  genPrivateMessageSync(pair_address, pair_sequence, self_sequence) {
+  genPrivateMessageSync(seed, pair_address, pair_sequence, self_sequence) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.PrivateMessageSync,
       To: pair_address,
       PairSequence: pair_sequence,
       SelfSequence: self_sequence,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
-    return JSON.stringify(this.signJson(json))
-  }
+    return JSON.stringify(mg.signJson(json))
+  },
 
-  genPrivateMessage(sequence, pre_hash, confirm, content, dest_address, timestamp) {
+  genPrivateMessage(seed, sequence, pre_hash, confirm, content, dest_address, timestamp) {
+    const mg = getMessageGenerator(seed)
     let json = {
       ObjectType: ObjectType.PrivateMessage,
       Sequence: sequence,
@@ -217,47 +255,51 @@ export default class MessageGenerator {
       Content: content,
       To: dest_address,
       Timestamp: timestamp,
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
     if (confirm === null) {
       delete json["Confirm"]
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
   // Group
-  genGroupSync() {
+  genGroupSync(seed) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.GroupSync,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
-  genGroupCreate(hash, name, member) {
+  genGroupCreate(seed, hash, name, member) {
+    const mg = getMessageGenerator(seed)
     let json = {
       ObjectType: ObjectType.GroupCreate,
       Hash: hash,
       Name: name,
       Member: member,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
-  genGroupDelete(hash) {
+  genGroupDelete(seed, hash) {
+    const mg = getMessageGenerator(seed)
     let json = {
       ObjectType: ObjectType.GroupDelete,
       Hash: hash,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
-  genGroupMessageSync(hash, address, sequence, to) {
+  genGroupMessageSync(seed, hash, address, sequence, to) {
+    const mg = getMessageGenerator(seed)
     let json = {
       Action: ActionCode.GroupMessageSync,
       Hash: hash,
@@ -265,12 +307,13 @@ export default class MessageGenerator {
       Sequence: sequence,
       To: to,
       Timestamp: Date.now(),
-      PublicKey: this.PublicKey,
+      PublicKey: mg.PublicKey,
     }
-    return this.signJson(json)
-  }
+    return mg.signJson(json)
+  },
 
-  genGroupMessage(group_hash, sequence, pre_hash, confirm, content, timestamp) {
+  genGroupMessage(seed, group_hash, sequence, pre_hash, confirm, content, timestamp) {
+    const mg = getMessageGenerator(seed)
     let tmp = {
       ObjectType: ObjectType.GroupMessage,
       GroupHash: group_hash,
@@ -279,13 +322,26 @@ export default class MessageGenerator {
       Confirm: confirm,
       Content: content,
       Timestamp: timestamp,
-      PublicKey: this.PublicKey
+      PublicKey: mg.PublicKey
     }
     if (confirm === null) {
       delete tmp["Confirm"]
     }
-    tmp = this.signJson(tmp)
+    tmp = mg.signJson(tmp)
     tmp.Content = content
+    return tmp
+  },
+
+  genGroupMessageList(seed, group_hash, to, list, timestamp) {
+    const mg = getMessageGenerator(seed)
+    let tmp = {
+      ObjectType: ObjectType.GroupMessageList,
+      GroupHash: group_hash,
+      To: to,
+      List: list,
+      Timestamp: timestamp,
+      PublicKey: mg.PublicKey
+    }
     return tmp
   }
 }

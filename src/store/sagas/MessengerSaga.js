@@ -6,7 +6,7 @@ import { open, readFile, writeFile, remove, mkdir, stat, SeekMode } from '@tauri
 import { call, delay, put, select, fork, takeEvery, takeLatest } from 'redux-saga/effects'
 import { eventChannel, END } from 'redux-saga'
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkBulletinAddressListSchema, checkTagBulletinListSchema, checkAvatarListSchema } from '../../lib/MessageSchemaVerifier'
-import MessageGenerator from '../../lib/MessageGenerator'
+import { mgAPI } from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch } from '../../lib/MessengerConst'
 import { AvatarDir, BulletinPageSize, Day, DefaultPartition, DefaultServer, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, SessionType } from '../../lib/AppConst'
 import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setCurrentServer, setBookmarkBulletinList, setChannelBulletinList } from '../slices/MessengerSlice'
@@ -17,13 +17,6 @@ import { dbAPI } from '../../db'
 
 let switchClient = null
 let switchEventChannel = null
-
-let MG = null
-
-function initMessageGenerator(seed) {
-  const keypair = rippleKeyPairs.deriveKeypair(seed)
-  MG = new MessageGenerator(keypair.publicKey, keypair.privateKey)
-}
 
 function createSwitchEventChannel(client) {
   return eventChannel((emit) => {
@@ -266,19 +259,15 @@ function* handelMessengerEvent(action) {
   console.log(action)
   yield put(action)
   const seed = yield select(state => state.User.Seed)
-  const address = yield select(state => state.User.Address)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
+  const address = yield select(state => state.User.Address)
 
   if (action.type === updateMessengerConnStatus.type && action.payload === true) {
     // connnected
     ConsoleWarn(`connnected`)
-    let msg = MG.genDeclare()
+    let msg = yield call(() => mgAPI.genDeclare(seed))
     yield call(SendMessage, { msg: msg })
     yield call(AvatarRequest, { payload: { flag: true } })
     yield call(SubscribeChannel)
@@ -323,11 +312,11 @@ function* handelMessengerEvent(action) {
               const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
               if (last_bulletin === null) {
                 if (json.Sequence > 1) {
-                  let msg = MG.genBulletinRequest(address, 1, address)
+                  let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
                   yield call(EnqueueMessage, { payload: { msg: msg } })
                 }
               } else if (last_bulletin.sequence + 1 < json.Sequence) {
-                let msg = MG.genBulletinRequest(address, last_bulletin.sequence + 1, address)
+                let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, last_bulletin.sequence + 1, address))
                 yield call(EnqueueMessage, { payload: { msg: msg } })
               }
             }
@@ -518,7 +507,7 @@ function* handelMessengerEvent(action) {
                     if (last_group_member_msg !== null) {
                       group_member_sequence = last_group_member_msg.sequence
                     }
-                    let group_msg_sync_request = MG.genGroupMessageSync(json.Hash, json.Address, group_member_sequence, json.Address)
+                    let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.Hash, json.Address, group_member_sequence, json.Address))
                     yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
                   }
                 }
@@ -533,14 +522,7 @@ function* handelMessengerEvent(action) {
                     delete tmp_msg_json["GroupHash"]
                     list.push(tmp_msg_json)
                   }
-                  let group_msg_list_json = {
-                    ObjectType: ObjectType.GroupMessageList,
-                    GroupHash: json.Hash,
-                    To: ob_address,
-                    Timestamp: timestamp,
-                    PublicKey: MG.PublicKey,
-                    List: list
-                  }
+                  let group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, json.Hash, ob_address, list, timestamp))
                   yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
                 }
               }
@@ -559,7 +541,7 @@ function* handelMessengerEvent(action) {
         const follow_list = yield select(state => state.User.FollowList)
         const subscribe_list = yield select(state => state.Messenger.SubscribeList)
         if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address)) {
-          let bulletin_request = MG.genBulletinRequest(ob_address, json.Sequence + 1, ob_address)
+          let bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, ob_address, json.Sequence + 1, ob_address))
           yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
         }
       } else if (json.ObjectType === ObjectType.BulletinAddressList && checkBulletinAddressListSchema(json)) {
@@ -616,7 +598,7 @@ function* handelMessengerEvent(action) {
             const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
             const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
             const ecdh_pk = self_key_pair.getPublic('hex')
-            const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp)
+            const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
             const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
             const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
             const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
@@ -625,7 +607,7 @@ function* handelMessengerEvent(action) {
           } else {
             const ec = new Elliptic.ec('secp256k1')
             const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
-            const self_json = MG.genECDHHandshake(DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp)
+            const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
             const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
             const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
             const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
@@ -828,10 +810,10 @@ function* handelMessengerEvent(action) {
               const msg_address = unCachedMessageAddress[i]
               let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
               if (last_msg === null) {
-                let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, 0, ob_address)
+                let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, 0, ob_address))
                 yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
               } else {
-                let group_msg_sync_request = MG.genGroupMessageSync(json.GroupHash, msg_address, last_msg.sequence, ob_address)
+                let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, last_msg.sequence, ob_address))
                 yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
               }
             }
@@ -855,6 +837,10 @@ function genFileNonce() {
 }
 
 function* FetchBulletinFile({ payload }) {
+  const seed = yield select(state => state.User.Seed)
+  if (!seed) {
+    return
+  }
   let file = yield call(() => dbAPI.getFileByHash(payload.hash))
   if (file !== null && file.is_saved === false) {
     let nonce = genFileNonce()
@@ -868,7 +854,7 @@ function* FetchBulletinFile({ payload }) {
     FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
     FileRequestList = FileRequestList.filter(r => r.Hash !== file.hash)
     FileRequestList.push(tmp)
-    let file_request = MG.genFileRequest(FileRequestType.File, file.hash, nonce, file.chunk_cursor + 1)
+    let file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.File, file.hash, nonce, file.chunk_cursor + 1))
     yield call(SendMessage, { msg: file_request })
   }
 }
@@ -892,6 +878,10 @@ function* SaveBulletinFile({ payload }) {
 }
 
 function* FetchPrivateChatFile({ payload }) {
+  const seed = yield select(state => state.User.Seed)
+  if (!seed) {
+    return
+  }
   const self_address = yield select(state => state.User.Address)
   const ehash = PrivateFileEHash(self_address, payload.remote, payload.hash)
   let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(ehash))
@@ -927,7 +917,7 @@ function* FetchPrivateChatFile({ payload }) {
       FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
       FileRequestList = FileRequestList.filter(r => r.EHash !== ehash)
       FileRequestList.push(tmp)
-      let file_request = MG.genFileRequest(FileRequestType.PrivateChatFile, ehash, nonce, file.chunk_cursor + 1, payload.remote)
+      let file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.PrivateChatFile, ehash, nonce, file.chunk_cursor + 1, payload.remote))
       yield call(SendMessage, { msg: file_request })
     }
   } else {
@@ -936,6 +926,10 @@ function* FetchPrivateChatFile({ payload }) {
 }
 
 function* FetchGroupChatFile({ payload }) {
+  const seed = yield select(state => state.User.Seed)
+  if (!seed) {
+    return
+  }
   const self_address = yield select(state => state.User.Address)
   const ehash = GroupFileEHash(payload.group_hash, payload.hash)
   let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(ehash))
@@ -970,7 +964,7 @@ function* FetchGroupChatFile({ payload }) {
     FileRequestList = FileRequestList.filter(r => r.EHash === ehash)
     console.log(tmp)
     FileRequestList.push(tmp)
-    let file_request = MG.genGroupFileRequest(payload.group_hash, ehash, nonce, file.chunk_cursor + 1)
+    let file_request = yield call(() => mgAPI.genGroupFileRequest(seed, payload.group_hash, ehash, nonce, file.chunk_cursor + 1))
     yield call(SendMessage, { msg: file_request })
   } else {
     // file exist
@@ -1094,18 +1088,14 @@ function* CheckAvatar({ payload }) {
 }
 
 function* SaveSelfAvatar({ payload }) {
-  const address = yield select(state => state.User.Address)
-  let db_avatar = yield call(() => dbAPI.getAvatarByAddress(address))
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
+  const address = yield select(state => state.User.Address)
+  let db_avatar = yield call(() => dbAPI.getAvatarByAddress(address))
 
-  let avatar_json = MG.genAvatarJson(payload.hash, payload.size, payload.timestamp)
+  let avatar_json = yield call(() => mgAPI.genAvatarJson(seed, payload.hash, payload.size, payload.timestamp))
   if (db_avatar !== null) {
     yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
   }
@@ -1120,11 +1110,7 @@ function* SaveSelfAvatar({ payload }) {
 export function* AvatarRequest({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
   let timestamp = Date.now()
   let old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
@@ -1137,7 +1123,7 @@ export function* AvatarRequest({ payload }) {
     }
   }
   if (list.length > 0) {
-    let avatar_request = MG.genAvatarRequest(list)
+    let avatar_request = yield call(() => mgAPI.genAvatarRequest(seed, list))
     yield call(SendMessage, { msg: avatar_request })
   }
 }
@@ -1148,11 +1134,7 @@ function* RequestAvatarFile(payload) {
   }
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
 
   let nonce = genFileNonce()
@@ -1165,7 +1147,7 @@ function* RequestAvatarFile(payload) {
   }
   FileRequestList.push(tmp)
 
-  let avatar_file_request = MG.genFileRequest(FileRequestType.Avatar, payload.hash, nonce, 1)
+  let avatar_file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.Avatar, payload.hash, nonce, 1))
   yield call(SendMessage, { msg: avatar_file_request })
 }
 
@@ -1173,28 +1155,23 @@ function* RequestAvatarFile(payload) {
 function* RequestNextBulletin({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
   let last_bulletin = yield call(() => dbAPI.getLastBulletin(payload.address))
   let request_sequence = 1
   if (last_bulletin !== null) {
     request_sequence = last_bulletin.sequence + 1
   }
-  let bulletin_request = MG.genBulletinRequest(payload.address, request_sequence, payload.address)
+  let bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, payload.address, request_sequence, payload.address))
   yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
 }
 
 function* LoadMineBulletin({ payload }) {
   const seed = yield select(state => state.User.Seed)
-  const address = yield select(state => state.User.Address)
   if (!seed) {
-    MG = null
     return
   }
+  const address = yield select(state => state.User.Address)
 
   let bulletins = yield call(() => dbAPI.getMyBulletins(address, payload.page))
   if (bulletins.length > 0) {
@@ -1241,14 +1218,9 @@ function* LoadBookmarkBulletin({ payload }) {
 }
 
 function* LoadBulletin(action) {
-  console.log(action)
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
 
   let bulletin = yield call(() => dbAPI.getBulletinByHash(action.payload.hash))
@@ -1257,7 +1229,7 @@ function* LoadBulletin(action) {
     if (action.payload.to) {
       to = action.payload.to
     }
-    let msg = MG.genBulletinRequest(action.payload.address, action.payload.sequence, to)
+    let msg = yield call(() => mgAPI.genBulletinRequest(seed, action.payload.address, action.payload.sequence, to))
     yield call(EnqueueMessage, { payload: { msg: msg } })
   }
   yield put(setDisplayBulletin(bulletin))
@@ -1267,26 +1239,18 @@ function* RequestRandomBulletin() {
   yield put(setRandomBulletin(null))
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
-  let random_bulletin_request = MG.genBulletinRandomRequest()
+  let random_bulletin_request = yield call(() => mgAPI.genBulletinRandomRequest(seed))
   yield call(SendMessage, { msg: random_bulletin_request })
 }
 
 function* RequestBulletinAddress({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
-  const bulletin_address_request = MG.genBulletinAddressRequest(payload.page)
+  const bulletin_address_request = yield call(() => mgAPI.genBulletinAddressRequest(seed, payload.page))
   yield call(SendMessage, { msg: bulletin_address_request })
 }
 
@@ -1303,13 +1267,9 @@ function* RequestReplyBulletin({ payload }) {
   } else {
     const seed = yield select(state => state.User.Seed)
     if (!seed) {
-      MG = null
       return
     }
-    if (MG === null) {
-      yield call(initMessageGenerator, seed)
-    }
-    const reply_bulletin_request = MG.genReplyBulletinRequest(payload.hash, payload.page)
+    const reply_bulletin_request = yield call(() => mgAPI.genReplyBulletinRequest(seed, payload.hash, payload.page))
     yield call(SendMessage, { msg: reply_bulletin_request })
   }
 }
@@ -1327,38 +1287,30 @@ function* RequestTagBulletin({ payload }) {
   } else {
     const seed = yield select(state => state.User.Seed)
     if (!seed) {
-      MG = null
       return
     }
-    if (MG === null) {
-      yield call(initMessageGenerator, seed)
-    }
-    const tag_bulletin_request = MG.genTagBulletinRequest(payload.tag, payload.page)
+    const tag_bulletin_request = yield call(() => mgAPI.genTagBulletinRequest(seed, payload.tag, payload.page))
     yield call(SendMessage, { msg: tag_bulletin_request })
   }
 }
 
 // Publish
 function* PublishBulletin(action) {
-  const address = yield select(state => state.User.Address)
   const seed = yield select(state => state.User.Seed)
+  if (!seed) {
+    return
+  }
+  const address = yield select(state => state.User.Address)
   const tag = yield select(state => state.Messenger.PublishTagList)
   const quote = yield select(state => state.Messenger.PublishQuoteList)
   const file = yield select(state => state.Messenger.PublishFileList)
-  if (!seed) {
-    MG = null
-    return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
   const last_bulletin = yield call(() => dbAPI.getLastBulletin(address))
   let bulletin_json
   let timestamp = Date.now()
   if (last_bulletin === null) {
-    bulletin_json = MG.genBulletinJson(1, GenesisHash, tag, quote, file, action.payload.content, timestamp)
+    bulletin_json = yield call(() => mgAPI.genBulletinJson(seed, 1, GenesisHash, tag, quote, file, action.payload.content, timestamp))
   } else {
-    bulletin_json = MG.genBulletinJson(last_bulletin.sequence + 1, last_bulletin.hash, tag, quote, file, action.payload.content, timestamp)
+    bulletin_json = yield call(() => mgAPI.genBulletinJson(seed, last_bulletin.sequence + 1, last_bulletin.hash, tag, quote, file, action.payload.content, timestamp))
   }
   let bulletin_json_hash = QuarterSHA512Message(bulletin_json)
   let result = yield call(() => dbAPI.addBulletin(bulletin_json_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
@@ -1564,14 +1516,10 @@ function* LoadCurrentChannel({ payload }) {
 export function* SubscribeChannel() {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
   const subscribe_list = yield select(state => state.Messenger.SubscribeList)
-  let subscribe_request = MG.genBulletinSubscribe(subscribe_list)
+  let subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, subscribe_list))
   yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
 }
 
@@ -1610,11 +1558,7 @@ export function* LoadSessionList() {
 function* SyncPrivateMessage({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
 
   let current_self_msg = yield call(() => dbAPI.getLastPrivateMessage(payload.local, payload.remote))
@@ -1629,36 +1573,35 @@ function* SyncPrivateMessage({ payload }) {
     pair_sequence = current_pair_msg.sequence
   }
 
-  let private_sync_request = MG.genPrivateMessageSync(payload.remote, pair_sequence, self_sequence)
+  let private_sync_request = yield call(() => mgAPI.genPrivateMessageSync(seed, payload.remote, pair_sequence, self_sequence))
   yield call(SendMessage, { msg: private_sync_request })
 }
 
 function* InitHandshake(payload) {
-  const self_seed = yield select(state => state.User.Seed)
+  const seed = yield select(state => state.User.Seed)
+  if (!seed) {
+    return
+  }
   const self_address = yield select(state => state.User.Address)
   if (payload.pair_address === self_address) {
     return
   }
   let timestamp = Date.now()
   const ec = new Elliptic.ec('secp256k1')
-  const ecdh_sk = HalfSHA512(GenesisHash + self_seed + self_address + payload.ecdh_sequence)
+  const ecdh_sk = HalfSHA512(GenesisHash + seed + self_address + payload.ecdh_sequence)
   const key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
   const ecdh_pk = key_pair.getPublic('hex')
-  let self_json = MG.genECDHHandshake(DefaultPartition, payload.ecdh_sequence, ecdh_pk, '', payload.pair_address, timestamp)
+  let self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, payload.ecdh_sequence, ecdh_pk, '', payload.pair_address, timestamp))
   yield call(() => dbAPI.initHandshakeFromLocal(self_address, payload.pair_address, DefaultPartition, payload.ecdh_sequence, ecdh_sk, ecdh_pk, self_json))
   yield fork(SendMessage, { msg: JSON.stringify(self_json) })
 }
 
 function* LoadCurrentSession({ payload }) {
   const seed = yield select(state => state.User.Seed)
-  const self_address = yield select(state => state.User.Address)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
+  const self_address = yield select(state => state.User.Address)
   let timestamp = Date.now()
   switch (payload.type) {
     case SessionType.Private:
@@ -1719,14 +1662,9 @@ function* LoadCurrentSession({ payload }) {
 
 // message
 function* SendContent({ payload }) {
-  console.log(payload)
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
   let timestamp = Date.now()
   const self_address = yield select(state => state.User.Address)
@@ -1753,7 +1691,7 @@ function* SendContent({ payload }) {
           yield call(() => dbAPI.confirmPrivateMessage(to_confirm_msg.Hash))
         }
 
-        let msg_json = MG.genPrivateMessage(CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_msg, content, CurrentSession.remote, timestamp)
+        let msg_json = yield call(() => mgAPI.genPrivateMessage(seed, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_msg, content, CurrentSession.remote, timestamp))
         let hash = QuarterSHA512Message(msg_json)
         yield call(() => dbAPI.addPrivateMessage(hash, self_address, CurrentSession.remote, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, msg_json, timestamp, false, false, true, typeof payload.content === 'object'))
 
@@ -1786,7 +1724,7 @@ function* SendContent({ payload }) {
         yield call(() => dbAPI.confirmGroupMessage(to_confirm_group_msg.Hash))
       }
 
-      let group_msg_json = MG.genGroupMessage(CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_group_msg, payload.content, timestamp)
+      let group_msg_json = yield call(() => mgAPI.genGroupMessage(seed, CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_group_msg, payload.content, timestamp))
       let group_msg_hash = QuarterSHA512Message(group_msg_json)
       yield call(() => dbAPI.addGroupMessage(group_msg_hash, CurrentSession.hash, self_address, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, group_msg_json, group_msg_json.Timestamp, false, false, true, typeof payload.content === 'object'))
 
@@ -1811,14 +1749,7 @@ function* SendContent({ payload }) {
             tmp_msg_json.Content = encrypt_content
             delete tmp_msg_json["ObjectType"]
             delete tmp_msg_json["GroupHash"]
-            let group_msg_list_json = {
-              ObjectType: ObjectType.GroupMessageList,
-              GroupHash: CurrentSession.hash,
-              To: member,
-              Timestamp: timestamp,
-              PublicKey: MG.PublicKey,
-              List: [tmp_msg_json]
-            }
+            let group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, CurrentSession.hash, member, [tmp_msg_json], timestamp))
             yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
           }
         }
@@ -1960,38 +1891,30 @@ function* RefreshGroupMessageList() {
 function* RequestGroupMessageSync({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
-  }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
   }
 
   let latest_msg = yield call(() => dbAPI.getLastGroupMessage(payload.hash))
   if (latest_msg) {
-    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, latest_msg.address, latest_msg.sequence)
+    const group_message_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, payload.hash, latest_msg.address, latest_msg.sequence))
     yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
   } else {
     const address = yield select(state => state.User.Address)
-    const group_message_sync_request = MG.genGroupMessageSync(payload.hash, address, 0)
+    const group_message_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, payload.hash, address, 0))
     yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
   }
 }
 
 function* CreateGroup(action) {
   const seed = yield select(state => state.User.Seed)
-  const address = yield select(state => state.User.Address)
-  const member = yield select(state => state.Messenger.ComposeMemberList)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
+  const address = yield select(state => state.User.Address)
+  const member = yield select(state => state.Messenger.ComposeMemberList)
 
   let hash = QuarterSHA512Message({ created_by: address, Member: member, Random: Math.random() })
-  let json = MG.genGroupCreate(hash, action.payload.name, member)
+  let json = yield call(() => mgAPI.genGroupCreate(seed, hash, action.payload.name, member))
   let result = yield call(() => dbAPI.createGroup(json.Hash, action.payload.name, address, json.Member, json.Timestamp, json, true))
   if (result) {
     let group_response = {
@@ -2007,17 +1930,13 @@ function* CreateGroup(action) {
 
 function* DeleteGroup(action) {
   const seed = yield select(state => state.User.Seed)
-  const address = yield select(state => state.User.Address)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
+  const address = yield select(state => state.User.Address)
   const group = yield call(() => dbAPI.getGroupByHash(action.payload.hash))
   if (group !== null && group.created_by === address && group.delete_json === undefined) {
-    let json = MG.genGroupDelete(action.payload.hash)
+    let json = yield call(() => mgAPI.genGroupDelete(seed, action.payload.hash))
     let result = yield call(() => dbAPI.updateGroupDelete(action.payload.hash, json))
     if (result > 0) {
       let group_response = {
@@ -2034,13 +1953,9 @@ function* DeleteGroup(action) {
 function* GroupSync() {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
-    MG = null
     return
   }
-  if (MG === null) {
-    yield call(initMessageGenerator, seed)
-  }
-  const group_sync_request = MG.genGroupSync()
+  const group_sync_request = yield call(() => mgAPI.genGroupSync(seed))
   yield call(EnqueueMessage, { payload: { msg: JSON.stringify(group_sync_request) } })
 }
 
