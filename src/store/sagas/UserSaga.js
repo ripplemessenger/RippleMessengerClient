@@ -41,7 +41,6 @@ function* handleLogout() {
   yield put(setGroupList({ group_list: [], group_member_map: {} }))
   yield put(setChannelList([]))
   yield put(setCurrentSession(null))
-  yield put(setChannelList([]))
 }
 
 // Account

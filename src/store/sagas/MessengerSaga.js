@@ -59,7 +59,7 @@ function createSwitchEventChannel(client) {
               const content_hash = FileHash(content)
               if (request.Hash === content_hash) {
                 const avatar_dir = await path.join(base_dir, AvatarDir)
-                mkdir(avatar_dir, { recursive: true })
+                await mkdir(avatar_dir, { recursive: true })
                 let avatar_path = `${avatar_dir}/${request.Address}.png`
                 await writeFile(avatar_path, content)
                 await dbAPI.updateAvatarIsSaved(request.Address, true, Date.now())
@@ -67,9 +67,10 @@ function createSwitchEventChannel(client) {
             } else if (request.Type === FileRequestType.File) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
-              content = Buffer.from(content)
+              content = new Uint8Array(content)
+              // content = Buffer.from(content)
               const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
-              mkdir(file_dir, { recursive: true })
+              await mkdir(file_dir, { recursive: true })
               let file_path = await path.join(file_dir, request.Hash)
               let file = await dbAPI.getFileByHash(request.Hash)
               if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
@@ -95,7 +96,7 @@ function createSwitchEventChannel(client) {
               content = await content.arrayBuffer()
               content = Buffer.from(content)
               const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
-              mkdir(file_dir, { recursive: true })
+              await mkdir(file_dir, { recursive: true })
               let chat_file_path = await path.join(file_dir, request.Hash)
               let chat_file = await dbAPI.getFileByHash(request.Hash)
               if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
@@ -124,7 +125,7 @@ function createSwitchEventChannel(client) {
               let ecdh = await dbAPI.getHandshake(request.SelfAddress, from, DefaultPartition, ecdh_sequence)
               if (ecdh !== null && ecdh.aes_key !== null) {
                 const file_dir = await path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6))
-                mkdir(file_dir, { recursive: true })
+                await mkdir(file_dir, { recursive: true })
                 let chat_file_path = await path.join(file_dir, request.Hash)
                 let chat_file = await dbAPI.getFileByHash(request.Hash)
                 if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
@@ -279,8 +280,9 @@ function* handelMessengerEvent(action) {
     ConsoleWarn(`connnected`)
     let msg = MG.genDeclare()
     yield call(SendMessage, { msg: msg })
-    yield call(AvatarRequest)
+    yield call(AvatarRequest, { payload: { flag: true } })
     yield call(SubscribeChannel)
+    yield call(FetchFollowBulletin)
   } else if (action.type === updateMessengerConnStatus.type && action.payload === false) {
     // disconnnected
     // yield call([switchClient, switchClient.disconnect])
@@ -1115,7 +1117,7 @@ function* SaveSelfAvatar({ payload }) {
   yield call(SendMessage, { msg: JSON.stringify(avatar_response) })
 }
 
-export function* AvatarRequest() {
+export function* AvatarRequest({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     MG = null
@@ -1129,7 +1131,7 @@ export function* AvatarRequest() {
   let list = []
   for (let i = 0; i < old_avatar_list.length; i++) {
     const avatar = old_avatar_list[i];
-    if (avatar.updated_at < timestamp - Hour) {
+    if (avatar.updated_at < timestamp - Hour || payload.flag) {
       list.push({ Address: avatar.address, SignedAt: avatar.signed_at })
       yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
     }
@@ -1205,6 +1207,14 @@ function* LoadMineBulletin({ payload }) {
   yield put(setMineBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
 }
 
+export function* FetchFollowBulletin() {
+  const address = yield select(state => state.User.Address)
+  let follow_list = yield call(() => dbAPI.getMyFollows(address))
+  for (let i = 0; i < follow_list.length; i++) {
+    yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
+  }
+}
+
 function* LoadFollowBulletin({ payload }) {
   const address = yield select(state => state.User.Address)
   let follow_list = yield call(() => dbAPI.getMyFollows(address))
@@ -1213,9 +1223,7 @@ function* LoadFollowBulletin({ payload }) {
     for (let i = 0; i < follow_list.length; i++) {
       const follow = follow_list[i]
       follow_address_list.push(follow.remote)
-      yield fork(RequestNextBulletin, { payload: { address: follow.remote } })
     }
-
     const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(follow_address_list, payload.page, 'DESC'))
     const total = yield call(() => dbAPI.getBulletinCountByAddresses(follow_address_list))
     const total_page = calcTotalPage(total, BulletinPageSize)

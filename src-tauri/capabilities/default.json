@@ -12,6 +12,8 @@
     "fs:default",
     "fs:allow-app-read-recursive",
     "fs:allow-app-write-recursive",
+    "fs:allow-resource-write-recursive",
+    "fs:allow-resource-read-recursive",
     {
       "identifier": "fs:scope",
       "allow": [
@@ -29,6 +31,8 @@
         }
       ]
     },
+    "log:allow-log",
+    "log:default",
     "sql:default",
     "sql:allow-load",
     "sql:allow-execute",
