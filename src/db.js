@@ -55,7 +55,7 @@ export async function initDB() {
       size INTEGER NOT NULL,
       signed_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      json TEXT NOT NULL,
+      json TEXT,
       is_saved INTEGER DEFAULT 0
     );`)
 
@@ -493,7 +493,9 @@ export const dbAPI = {
     )
     if (avatars.length > 0) {
       let avatar = avatars[0]
-      avatar.json = JSON.parse(avatar.json)
+      if (avatar.json !== null) {
+        avatar.json = JSON.parse(avatar.json)
+      }
       avatar.is_saved = Int2Bool(avatar.is_saved)
       return avatar
     } else {
@@ -509,7 +511,9 @@ export const dbAPI = {
     )
     if (avatars.length > 0) {
       let avatar = avatars[0]
-      avatar.json = JSON.parse(avatar.json)
+      if (avatar.json !== null) {
+        avatar.json = JSON.parse(avatar.json)
+      }
       avatar.is_saved = Int2Bool(avatar.is_saved)
       return avatar
     } else {
@@ -522,18 +526,21 @@ export const dbAPI = {
     let avatars = await dbInstance.select('SELECT * FROM avatar_files ORDER BY updated_at DESC LIMIT 64')
     for (let i = 0; i < avatars.length; i++) {
       const avatar = avatars[i]
-      avatars[i].json = JSON.parse(avatar.json)
+      console.log(avatar)
+      if (avatar.json !== null) {
+        avatars[i].json = JSON.parse(avatar.json)
+      }
       avatars[i].is_saved = Int2Bool(avatar.is_saved)
     }
     return avatars
   },
 
-  async addAvatar(address, hash, size, signed_at, updated_at, json, is_saved) {
+  async addAvatar(address, hash, size, signed_at, updated_at, is_saved) {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, json, is_saved) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [address, hash, size, signed_at, updated_at, json, Bool2Int(is_saved)]
+        'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, NULL)',
+        [address, hash, size, signed_at, updated_at, Bool2Int(is_saved)]
       )
       return true
     } catch (error) {
@@ -547,7 +554,7 @@ export const dbAPI = {
       const dbInstance = await getDB()
       await dbInstance.execute(
         'UPDATE avatar_files SET hash = $1, size = $2, signed_at = $3, updated_at = $4, json = $5, is_saved = $6 WHERE address = $7',
-        [hash, size, signed_at, updated_at, json, Bool2Int(is_saved), address]
+        [hash, size, signed_at, updated_at, JSON.stringify(json), Bool2Int(is_saved), address]
       )
       return true
     } catch (error) {

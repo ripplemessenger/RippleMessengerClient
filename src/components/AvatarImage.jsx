@@ -1,4 +1,3 @@
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RxAvatar } from "react-icons/rx"

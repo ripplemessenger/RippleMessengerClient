@@ -25,7 +25,6 @@ export function* taskFast() {
     while (true) {
       const seed = yield select(state => state.User.Seed)
       if (seed) {
-        yield fork(FetchFollowBulletin)
       }
       yield delay(interval)
     }
@@ -37,11 +36,12 @@ export function* taskFast() {
 }
 
 export function* taskSlow() {
-  const interval = 30 * 1000
+  const interval = 60 * 1000
   try {
     while (true) {
       const address = yield select(state => state.User.Address)
       if (address) {
+        yield fork(FetchFollowBulletin)
       }
       yield delay(interval)
     }

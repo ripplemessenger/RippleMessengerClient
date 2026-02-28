@@ -29,10 +29,10 @@ function createSwitchEventChannel(client) {
       if (data_type === 'string') {
         try {
           const json = JSON.parse(event.data)
-          console.log(json)
+          // console.log(json)
           emit({ type: 'HandelReceiveMessage', payload: json })
         } catch (error) {
-          console.log(event.data)
+          // console.log(event.data)
           emit({ type: 'SOCKET_ERROR', error: 'Invalid JSON format' })
         }
       } else if (data_type === 'object') {
@@ -277,7 +277,7 @@ function* handelMessengerEvent(action) {
     // yield call([switchClient, switchClient.disconnect])
   } else if (action.type === 'HandelReceiveMessage') {
     yield put(updateMessengerConnStatus(true))
-    console.log('received message', action.payload)
+    console.log('!!!received message', action.payload)
     let json = action.payload
     if (json.Action && (json.To === undefined || json.To === address)) {
       let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
@@ -1083,7 +1083,7 @@ function* CheckAvatar({ payload }) {
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
   if (db_avatar === null) {
     console.log(`new avatar wanted...`)
-    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, "", Epoch, false))
+    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, false))
   }
 }
 
@@ -1114,16 +1114,20 @@ export function* AvatarRequest({ payload }) {
   }
   let timestamp = Date.now()
   let old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
+  console.log(payload)
+  console.log(old_avatar_list)
   let list = []
   for (let i = 0; i < old_avatar_list.length; i++) {
-    const avatar = old_avatar_list[i];
+    const avatar = old_avatar_list[i]
     if (avatar.updated_at < timestamp - Hour || payload.flag) {
       list.push({ Address: avatar.address, SignedAt: avatar.signed_at })
       yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
     }
   }
+  console.log(list)
   if (list.length > 0) {
     let avatar_request = yield call(() => mgAPI.genAvatarRequest(seed, list))
+    console.log(avatar_request)
     yield call(SendMessage, { msg: avatar_request })
   }
 }
@@ -2002,7 +2006,7 @@ export function* watchMessenger() {
   yield takeLatest('RequestTagBulletin', RequestTagBulletin)
 
   // avatar
-  yield takeLatest('CheckAvatar', CheckAvatar)
+  yield takeEvery('CheckAvatar', CheckAvatar)
   yield takeLatest('SaveSelfAvatar', SaveSelfAvatar)
 
   // file
