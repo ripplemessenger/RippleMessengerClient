@@ -1093,8 +1093,6 @@ export function* AvatarRequest({ payload }) {
   }
   let timestamp = Date.now()
   let old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
-  console.log(payload)
-  console.log(old_avatar_list)
   let list = []
   for (let i = 0; i < old_avatar_list.length; i++) {
     const avatar = old_avatar_list[i]
@@ -1103,10 +1101,8 @@ export function* AvatarRequest({ payload }) {
       yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
     }
   }
-  console.log(list)
   if (list.length > 0) {
     let avatar_request = yield call(() => mgAPI.genAvatarRequest(seed, list))
-    console.log(avatar_request)
     yield call(SendMessage, { msg: avatar_request })
   }
 }
