@@ -1,7 +1,7 @@
 import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
 import { decryptWithPassword } from '../../lib/AppUtil'
-import { ClearMessage, DisconnectSwitch, LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
+import { DisconnectSwitch, LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
 import { SessionType } from '../../lib/AppConst'
 import { setChannelList, setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
 import { MasterAddress } from '../../lib/MessengerConst'
@@ -33,7 +33,6 @@ function* handleLogout() {
   localStorage.removeItem('Seed')
   localStorage.removeItem('Address')
   yield call(DisconnectSwitch)
-  yield call(ClearMessage)
   yield put(setContactList({ contact_list: [], contact_map: {} }))
   yield put(setFollowList([]))
   yield put(setFriendList([]))

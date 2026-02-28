@@ -1,5 +1,5 @@
 import { fork, select, cancelled, delay } from 'redux-saga/effects'
-import { AvatarRequest, ConnectSwitch, FetchFollowBulletin, ReleaseMessage } from './MessengerSaga'
+import { AvatarRequest, ConnectSwitch, FetchFollowBulletin } from './MessengerSaga'
 
 export function* taskInstant() {
   const interval = 1 * 1000
@@ -8,7 +8,6 @@ export function* taskInstant() {
       const seed = yield select(state => state.User.Seed)
       if (seed) {
         yield fork(ConnectSwitch)
-        yield fork(ReleaseMessage)
       }
       yield delay(interval)
     }

@@ -180,25 +180,6 @@ function createSwitchEventChannel(client) {
   })
 }
 
-let MessageQueue = []
-function* EnqueueMessage({ payload }) {
-  if (!MessageQueue.includes(payload.msg)) {
-    MessageQueue.push(payload.msg)
-    console.log(MessageQueue)
-  }
-}
-
-export function* ReleaseMessage() {
-  if (MessageQueue.length > 0) {
-    yield call(SendMessage, { msg: MessageQueue.shift() })
-    console.log(MessageQueue)
-  }
-}
-
-export function* ClearMessage() {
-  MessageQueue = []
-}
-
 function* SendMessage(payload) {
   console.log('!!!send message', payload)
   try {
@@ -298,7 +279,7 @@ function* handelMessengerEvent(action) {
                 ObjectType: ObjectType.AvatarList,
                 List: new_list
               }
-              yield call(EnqueueMessage, { payload: { msg: JSON.stringify(avatar_response) } })
+              yield call(SendMessage, { msg: JSON.stringify(avatar_response) })
             }
           }
           break
@@ -313,11 +294,10 @@ function* handelMessengerEvent(action) {
               if (last_bulletin === null) {
                 if (json.Sequence > 1) {
                   let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
-                  yield call(EnqueueMessage, { payload: { msg: msg } })
+                  yield call(SendMessage, { msg: msg })
                 }
               } else if (last_bulletin.sequence + 1 < json.Sequence) {
-                let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, last_bulletin.sequence + 1, address))
-                yield call(EnqueueMessage, { payload: { msg: msg } })
+                yield call(RequestNextBulletin, { payload: { address: address } })
               }
             }
           }
@@ -476,7 +456,7 @@ function* handelMessengerEvent(action) {
                 ObjectType: ObjectType.GroupList,
                 List: tmp_list
               }
-              yield call(EnqueueMessage, { payload: { msg: JSON.stringify(group_response) } })
+              yield call(SendMessage, { msg: JSON.stringify(group_response) })
             }
           }
           break
@@ -540,9 +520,8 @@ function* handelMessengerEvent(action) {
         yield put(setRandomBulletin(bulletin))
         const follow_list = yield select(state => state.User.FollowList)
         const subscribe_list = yield select(state => state.Messenger.SubscribeList)
-        if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address)) {
-          let bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, ob_address, json.Sequence + 1, ob_address))
-          yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+        if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address) || ob_address === address) {
+          yield fork(RequestNextBulletin, { payload: { address: ob_address } })
         }
       } else if (json.ObjectType === ObjectType.BulletinAddressList && checkBulletinAddressListSchema(json)) {
         yield put(setBulletinAddressList(json))
@@ -1167,7 +1146,7 @@ function* RequestNextBulletin({ payload }) {
     request_sequence = last_bulletin.sequence + 1
   }
   let bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, payload.address, request_sequence, payload.address))
-  yield call(EnqueueMessage, { payload: { msg: bulletin_request } })
+  yield call(SendMessage, { msg: bulletin_request })
 }
 
 function* LoadMineBulletin({ payload }) {
@@ -1234,7 +1213,7 @@ function* LoadBulletin(action) {
       to = action.payload.to
     }
     let msg = yield call(() => mgAPI.genBulletinRequest(seed, action.payload.address, action.payload.sequence, to))
-    yield call(EnqueueMessage, { payload: { msg: msg } })
+    yield call(SendMessage, { msg: msg })
   }
   yield put(setDisplayBulletin(bulletin))
 }
@@ -1925,7 +1904,7 @@ function* CreateGroup(action) {
       ObjectType: ObjectType.GroupList,
       List: [json]
     }
-    yield call(EnqueueMessage, { payload: { msg: JSON.stringify(group_response) } })
+    yield call(SendMessage, { msg: JSON.stringify(group_response) })
     yield call(LoadSessionList)
     yield call(LoadGroupList)
   }
@@ -1947,7 +1926,7 @@ function* DeleteGroup(action) {
         ObjectType: ObjectType.GroupList,
         List: [json]
       }
-      yield call(EnqueueMessage, { payload: { msg: JSON.stringify(group_response) } })
+      yield call(SendMessage, { msg: JSON.stringify(group_response) })
       yield call(LoadSessionList)
       yield call(LoadGroupList)
     }
@@ -1960,7 +1939,7 @@ function* GroupSync() {
     return
   }
   const group_sync_request = yield call(() => mgAPI.genGroupSync(seed))
-  yield call(EnqueueMessage, { payload: { msg: JSON.stringify(group_sync_request) } })
+  yield call(SendMessage, { msg: JSON.stringify(group_sync_request) })
 }
 
 export function* LoadGroupList() {
