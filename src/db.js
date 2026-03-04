@@ -526,7 +526,6 @@ export const dbAPI = {
     let avatars = await dbInstance.select('SELECT * FROM avatar_files ORDER BY updated_at DESC LIMIT 64')
     for (let i = 0; i < avatars.length; i++) {
       const avatar = avatars[i]
-      console.log(avatar)
       if (avatar.json !== null) {
         avatars[i].json = JSON.parse(avatar.json)
       }
@@ -535,13 +534,16 @@ export const dbAPI = {
     return avatars
   },
 
-  async addAvatar(address, hash, size, signed_at, updated_at, is_saved) {
+  async addAvatar(address, hash, size, signed_at, updated_at, json, is_saved) {
     try {
       const dbInstance = await getDB()
-      await dbInstance.execute(
-        'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, NULL)',
-        [address, hash, size, signed_at, updated_at, Bool2Int(is_saved)]
-      )
+      let sql = 'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, NULL)'
+      let value = [address, hash, size, signed_at, updated_at, Bool2Int(is_saved)]
+      if (json !== null) {
+        sql = 'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, $7)'
+        value = [address, hash, size, signed_at, updated_at, Bool2Int(is_saved), JSON.stringify(json)]
+      }
+      await dbInstance.execute(sql, value)
       return true
     } catch (error) {
       console.log(error)

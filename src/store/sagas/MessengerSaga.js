@@ -48,7 +48,8 @@ function createSwitchEventChannel(client) {
             if (request.Type === FileRequestType.Avatar) {
               let content = event.data.slice(4)
               content = await content.arrayBuffer()
-              content = Buffer.from(content)
+              content = new Uint8Array(content)
+              // content = Buffer.from(content)
               const content_hash = FileHash(content)
               if (request.Hash === content_hash) {
                 const avatar_dir = await path.join(base_dir, AvatarDir)
@@ -559,6 +560,8 @@ function* handelMessengerEvent(action) {
                   yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, false))
                   yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
                 }
+              } else if (db_avatar.signed_at === avatar.Timestamp && db_avatar.is_saved === false) {
+                yield call(RequestAvatarFile, { address: avatar_address, hash: avatar.Hash })
               }
             }
           }
@@ -1062,7 +1065,9 @@ function* CheckAvatar({ payload }) {
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
   if (db_avatar === null) {
     console.log(`new avatar wanted...`)
-    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, false))
+    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, null, false))
+  } else if (db_avatar.is_saved === false && db_avatar.json !== null) {
+    yield call(RequestAvatarFile, { address: db_avatar.address, hash: db_avatar.hash })
   }
 }
 
@@ -1073,10 +1078,11 @@ function* SaveSelfAvatar({ payload }) {
   }
   const address = yield select(state => state.User.Address)
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(address))
-
   let avatar_json = yield call(() => mgAPI.genAvatarJson(seed, payload.hash, payload.size, payload.timestamp))
   if (db_avatar !== null) {
     yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
+  } else {
+    yield call(() => dbAPI.addAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
   }
 
   let avatar_response = {
