@@ -1,5 +1,5 @@
 import Ajv from 'ajv'
-import { AvatarListSchema, AvatarRequestSchema, BulletinAddressListSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, OfferCancelSchema, OfferCreateSchema, OfferTakeConfirmSchema, OfferTakeSchema, PrivateMessageSchema, PrivateMessageSyncSchema, ReceiveSchema, SendSchema } from './MessageSchema'
+import { AvatarListSchema, AvatarRequestSchema, BulletinAddressListSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, PrivateMessageSchema, PrivateMessageSyncSchema } from './MessageSchema'
 const ajv = new Ajv({ allErrors: true })
 
 function deriveJson(str) {
@@ -269,97 +269,6 @@ function checkGroupMessageListSchema(json) {
   }
 }
 
-// Asset
-const vSendSchema = ajv.compile(SendSchema)
-function checkSendSchema(json) {
-  try {
-    if (vSendSchema(json)) {
-      console.log(`SendSchema ok`)
-      return true
-    } else {
-      console.log(`SendSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
-const vReceiveSchema = ajv.compile(ReceiveSchema)
-function checkReceiveSchema(json) {
-  try {
-    if (vReceiveSchema(json)) {
-      console.log(`ReceiveSchema ok`)
-      return true
-    } else {
-      console.log(`ReceiveSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
-const vOfferCreateSchema = ajv.compile(OfferCreateSchema)
-function checkOfferCreateSchema(json) {
-  try {
-    if (vOfferCreateSchema(json)) {
-      console.log(`OfferCreateSchema ok`)
-      return true
-    } else {
-      console.log(`OfferCreateSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
-const vOfferCancelSchema = ajv.compile(OfferCancelSchema)
-function checkOfferCancelSchema(json) {
-  try {
-    if (vOfferCancelSchema(json)) {
-      console.log(`OfferCancelSchema ok`)
-      return true
-    } else {
-      console.log(`OfferCancelSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
-const vOfferTakeSchema = ajv.compile(OfferTakeSchema)
-function checkOfferTakeSchema(json) {
-  try {
-    if (vOfferTakeSchema(json)) {
-      console.log(`OfferTakeSchema ok`)
-      return true
-    } else {
-      console.log(`OfferTakeSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
-const vOfferTakeConfirmSchema = ajv.compile(OfferTakeConfirmSchema)
-function checkOfferTakeConfirmSchema(json) {
-  try {
-    if (vOfferTakeConfirmSchema(json)) {
-      console.log(`OfferTakeConfirmSchema ok`)
-      return true
-    } else {
-      console.log(`OfferTakeConfirmSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-
 const vMessageObjectBulletinSchema = ajv.compile(MessageObjectBulletinSchema)
 const vMessageObjectPrivateChatFileSchema = ajv.compile(MessageObjectPrivateChatFileSchema)
 const vMessageObjectGroupChatFileSchema = ajv.compile(MessageObjectGroupChatFileSchema)
@@ -409,13 +318,5 @@ export {
   checkGroupMessageSchema,
   checkGroupMessageListSchema,
 
-  checkMessageObjectSchema,
-
-  // asset
-  checkSendSchema,
-  checkReceiveSchema,
-  checkOfferCreateSchema,
-  checkOfferCancelSchema,
-  checkOfferTakeSchema,
-  checkOfferTakeConfirmSchema
+  checkMessageObjectSchema
 }

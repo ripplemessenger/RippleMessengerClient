@@ -132,13 +132,13 @@ const BulletinSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      // "maxItems": 8,
+      "maxItems": 64,
       "items": { "type": "string" }
     },
     "Quote": {
       "type": "array",
       "minItems": 1,
-      // "maxItems": 8,
+      "maxItems": 64,
       "items": {
         "type": "object",
         "required": ["Address", "Sequence", "Hash"],
@@ -152,7 +152,7 @@ const BulletinSchema = {
     "File": {
       "type": "array",
       "minItems": 1,
-      // "maxItems": 8,
+      "maxItems": 64,
       "items": {
         "type": "object",
         "required": ["Name", "Ext", "Size", "Hash"],
@@ -742,244 +742,6 @@ const MessageObjectGroupChatFileSchema = {
   }
 }
 
-// Asset
-const SendSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "To", "Issuer", "Subject", "Amount", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 10,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.Send
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "To": {
-      "type": "string"
-    },
-    "Issuer": {
-      "type": "string"
-    },
-    "Subject": {
-      "type": "string"
-    },
-    "Amount": {
-      "type": "string"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
-const ReceiveSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "SendHash", "SendAddress", "SendSequence", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 9,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.Receive
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "SendHash": {
-      "type": "string"
-    },
-    "SendAddress": {
-      "type": "string"
-    },
-    "SendSequence": {
-      "type": "number"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
-const OfferCreateSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "PaySubject", "PayIssuer", "PayAmount", "GetSubject", "GetIssuer", "GetAmount", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 14,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.OfferCreate
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "PaySubject": {
-      "type": "string"
-    },
-    "PayIssuer": {
-      "type": "string"
-    },
-    "PayAmount": {
-      "type": "number"
-    },
-    "GetSubject": {
-      "type": "string"
-    },
-    "GetIssuer": {
-      "type": "string"
-    },
-    "GetAmount": {
-      "type": "number"
-    },
-    "To": {
-      "type": "string"
-    },
-    "Shard": {
-      "type": "number"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
-const OfferCancelSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "OfferCreateHash", "OfferCreateSequence", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 8,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.OfferCreate
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "OfferCreateHash": {
-      "type": "string"
-    },
-    "OfferCreateSequence": {
-      "type": "number"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
-const OfferTakeSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "OfferCreateHash", "OfferCreateAddress", "OfferCreateSequence", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 10,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.OfferTake
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "OfferCreateHash": {
-      "type": "string"
-    },
-    "OfferCreateAddress": {
-      "type": "string"
-    },
-    "OfferCreateSequence": {
-      "type": "number"
-    },
-    "ShardCount": {
-      "type": "number"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
-const OfferTakeConfirmSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "OfferTakeHash", "OfferTakeAddress", "OfferTakeSequence", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 10,
-  "properties": {
-    "ObjectType": {
-      "type": "number",
-      "const": ObjectType.OfferTakeConfirm
-    },
-    "Sequence": {
-      "type": "number"
-    },
-    "PreHash": {
-      "type": "string"
-    },
-    "OfferTakeHash": {
-      "type": "string"
-    },
-    "OfferTakeAddress": {
-      "type": "string"
-    },
-    "OfferTakeSequence": {
-      "type": "number"
-    },
-    "ShardCount": {
-      "type": "number"
-    },
-    "Timestamp": {
-      "type": "number"
-    },
-    "PublicKey": {
-      "type": "string"
-    },
-    "Signature": {
-      "type": "string"
-    }
-  }
-}
-
 export {
   DeclareSchema,
   FileRequestSchema,
@@ -1020,13 +782,5 @@ export {
   // Message Object
   MessageObjectBulletinSchema,
   MessageObjectPrivateChatFileSchema,
-  MessageObjectGroupChatFileSchema,
-
-  // Asset
-  SendSchema,
-  ReceiveSchema,
-  OfferCreateSchema,
-  OfferCancelSchema,
-  OfferTakeSchema,
-  OfferTakeConfirmSchema
+  MessageObjectGroupChatFileSchema
 }
