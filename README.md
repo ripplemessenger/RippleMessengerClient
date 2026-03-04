@@ -18,10 +18,19 @@ npm run tauri build
 ## Donate
 rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS
 
+## 特点
+1. 账号本地生成，无需手机认证、生物识别，我就是我无需向任何人证明，使用得当可以做到对所有人匿名，也可在物理世界对其他个人实名使用；
+2. 数据本地存储，包括公告、私聊消息、群聊消息及文件等等全部数据均本地存储，使用得当可保证自己的数据安全，与其吐槽服务提供方丢数据、删数据，不如自己保存好数据；
+3. 数据交换服务可私有部署，源码参见[RippleMessengerServer](https://github.com/ripplemessenger/RippleMessengerServer)，部署简单、成本低廉，无需担心服务不可用，鼓励有实力的玩家部署公开服务或提供计算资源；
+4. 公告功能可以实现推特、微博、博客、论坛帖子等网络产品功能，同时基于1、2、3点，公告数据是跟着个人走；
+5. 聊天功能可以实现端到端数据加密（强度为256位的AES算法），保障聊天内容仅仅在聊天参与方可见，同时基于1、2、3点，聊天数据是跟着个人走；
+6. 公告和聊天功能均支持传输文件，当前设定最大可传64M文件，其中聊天文件的传输也是采用端到端加密传输；
+7. 客户端软件的exe文件只有5M小体积，源码开源绿色安全。
+
+## 欢迎star、fork、贡献代码、推荐、捐赠，谢谢！
 
 
 ## **公告**（**Bulletin**）功能
-
 数据格式如下：
 ```
 const BulletinSchema = {
@@ -85,10 +94,158 @@ const BulletinSchema = {
 - Content、Tag、Quote、File等4个属性为公告数据的具体属性，作用如下：
   - **Content**用于指明公告数据的内容，需要个人来填写；
   - **Tag**用于指明公告数据的标签，需要个人来填写，后期可供系统来帮助个人进行查询检索；
-  - **Quote**用于指明该公告数据引用（或者回复）的其他公告信息（发布账号、序号、hash），从而实现单条数据链与其他数据链的关联，公告数据的跨链互动；
-  - **File**用于指明该公告数据发布的文件信息（文件名、大小、hash），公告数据本身不传输文件，但提供了文件hash，可供系统实现文件传输功能。
+  - **Quote**用于指明该公告数据引用（或者回复）的其他**公告信息**（发布账号、序号、hash），从而实现单条数据链与其他数据链的关联，公告数据的跨链互动；
+  - **File**用于指明该公告数据发布的**文件信息**（文件名、大小、hash），公告数据本身不传输文件，但提供了文件hash，可供系统实现文件传输功能。
 
-任何个人或系统在存储一条**公告**前，均至少需要做以下校验：
+任何个人或系统在存储一条**公告**前，均至少需要做以下**数据链校验**：
 - 校验数据签名，确认数据完整性、发布账号；
 - 校验当前数据链最后一条数据的序号为 **Sequence**-1，确认数据链的下一个序号为 **Sequence**；
 - 校验前一条（ **Sequence**-1）数据的Hash是否为**PreHash**，确认可以将该条数据从尾部插入数据链。
+
+
+## **私聊**（**PrivateChat**）功能
+实现端到到加密聊天，需要两步：
+1. 私聊的双方（两个账号）通过**DH算法（Diffie-Hellman 算法）**安全地共享一个对称加密密钥（256位AES密钥）作为**会话密钥**；
+2. 私聊的双方（两个账号）使用**会话密钥**加密私聊消息。
+
+### 第一步协商**会话密钥**的数据格式如下：
+```
+const ECDHHandshakeSchema = {
+  "type": "object",
+  "required": ["ObjectType", "Partition", "Sequence", "Self", "Pair", "To", "Timestamp", "PublicKey", "Signature"],
+  "maxProperties": 9,
+  "properties": {
+    "ObjectType": { "type": "number", "const": ObjectType.ECDH },
+    "Partition": { "type": "number" },
+    "Sequence": { "type": "number" },
+    "Self": { "type": "string" },
+    "Pair": { "type": "string" },
+    "To": { "type": "string" },
+    "Timestamp": { "type": "number" },
+    "PublicKey": { "type": "string" },
+    "Signature": { "type": "string" }
+  }
+}
+```
+数据格式说明如下：
+- ObjectType、Timestamp、PublicKey、Signature等4个属性为基础数据属性，作用同上，不做解释。
+- Partition、Sequence、Self、Pair、To等5个属性为协商**会话密钥**数据的具体属性，作用如下：
+  - **Partition**用于指明会话时间段的长度，固定值为90天（90 * 24 * 3600秒），**Sequence**用于**会话密钥**有效时间段的序号，任意两个账号的会话起始时刻为固定值（2011-11-11 11:11:11）加上这两个账号特有的偏移量，防止大量账户集中协商私聊会话密钥；
+  - **Self**、**Pair**用于指明私聊双方（自己、对方）**会话密钥**的公钥，根据DH算法通过自己的私钥和对方的公钥可以计算出相同的**会话密钥**，具体原理可以通过学习DH算法了解；
+  - **To**用于指明对方账号，同时前面的**PublicKey**已经指明了自己的账号。
+
+### 第二步发送的**私聊消息**的数据格式如下：
+```
+const PrivateMessageSchema = {
+  "type": "object",
+  "required": ["ObjectType", "Sequence", "PreHash", "Content", "To", "Timestamp", "PublicKey", "Signature"],
+  "maxProperties": 9,
+  "properties": {
+    "ObjectType": { "type": "number", "const": ObjectType.PrivateMessage },
+    "Sequence": { "type": "number" },
+    "PreHash": { "type": "string" },
+    "Confirm": {
+      "type": "object",
+      "required": ["Sequence", "Hash"],
+      "maxProperties": 2,
+      "properties": {
+        "Sequence": { "type": "number" },
+        "Hash": { "type": "string" }
+      }
+    },
+    "Content": { "type": "string" },
+    "To": { "type": "string" },
+    "Timestamp": { "type": "number" },
+    "PublicKey": { "type": "string" },
+    "Signature": { "type": "string" }
+  }
+}
+```
+数据格式说明如下：
+- ObjectType、Sequence、PreHash、Timestamp、PublicKey、Signature等6个属性为基础数据属性，作用同上，不做解释。
+- Confirm、Content、To等3个属性为**私聊消息**数据的具体属性，作用如下：
+  - **Confirm**用于确认自己已经收到过对方的序号为Sequence、哈希为Hash的消息；
+  - **Content**用于指明私聊消息数据的内容，需要个人来填写，存储、显示、签名校验时使用未加密的明文，但是发送传输时为使用**会话密钥**加密后的密文，保证私聊消息的保密性，Content可以是：
+    - 字符串
+    - **公告信息**
+    - **文件信息**
+  - **To**用于指明对方账号。
+
+任何个人或系统在存储一条**私聊消息**前，需要先使用**会话密钥**解密还原原始明文消息数据，再进行**数据链校验**。
+
+
+## **群聊**（**GroupChat**）功能
+在私聊功能的原理基础上，实现群聊功能，需要两步：
+1. 创建群；
+2. 群成员使用两两间的私聊**会话密钥**发送加密群聊消息。
+
+### 第一步**创建群**的数据格式如下：
+```
+const GroupCreateSchema = {
+  "type": "object",
+  "required": ["ObjectType", "Hash", "Name", "Member", "Timestamp", "PublicKey", "Signature"],
+  "maxProperties": 7,
+  "properties": {
+    "ObjectType": { "type": "number", "const": ObjectType.GroupCreate },
+    "Hash": { "type": "string" },
+    "Name": { "type": "string" },
+    "Member": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "items": { "type": "string" }
+    },
+    "Timestamp": { "type": "number" },
+    "PublicKey": { "type": "string" },
+    "Signature": { "type": "string" }
+  }
+}
+```
+数据格式说明如下：
+- ObjectType、Timestamp、PublicKey、Signature等4个属性为基础数据属性，作用同上，不做解释。
+- Hash、Name、Member等3个属性为**创建群**数据的具体属性，作用如下：
+  - **Hash**用于指明群的唯一标识，通过计算群名称、成员账号及随机数的哈希得到；
+  - **Name**用于指明群名称，考虑群名称未经加密，建议使用群成员能够看懂、非群成员不易看懂的脱敏词汇；
+  - **Member**用于指明群成员的账号，最少两名群成员，同时前面的**PublicKey**已经指明了群主的账号，所以一个群至少三个成员。
+
+### 第二步发送的**群聊消息**的数据格式如下：
+```
+const GroupMessageSchema = {
+  "type": "object",
+  "required": ["ObjectType", "GroupHash", "Sequence", "PreHash", "Content", "To", "Timestamp", "PublicKey", "Signature"],
+  "maxProperties": 10,
+  "properties": {
+    "ObjectType": { "type": "number", "const": ObjectType.GroupMessage },
+    "GroupHash": { "type": "string" },
+    "Sequence": { "type": "number" },
+    "PreHash": { "type": "string" },
+    "Confirm": {
+      "type": "object",
+      "required": ["Address", "Sequence", "Hash"],
+      "maxProperties": 2,
+      "properties": {
+        "Address": { "type": "string" },
+        "Sequence": { "type": "number" },
+        "Hash": { "type": "string" }
+      }
+    },
+    "Content": { "type": "string" },
+    "To": { "type": "string" },
+    "Timestamp": { "type": "number" },
+    "PublicKey": { "type": "string" },
+    "Signature": { "type": "string" }
+  }
+}
+```
+数据格式说明如下：
+- ObjectType、Sequence、PreHash、Timestamp、PublicKey、Signature等6个属性为基础数据属性，作用同上，不做解释。
+- Confirm、Content、To等3个属性为**私聊消息**数据的具体属性，作用如下：
+  - **GroupHash**用于指明群唯一标识；
+  - **Confirm**用于确认自己已经收到过群成员为Address的序号为Sequence、哈希为Hash的群消息；
+  - **Content**用于指明群聊消息数据的内容，需要个人来填写，存储、显示、签名校验时使用未加密的明文，但是发送传输时为使用**会话密钥**加密后的密文，保证私聊消息的保密性，Content可以是：
+    - 字符串
+    - **公告信息**
+    - **文件信息**
+  - **To**用于指明对方账号。
+
+任何个人或系统在存储一条**群聊消息**前，需要先使用**会话密钥**解密还原原始明文消息数据，再进行**数据链校验**。
