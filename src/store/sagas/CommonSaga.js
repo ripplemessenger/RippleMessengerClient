@@ -1,9 +1,10 @@
 import * as path from '@tauri-apps/api/path'
-import { call, put } from 'redux-saga/effects'
+import { call, fork, put } from 'redux-saga/effects'
 import { setAppBaseDir } from '../slices/CommonSlice'
 import { getDB } from '../../db';
 
-export function* GetDB() {
+function* GetDB() {
+  yield call(LoadAppBaseDir)
   try {
     yield call(getDB)
   } catch (e) {
@@ -11,7 +12,7 @@ export function* GetDB() {
   }
 }
 
-export function* LoadAppBaseDir() {
+function* LoadAppBaseDir() {
   // let test = yield call(() => path.appLocalDataDir())
   // test = yield call(() => path.desktopDir())
   // test = yield call(() => path.downloadDir())
@@ -21,4 +22,5 @@ export function* LoadAppBaseDir() {
 }
 
 export function* watchCommon() {
+  yield fork(GetDB)
 }

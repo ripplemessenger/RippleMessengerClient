@@ -1,3 +1,5 @@
+const DefaultServer = 'wss://jp.ripplemessenger.com'
+
 //1000*60*60*24=86400000
 //const Epoch = Date.parse('2011-11-11 11:11:11')
 const Epoch = 1320981071000
@@ -89,6 +91,7 @@ const MessageObjectType = {
 }
 
 export {
+  DefaultServer,
   Epoch,
   GenesisAddress,
   GenesisHash,

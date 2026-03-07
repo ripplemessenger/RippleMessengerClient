@@ -107,6 +107,13 @@ async function BlobToUint32(blob, isBigEndian = true) {
     : buf.readUInt32LE(0)
 }
 
+async function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
+  const buf = Buffer.from(arrayBuffer)
+  return isBigEndian
+    ? buf.readUInt32BE(0)
+    : buf.readUInt32LE(0)
+}
+
 function genRandomInt(min, max) {
   min = Math.ceil(min)
   max = Math.floor(max)
@@ -208,6 +215,7 @@ export {
 
   Uint32ToBuffer,
   BlobToUint32,
+  ArrayBufferToUint32,
   genNonce,
   calcTotalPage,
   trimEndCommasAndValidate,

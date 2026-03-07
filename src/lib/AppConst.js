@@ -1,5 +1,3 @@
-const DefaultServer = 'wss://jp.ripplemessenger.com'
-
 const Minute = 60 * 1000
 const Hour = 60 * Minute
 const Day = 24 * Hour
@@ -54,8 +52,6 @@ const MessageInterval = 1000
 const MessagePageSize = 50
 
 export {
-  DefaultServer,
-
   Minute,
   Hour,
   Day,

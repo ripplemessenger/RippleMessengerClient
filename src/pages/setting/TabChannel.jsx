@@ -89,7 +89,7 @@ export default function TabChannel() {
                       ComposeSpeakerList.map((speaker, index) => (
                         <div key={speaker} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeSpeaker(speaker)}>
                           <AvatarImage address={speaker} timestamp={Date.now()} style={'avatar'} />
-                          <AvatarName address={speaker} />
+                          <AvatarName address={speaker} short_flag={true} />
                         </div>
                       ))
                     }
@@ -166,7 +166,7 @@ export default function TabChannel() {
                                     channel.speaker.map((speaker, index) => (
                                       <div key={speaker} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                         <AvatarImage address={speaker} timestamp={Date.now()} style={'avatar-sm'} />
-                                        <AvatarName address={speaker} style={'text-xs'} />
+                                        <AvatarName address={speaker} style={'text-xs'} short_flag={true} />
                                       </div>
                                     ))
                                   }

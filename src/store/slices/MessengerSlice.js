@@ -6,9 +6,9 @@ const MessengerSlice = createSlice({
   initialState: {
     message_generator: null,
     MessengerConnStatus: false,
+    ConnsStatus: {},
 
     // server
-    CurrentServer: null,
     ServerList: [],
 
     // bulletin publish
@@ -79,12 +79,16 @@ const MessengerSlice = createSlice({
   },
   reducers: {
     updateMessengerConnStatus: (state, action) => {
-      state.MessengerConnStatus = action.payload
+      state.ConnsStatus = action.payload
+      let flag = false
+      for (const [key, value] of Object.entries(action.payload)) {
+        if (value === WebSocket.OPEN) {
+          flag = true
+        }
+      }
+      state.MessengerConnStatus = flag
     },
 
-    setCurrentServer: (state, action) => {
-      state.CurrentServer = action.payload
-    },
     setServerList: (state, action) => {
       state.ServerList = action.payload
     },
@@ -232,7 +236,6 @@ const MessengerSlice = createSlice({
 export const {
   updateMessengerConnStatus,
 
-  setCurrentServer,
   setServerList,
 
   setPublishFlag,

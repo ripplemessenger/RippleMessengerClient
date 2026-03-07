@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
-const AvatarName = ({ address, style }) => {
+const AvatarName = ({ address, style, short_flag = false }) => {
   const [nickname, setNickname] = useState(address)
   const { Address, ContactMap } = useSelector(state => state.User)
 
@@ -11,7 +11,11 @@ const AvatarName = ({ address, style }) => {
     } else if (ContactMap[address]) {
       setNickname(ContactMap[address])
     } else {
-      setNickname(address)
+      if (short_flag) {
+        setNickname(address.slice(0, 4) + '...' + address.slice(address.length - 3))
+      } else {
+        setNickname(address)
+      }
     }
   }, [ContactMap])
 

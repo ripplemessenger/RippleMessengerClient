@@ -1,11 +1,12 @@
 import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
 import { decryptWithPassword } from '../../lib/AppUtil'
-import { DisconnectSwitch, LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
+import { LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
 import { SessionType } from '../../lib/AppConst'
 import { setChannelList, setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
 import { MasterAddress } from '../../lib/MessengerConst'
 import { dbAPI } from '../../db'
+import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
 
 function* handleLogin(action) {
   let nickname = ''
@@ -32,7 +33,6 @@ function* handleLogin(action) {
 function* handleLogout() {
   localStorage.removeItem('Seed')
   localStorage.removeItem('Address')
-  yield call(DisconnectSwitch)
   yield put(setContactList({ contact_list: [], contact_map: {} }))
   yield put(setFollowList([]))
   yield put(setFriendList([]))
@@ -40,6 +40,7 @@ function* handleLogout() {
   yield put(setGroupList({ group_list: [], group_member_map: {} }))
   yield put(setChannelList([]))
   yield put(setCurrentSession(null))
+  yield call(disconnectAllWebsockets)
 }
 
 // Account

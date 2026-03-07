@@ -22,7 +22,6 @@ export default function TabContact() {
   const { ContactList, activeTabSetting } = useSelector(state => state.User)
 
   useEffect(() => {
-    console.log(ContactList)
     if (activeTabSetting === SettingPageTab.Contact) {
       dispatch({ type: 'LoadContactList' })
     }

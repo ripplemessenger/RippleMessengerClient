@@ -16,7 +16,7 @@ const BulletinLink = ({ address, sequence, hash, sour_address, timestamp = Date.
   return (
     <div className='flex flex-row justify-start bulletin-link' title={hash} onClick={() => { goto_bulletin() }} key={timestamp}>
       <AiOutlineLink className="icon-sm" />
-      <AvatarName address={address} />#{sequence}
+      <AvatarName address={address} short_flag={true} />#{sequence}
     </div>
   )
 }

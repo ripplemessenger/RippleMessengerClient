@@ -12,7 +12,8 @@ export async function initDB() {
     await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS servers (
       url TEXT PRIMARY KEY,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      is_connect INTEGER DEFAULT 0
     );`)
 
     await dbInstance.execute(`
@@ -233,7 +234,12 @@ export const dbAPI = {
   // server
   async getAllServers() {
     const dbInstance = await getDB()
-    return await dbInstance.select('SELECT * FROM servers ORDER BY updated_at DESC')
+    let servers = await dbInstance.select('SELECT * FROM servers ORDER BY updated_at DESC')
+    for (let i = 0; i < servers.length; i++) {
+      const server = servers[i]
+      servers[i].is_connect = Int2Bool(server.is_connect)
+    }
+    return servers
   },
 
   async getServerByURL(url) {
@@ -249,8 +255,8 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO servers (url, updated_at) VALUES ($1, $2)',
-        [url, updated_at]
+        'INSERT INTO servers (url, updated_at, is_connect) VALUES ($1, $2, $3)',
+        [url, updated_at, Bool2Int(false)]
       )
       return true
     } catch (error) {
@@ -259,12 +265,12 @@ export const dbAPI = {
     }
   },
 
-  async updateServer(url, updated_at) {
+  async toggleServerConnect(url, is_connect) {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'UPDATE servers SET updated_at = $1 WHERE url = $2',
-        [updated_at, url]
+        'UPDATE servers SET is_connect = $1 WHERE url = $2',
+        [Bool2Int(is_connect), url]
       )
       return true
     } catch (error) {
