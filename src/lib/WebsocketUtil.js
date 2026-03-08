@@ -93,7 +93,9 @@ export function createMultiWsChannel(configs) {
         } else if (typeof data === 'string') {
           try {
             data = JSON.parse(data)
-          } catch { }
+          } catch {
+
+          }
         } else if (data instanceof Blob) {
           isBinary = true
         }

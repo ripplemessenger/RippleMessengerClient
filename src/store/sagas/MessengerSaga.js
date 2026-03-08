@@ -21,18 +21,16 @@ function* WebsocketListener() {
 
   while (true) {
     const action = yield take(channel)
-    const seed = yield select(state => state.User.Seed)
-    if (!seed) {
-      return
-    }
-    const address = yield select(state => state.User.Address)
     switch (action.type) {
       case 'status':
-        console.log('!!!conn status change', action)
+        console.log('!!!conn status change:', action)
         if (action.status === WebSocket.OPEN) {
           yield call(UpdateConnStatus, action)
+          const seed = yield select(state => state.User.Seed)
+          if (!seed) {
+            return
+          }
           let msg = yield call(() => mgAPI.genDeclare(seed))
-          console.log(msg)
           yield call(SendMessage, { key: action.key, msg: msg })
           yield call(AvatarRequest, { payload: { flag: true } })
           yield call(SubscribeChannel)
@@ -44,9 +42,13 @@ function* WebsocketListener() {
         break
       case 'message':
         console.log('!!!received message: ', action)
+        const seed = yield select(state => state.User.Seed)
+        if (!seed) {
+          return
+        }
+        const address = yield select(state => state.User.Address)
         if (action.isBinary) {
           const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
-          console.log(nonce)
           FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
           for (let i = 0; i < FileRequestList.length; i++) {
             const request = FileRequestList[i]
@@ -707,7 +709,7 @@ function* WebsocketListener() {
 }
 
 function* SendMessage(payload) {
-  console.log('!!!send message: ',payload)
+  console.log('!!!send message: ', payload)
   if (payload.key) {
     yield call(sendToSingleConn, payload.key, payload.msg)
   } else {
@@ -1087,7 +1089,22 @@ export function* FetchFollowBulletin() {
   const address = yield select(state => state.User.Address)
   let follow_list = yield call(() => dbAPI.getMyFollows(address))
   for (let i = 0; i < follow_list.length; i++) {
-    yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
+    let remote_last_bulletin = yield call(() => dbAPI.getLastBulletin(follow_list[i].remote))
+    let remote_bulletin_count = yield call(() => dbAPI.getBulletinCountByAddresses([follow_list[i].remote]))
+    if (remote_last_bulletin === null) {
+      yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
+    } else if (remote_last_bulletin.sequence === remote_bulletin_count) {
+      yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
+    } else {
+      for (let j = 1; j <= remote_last_bulletin.sequence; j++) {
+        const tmp = yield call(() => dbAPI.getBulletinBySequence(follow_list[i].remote), j)
+        if (tmp === null) {
+          const seed = yield select(state => state.User.Seed)
+          let bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, follow_list[i].remote, j, follow_list[i].remote))
+          yield call(SendMessage, { msg: bulletin_request })
+        }
+      }
+    }
   }
 }
 
