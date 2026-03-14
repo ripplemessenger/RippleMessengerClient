@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/UserSlice'
 import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
 import { AiOutlineLink } from "react-icons/ai"
 import { MdPostAdd } from "react-icons/md"
 import { MessageObjectType } from '../../lib/MessengerConst'
+import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 const BulletinTools = ({ address, sequence, hash, content, json, is_marked = false }) => {
 

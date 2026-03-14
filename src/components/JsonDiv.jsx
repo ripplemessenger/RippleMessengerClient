@@ -3,14 +3,14 @@ import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } f
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
 import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5"
-import { setDisplayJson } from '../store/slices/UserSlice'
+import { setDisplayJson } from '../store/slices/CommonSlice'
 
 const JsonDiv = ({ json }) => {
   const [theme, setTheme] = useState(localStorage.getItem('theme'))
   const [copied, setCopied] = useState(false)
 
   const dispatch = useDispatch()
-  const { DisplayJsonOption } = useSelector(state => state.User)
+  const { DisplayJsonOption } = useSelector(state => state.Common)
 
   const copyText = async (text) => {
     try {

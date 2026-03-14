@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import { setFlashNoticeMessage } from '../store/slices/UserSlice'
+import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 
 const FlashNotice = ({ message, duration }) => {
   const [isFadingOut, setIsFadingOut] = useState(false)

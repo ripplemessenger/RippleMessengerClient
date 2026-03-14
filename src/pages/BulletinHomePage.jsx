@@ -4,23 +4,17 @@ import { useDispatch, useSelector } from 'react-redux'
 import { BulletinPageTab } from '../lib/AppConst'
 import { setActiveTabBulletin } from '../store/slices/MessengerSlice'
 import TabFollow from './bulletin/TabFollow'
-import TabMine from './bulletin/TabMine'
 import TabChannel from './bulletin/TabChannel'
 import TabRandom from './bulletin/TabRandom'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import TabAddress from './bulletin/TabAddress'
-import TabTag from './bulletin/TabTag'
-import TabBookmark from './bulletin/TabBookmark'
 
 export default function BulletinHomePage() {
   const tabItems = [
-    { name: BulletinPageTab.Mine, content: <TabMine /> },
     { name: BulletinPageTab.Follow, content: <TabFollow /> },
     { name: BulletinPageTab.Channel, content: <TabChannel /> },
-    { name: BulletinPageTab.Tag, content: <TabTag /> },
     { name: BulletinPageTab.Random, content: <TabRandom /> },
-    { name: BulletinPageTab.Bookmark, content: <TabBookmark /> },
     { name: BulletinPageTab.Address, content: <TabAddress /> },
   ]
 

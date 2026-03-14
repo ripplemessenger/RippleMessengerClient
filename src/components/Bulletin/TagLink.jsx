@@ -1,8 +1,7 @@
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { FaHashtag } from "react-icons/fa"
-import { BulletinPageTab } from '../../lib/AppConst'
-import { setActiveTabBulletin, setSearchTagList } from '../../store/slices/MessengerSlice'
+import { setSearchTagList } from '../../store/slices/MessengerSlice'
 
 const TagLink = ({ tag }) => {
 
@@ -12,9 +11,8 @@ const TagLink = ({ tag }) => {
   const goto_tag = (tag) => {
     dispatch(setSearchTagList([tag]))
     navigate({
-      pathname: '/bulletin',
+      pathname: '/bulletin_tag',
     })
-    dispatch(setActiveTabBulletin(BulletinPageTab.Tag))
   }
 
   return (

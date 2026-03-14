@@ -10,10 +10,6 @@ const UserSlice = createSlice({
     Nickname: null,
     UserError: null,
 
-    FlashNoticeMessage: null,
-    FlashNoticeDuration: 0,
-    DisplayJson: null,
-
     AccountList: [],
 
     // contact
@@ -52,15 +48,6 @@ const UserSlice = createSlice({
       state.Nickname = action.payload
     },
 
-    setFlashNoticeMessage: (state, action) => {
-      state.FlashNoticeMessage = action.payload.message
-      state.FlashNoticeDuration = action.payload.duration
-    },
-    setDisplayJson: (state, action) => {
-      state.DisplayJson = action.payload.json
-      state.DisplayJsonOption = action.payload.isExpand
-    },
-
     // local account
     loadAccountListStart: (state) => {
       state.AccountList = []
@@ -96,9 +83,6 @@ export const {
   loginSuccess,
   logoutStart,
   setNickname,
-
-  setFlashNoticeMessage,
-  setDisplayJson,
 
   loadAccountListStart,
   loadAccountListSuccess,

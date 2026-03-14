@@ -1,5 +1,5 @@
 import { fork, select, cancelled, delay } from 'redux-saga/effects'
-import { AvatarRequest, FetchFollowBulletin } from './MessengerSaga'
+import { AvatarRequest, FetchFollowBulletin, LoadMineBulletinSequence, LoadPortalBulletin } from './MessengerSaga'
 
 export function* taskInstant() {
   const interval = 1 * 1000
@@ -37,10 +37,19 @@ export function* taskSlow() {
   const interval = 60 * 1000
   try {
     while (true) {
+      // 1
       const address = yield select(state => state.User.Address)
       if (address) {
         yield fork(FetchFollowBulletin)
       }
+
+      // 2
+      const page = yield select(state => state.Messenger.PortalBulletinPage)
+      yield fork(LoadPortalBulletin, { payload: { page: page } })
+      
+      // 3
+      yield fork(LoadMineBulletinSequence)
+
       yield delay(interval)
     }
   } finally {

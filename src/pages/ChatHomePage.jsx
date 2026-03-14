@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
-import { setFlashNoticeMessage } from '../store/slices/UserSlice'
 import ListSession from '../components/Chat/ListSession'
 import AvatarName from '../components/AvatarName'
 import SessionName from '../components/Chat/SessionName'
@@ -10,6 +9,7 @@ import { GrGroup } from 'react-icons/gr'
 import PrivateMessage from '../components/Chat/PrivateMessage'
 import GroupMessage from '../components/Chat/GroupMessage'
 import { SessionType } from '../lib/AppConst'
+import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 
 export default function ChatHomePage() {
 

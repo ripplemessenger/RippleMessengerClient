@@ -10,7 +10,7 @@ import AvatarName from '../../components/AvatarName'
 import { IoCloseOutline } from "react-icons/io5"
 import { AiOutlineUserAdd } from "react-icons/ai"
 import { AiOutlineQuestionCircle } from "react-icons/ai"
-import { setFlashNoticeMessage } from '../../store/slices/UserSlice'
+import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 export default function TabContact() {
   const [contactAddress, setContactAddress] = useState('')

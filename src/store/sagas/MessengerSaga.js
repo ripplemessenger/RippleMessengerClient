@@ -8,10 +8,10 @@ import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSche
 import { mgAPI } from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch, DefaultServer } from '../../lib/MessengerConst'
 import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, SessionType } from '../../lib/AppConst'
-import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setMineBulletinList, setPublishFlag, setRandomBulletin, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList } from '../slices/MessengerSlice'
+import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setRandomBulletin, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList, setPortalBulletinList, setAddressBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32 } from '../../lib/MessengerUtil'
-import { setFlashNoticeMessage } from '../slices/UserSlice'
+import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { dbAPI } from '../../db'
 import { createMultiWsChannel, globalWsChannel, sendToAllConn, sendToSingleConn } from '../../lib/WebsocketUtil'
 
@@ -204,7 +204,6 @@ function* WebsocketListener() {
                 break
               case ActionCode.FileRequest:
                 if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
-                  console.log(json)
                   if (json.FileType === FileRequestType.Avatar) {
                     let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
                     if (avatar !== null) {
@@ -468,12 +467,9 @@ function* WebsocketListener() {
             } else if (json.ObjectType === ObjectType.ECDH && checkECDHHandshakeSchema(json) && json.To === address && VerifyJsonSignature(json)) {
               let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
               let friend = yield call(() => dbAPI.getFriend(address, ob_address))
-              console.log(friend)
               const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
-              console.log(total_member_list)
               if (friend !== null || total_member_list.includes(ob_address)) {
                 let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
-                console.log(ecdh)
                 if (ecdh === null) {
                   const ec = new Elliptic.ec('secp256k1')
                   const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
@@ -878,7 +874,6 @@ function* FetchPrivateChatFile({ payload }) {
     let timestamp = Date.now()
     const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, payload.remote)
     let ecdh = yield call(() => dbAPI.getHandshake(self_address, payload.remote, DefaultPartition, ecdh_sequence))
-    console.log(ecdh)
     if (ecdh !== null && ecdh.aes_key !== null) {
       let nonce = genFileNonce()
       let tmp = {
@@ -940,7 +935,6 @@ function* FetchGroupChatFile({ payload }) {
     }
     FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
     FileRequestList = FileRequestList.filter(r => r.EHash === ehash)
-    console.log(tmp)
     FileRequestList.push(tmp)
     let file_request = yield call(() => mgAPI.genGroupFileRequest(seed, payload.group_hash, ehash, nonce, file.chunk_cursor + 1))
     yield call(SendMessage, { key: payload.key, msg: file_request })
@@ -980,7 +974,6 @@ function* SaveChatFile({ payload }) {
 function* CheckAvatar({ payload }) {
   let db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
   if (db_avatar === null) {
-    console.log(`new avatar wanted...`)
     yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, null, false))
   } else if (db_avatar.is_saved === false && db_avatar.json !== null) {
     yield call(RequestAvatarFile, { address: db_avatar.address, hash: db_avatar.hash })
@@ -1067,22 +1060,28 @@ function* RequestNextBulletin({ payload }) {
   yield call(SendMessage, { key: payload.key, msg: bulletin_request })
 }
 
-function* LoadMineBulletin({ payload }) {
+export function* LoadPortalBulletin({ payload }) {
+  let bulletins = yield call(() => dbAPI.getPortalBulletins(payload.page))
+  let total = yield call(() => dbAPI.getPortalBulletinCount())
+  let total_page = calcTotalPage(total, BulletinPageSize)
+  yield put(setPortalBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
+}
+
+export function* LoadMineBulletinSequence() {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     return
   }
   const address = yield select(state => state.User.Address)
+  let bulletin_count = yield call(() => dbAPI.getAddressBulletinCount(address))
+  yield put(setCurrentBulletinSequence(bulletin_count))
+}
 
-  let bulletins = yield call(() => dbAPI.getMyBulletins(address, payload.page))
-  if (bulletins.length > 0) {
-    yield put(setCurrentBulletinSequence(bulletins[0].sequence))
-  } else {
-    yield put(setCurrentBulletinSequence(0))
-  }
-  let total = yield call(() => dbAPI.getMyBulletinCount(address))
+function* LoadAddressBulletin({ payload }) {
+  let bulletins = yield call(() => dbAPI.getAddressBulletins(payload.address, payload.page))
+  let total = yield call(() => dbAPI.getAddressBulletinCount(payload.address))
   let total_page = calcTotalPage(total, BulletinPageSize)
-  yield put(setMineBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
+  yield put(setAddressBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
 }
 
 export function* FetchFollowBulletin() {
@@ -1245,7 +1244,6 @@ function* PublishBulletin(action) {
   yield put(setPublishTagList([]))
   yield put(setPublishQuoteList([]))
   yield put(setPublishFileList([]))
-  yield call(LoadMineBulletin, { payload: { page: 1 } })
   yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
 }
 
@@ -1356,7 +1354,6 @@ function* BulletinFileAdd({ payload }) {
 
 function* BulletinFileDel({ payload }) {
   const old_list = yield select(state => state.Messenger.PublishFileList)
-  console.log(payload)
   let new_list = [...old_list]
   new_list = new_list.filter(f => f.Hash != payload.Hash)
   yield put(setPublishFileList(new_list))
@@ -1467,7 +1464,6 @@ export function* LoadSessionList() {
       session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, new_msg_count: new_msg_count, updated_at: last_msg_signed_at })
     }
   }
-  console.log(session_list)
   yield put(setSessionList(session_list))
 }
 
@@ -1905,7 +1901,8 @@ export function* watchMessenger() {
   yield takeLatest('ServerDel', ServerDel)
   yield takeLatest('ServerToggle', ServerToggle)
 
-  yield takeEvery('LoadMineBulletin', LoadMineBulletin)
+  yield takeEvery('LoadPortalBulletin', LoadPortalBulletin)
+  yield takeEvery('LoadAddressBulletin', LoadAddressBulletin)
   yield takeEvery('LoadFollowBulletin', LoadFollowBulletin)
   yield takeEvery('LoadBookmarkBulletin', LoadBookmarkBulletin)
   yield takeLatest('LoadBulletin', LoadBulletin)

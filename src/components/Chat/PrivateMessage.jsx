@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import TextTimestamp from '../TextTimestamp'
-import { setDisplayJson } from '../../store/slices/UserSlice'
+import { setDisplayJson } from '../../store/slices/CommonSlice'
 import { MessageObjectType } from '../../lib/MessengerConst'
 import BulletinLink from '../Bulletin/BulletinLink'
 import ChatFileLink from './ChatFileLink'

@@ -20,12 +20,18 @@ const MessengerSlice = createSlice({
     PublishQuoteList: [],
     PublishFileList: [],
 
-    // bulletin display
-    activeTabBulletin: BulletinPageTab.Mine,
+    // portal
+    PortalBulletinList: [],
+    PortalBulletinPage: 1,
+    PortalBulletinTotalPage: 1,
 
-    MineBulletinList: [],
-    MineBulletinPage: 1,
-    MineBulletinTotalPage: 1,
+    // bulletin display
+    activeTabBulletin: BulletinPageTab.Follow,
+
+    BulletinAddress: null,
+    AddressBulletinList: [],
+    AddressBulletinPage: 1,
+    AddressBulletinTotalPage: 1,
 
     FollowBulletinList: [],
     FollowBulletinPage: 1,
@@ -131,11 +137,21 @@ const MessengerSlice = createSlice({
     setRandomBulletin: (state, action) => {
       state.RandomBulletin = action.payload
     },
-    setMineBulletinList: (state, action) => {
-      state.MineBulletinPage = action.payload.Page
-      state.MineBulletinTotalPage = action.payload.TotalPage
-      state.MineBulletinList = action.payload.List
+    setPortalBulletinList: (state, action) => {
+      state.PortalBulletinPage = action.payload.Page
+      state.PortalBulletinTotalPage = action.payload.TotalPage
+      state.PortalBulletinList = action.payload.List
     },
+
+    setBulletinAddress: (state, action) => {
+      state.BulletinAddress = action.payload
+    },
+    setAddressBulletinList: (state, action) => {
+      state.AddressBulletinPage = action.payload.Page
+      state.AddressBulletinTotalPage = action.payload.TotalPage
+      state.AddressBulletinList = action.payload.List
+    },
+
     setFollowBulletinList: (state, action) => {
       state.FollowBulletinPage = action.payload.Page
       state.FollowBulletinTotalPage = action.payload.TotalPage
@@ -249,7 +265,11 @@ export const {
   setDisplayBulletin,
   setDisplayBulletinReplyList,
   setRandomBulletin,
-  setMineBulletinList,
+  setPortalBulletinList,
+
+  setBulletinAddress,
+  setAddressBulletinList,
+
   setFollowBulletinList,
   setBookmarkBulletinList,
   setBulletinAddressList,

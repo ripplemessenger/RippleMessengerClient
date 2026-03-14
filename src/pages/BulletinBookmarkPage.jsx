@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { BulletinPageTab } from '../../lib/AppConst'
-import ListBulletin from '../../components/Bulletin/ListBulletin'
-import PageList from '../../components/PageList'
+import PageList from '../components/PageList'
+import ListBulletin from '../components/Bulletin/ListBulletin'
 
-export default function TabBookmark() {
+export default function BookmarkAddressPage() {
   const { Address } = useSelector(state => state.User)
   const { MessengerConnStatus, BookmarkBulletinList, BookmarkBulletinPage, BookmarkBulletinTotalPage, activeTabBulletin } = useSelector(state => state.Messenger)
 
@@ -13,17 +12,15 @@ export default function TabBookmark() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Bookmark) {
-      dispatch({ type: 'LoadBookmarkBulletin', payload: { page: 1 } })
-    }
-  }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
+    dispatch({ type: 'LoadBookmarkBulletin', payload: { page: 1 } })
+  }, [dispatch])
 
   return (
     <div className="flex justify-center items-center">
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
           <div className="card-title  row-center-middle">
-            {BulletinPageTab.Bookmark}
+            Bookmark
           </div>
 
 

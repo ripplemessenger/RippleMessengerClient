@@ -9,6 +9,7 @@ import { AiOutlineLink } from "react-icons/ai"
 import { FaHashtag } from "react-icons/fa"
 import { BulletinContentPreviewSize } from '../../lib/AppConst'
 import { IoAttachSharp } from 'react-icons/io5'
+import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 
 const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
@@ -16,17 +17,22 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
   const navigate = useNavigate()
 
   const goto_bulletin = () => {
-    const params = { hash: bulletin.hash, address: bulletin.address, sequence: bulletin.sequence };
+    const params = { hash: bulletin.hash, address: bulletin.address, sequence: bulletin.sequence }
     navigate({
       pathname: '/bulletin_view',
       search: `?${createSearchParams(params)}`
     })
   }
 
+  const goto_address = (address) => {
+    dispatch(setBulletinAddress(address))
+    navigate('/bulletin_address')
+  }
+
   return (
     <div className={`${textSize}`}>
       <div className={`flex flex-row mx-5px mt-5px`}>
-        <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} />
+        <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} onClick={() => goto_address(bulletin.address)} />
         <div className={`flex flex-col`}>
 
           <div className={`flex flex-row justify-between`}>

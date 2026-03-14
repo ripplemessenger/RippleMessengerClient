@@ -5,12 +5,12 @@ import { MdPublish } from "react-icons/md"
 import { IoAttachSharp, IoCloseOutline } from "react-icons/io5"
 import { setPublishFlag } from '../../store/slices/MessengerSlice'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
-import { setFlashNoticeMessage } from '../../store/slices/UserSlice'
 import PublishQuoteItem from './PublishQuoteItem'
 import PublishFileItem from './PublishFileItem'
 import TextInput from '../Form/TextInput'
 import PublishTagItem from './PublishTagItem'
 import { trimEndCommasAndValidate } from '../../lib/MessengerUtil'
+import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 const BulletinPublish = ({ }) => {
   const [tag, setTag] = useState('')

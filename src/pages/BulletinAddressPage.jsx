@@ -1,26 +1,24 @@
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
-import { IoMdRefresh } from 'react-icons/io'
-import { setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
-import { MdPostAdd } from 'react-icons/md'
-import { FaHashtag } from 'react-icons/fa'
-import { IoStar } from "react-icons/io5"
+import AvatarName from '../components/AvatarName'
 
-export default function PortalPage() {
-  const { PortalBulletinList, PortalBulletinTotalPage, PortalBulletinPage } = useSelector(state => state.Messenger)
-  const { ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
+export default function BulletinAddressPage() {
+  const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage } = useSelector(state => state.Messenger)
+  const { BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const goto_tag = async () => {
-    dispatch(setSearchTagList([]))
-    navigate('/bulletin_tag')
-  }
+  useEffect(() => {
+    if (BulletinAddress !== null) {
+      dispatch({ type: 'LoadAddressBulletin', payload: { address: BulletinAddress, page: 1 } })
+    }
+  }, [dispatch, BulletinAddress, MessengerConnStatus])
 
   return (
     <div className="flex justify-center items-center">
@@ -35,28 +33,24 @@ export default function PortalPage() {
       <div className="tab-page">
         <div className="mx-auto flex flex-col mt-4">
           <div className="card-title row-center-middle">
-            Portal
-            <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
-            <FaHashtag className="card-icon" onClick={() => goto_tag()} />
-            <IoStar className="card-icon" onClick={() => navigate('/bulletin_bookmark')} />
-            <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'LoadPortalBulletin', payload: { page: PortalBulletinPage } })} />
+            <AvatarName address={BulletinAddress} />
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
             {
-              PortalBulletinTotalPage > 1 &&
-              <PageList current_page={PortalBulletinPage} total_page={PortalBulletinTotalPage} dispatch_type={'LoadPortalBulletin'} payload={{}} />
+              AddressBulletinTotalPage > 1 &&
+              <PageList current_page={AddressBulletinPage} total_page={AddressBulletinTotalPage} dispatch_type={'LoadAddressBulletin'} payload={{ address: BulletinAddress }} />
             }
             <div className={`mt-1 flex-1 justify-center`}>
               {
-                PortalBulletinList.length === 0 ?
+                AddressBulletinList.length === 0 ?
                   <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
                     <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
                       no bulletin yet...
                     </h3>
                   </div>
                   :
-                  PortalBulletinList.map((bulletin, index) => (
+                  AddressBulletinList.map((bulletin, index) => (
                     <div key={bulletin.hash} className='text-xs text-gray-200 mt-1 p-1'>
                       <ListBulletin bulletin={bulletin} />
                     </div>

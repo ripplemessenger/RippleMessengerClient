@@ -60,7 +60,7 @@
     @apply h-96 w-96;
   }
 
-   .card-icon {
+  .card-icon {
     @apply h-8 w-8;
     @apply bg-green-300 dark:bg-green-700;
   }
@@ -94,8 +94,16 @@
     @apply border rounded shadow-sm;
   }
 
+  .plain-address {
+    @apply text-gray-500 dark:text-slate-200;
+  }
+
   .avatar-name {
     @apply text-text-secondary dark:text-dark-text-secondary font-bold;
+  }
+
+  .timestamp {
+    @apply text-gray-500 dark:text-slate-200 text-left;
   }
 
   .channel-icon {

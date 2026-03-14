@@ -1,7 +1,7 @@
 import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
 import { decryptWithPassword } from '../../lib/AppUtil'
-import { LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadServerList, LoadSessionList } from './MessengerSaga'
+import { LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadPortalBulletin, LoadServerList, LoadSessionList } from './MessengerSaga'
 import { SessionType } from '../../lib/AppConst'
 import { setChannelList, setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
 import { MasterAddress } from '../../lib/MessengerConst'
@@ -16,6 +16,8 @@ function* handleLogin(action) {
   }
   yield put(loginSuccess({ seed: action.payload.seed, address: action.payload.address, nickname: nickname }))
   yield call(LoadContactList)
+  yield call(LoadMineBulletinSequence)
+  yield call(LoadPortalBulletin, { payload: { page: 1 } })
   yield call(LoadGroupList)
   yield call(LoadChannelList)
   yield call(LoadSessionList)

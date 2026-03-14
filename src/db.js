@@ -600,7 +600,27 @@ export const dbAPI = {
   },
 
   // bulletin
-  async getMyBulletins(address, page) {
+  async getPortalBulletins(page) {
+    const dbInstance = await getDB()
+    let bulletins = await dbInstance.select(
+      `SELECT * FROM bulletins ORDER BY sequence DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
+    )
+    for (let i = 0; i < bulletins.length; i++) {
+      const bulletin = bulletins[i]
+      bulletins[i] = bulletin2Display(bulletin)
+    }
+    return bulletins
+  },
+
+  async getPortalBulletinCount() {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      `SELECT COUNT(hash) as count FROM bulletins`,
+    )
+    return result ? result.count : 0
+  },
+
+  async getAddressBulletins(address, page) {
     const dbInstance = await getDB()
     let bulletins = await dbInstance.select(
       `SELECT * FROM bulletins WHERE address = $1 ORDER BY sequence DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
@@ -613,7 +633,7 @@ export const dbAPI = {
     return bulletins
   },
 
-  async getMyBulletinCount(address) {
+  async getAddressBulletinCount(address) {
     const dbInstance = await getDB()
     const [result] = await dbInstance.select(
       `SELECT COUNT(hash) as count FROM bulletins WHERE address = $1`,

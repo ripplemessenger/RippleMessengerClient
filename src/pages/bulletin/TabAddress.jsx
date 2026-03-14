@@ -5,6 +5,7 @@ import { BulletinPageTab } from '../../lib/AppConst'
 import AvatarImage from '../../components/AvatarImage'
 import AvatarName from '../../components/AvatarName'
 import PageList from '../../components/PageList'
+import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 
 export default function TabAddress() {
   const { Address } = useSelector(state => state.User)
@@ -18,6 +19,11 @@ export default function TabAddress() {
       dispatch({ type: 'RequestBulletinAddress', payload: { page: 1 } })
     }
   }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
+
+  const goto_address = (address) => {
+    dispatch(setBulletinAddress(address))
+    navigate('/bulletin_address')
+  }
 
   return (
     <div className="flex justify-center items-center">
@@ -50,7 +56,7 @@ export default function TabAddress() {
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={account.Address}>
-                                <div className='mt-1 px-1 flex flex-col justify-center items-center'>
+                                <div className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => goto_address(account.Address)}>
                                   <AvatarImage address={account.Address} timestamp={Date.now()} style={'avatar'} />
                                   <AvatarName address={account.Address} />
                                 </div>

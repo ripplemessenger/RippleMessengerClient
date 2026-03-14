@@ -6,12 +6,9 @@ const FileDir = 'file'
 const AvatarDir = 'avatar'
 
 const BulletinPageTab = {
-  Mine: 'Mine',
   Follow: 'Follow',
   Channel: 'Channel',
-  Tag: 'Tag',
   Random: 'Random',
-  Bookmark: 'Bookmark',
   Address: 'Address',
 }
 

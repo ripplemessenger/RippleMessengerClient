@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import ListBulletin from '../../components/Bulletin/ListBulletin'
-import { BulletinPageTab } from '../../lib/AppConst'
-import { trimEndCommasAndValidate } from '../../lib/MessengerUtil'
-import { setSearchTagList } from '../../store/slices/MessengerSlice'
-import SearchTagItem from '../../components/Bulletin/SearchTagItem'
-import PageList from '../../components/PageList'
+import ListBulletin from '../components/Bulletin/ListBulletin'
+import { BulletinPageTab } from '../lib/AppConst'
+import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
+import { setSearchTagList } from '../store/slices/MessengerSlice'
+import SearchTagItem from '../components/Bulletin/SearchTagItem'
+import PageList from '../components/PageList'
 
-export default function TabTag() {
+export default function BulletinTagPage() {
   const [tag, setTag] = useState('')
 
   const { Address } = useSelector(state => state.User)
