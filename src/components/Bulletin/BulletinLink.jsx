@@ -6,7 +6,7 @@ const BulletinLink = ({ address, sequence, hash, sour_address, timestamp = Date.
 
   const navigate = useNavigate()
   const goto_bulletin = () => {
-    const params = { hash: hash, address: address, sequence: sequence, sour_address: sour_address };
+    const params = { hash: hash, address: address, sequence: sequence, sour_address: sour_address }
     navigate({
       pathname: '/bulletin_view',
       search: `?${createSearchParams(params)}`

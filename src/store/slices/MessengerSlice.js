@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { BulletinPageTab } from '../../lib/AppConst'
 
 const MessengerSlice = createSlice({
   name: 'Messenger',
@@ -25,9 +24,9 @@ const MessengerSlice = createSlice({
     PortalBulletinPage: 1,
     PortalBulletinTotalPage: 1,
 
-    // bulletin display
-    activeTabBulletin: BulletinPageTab.Follow,
+    RandomBulletinList: [],
 
+    // bulletin display
     BulletinAddress: null,
     AddressBulletinList: [],
     AddressBulletinPage: 1,
@@ -46,11 +45,9 @@ const MessengerSlice = createSlice({
     DisplayBulletinReplyPage: 1,
     DisplayBulletinReplyTotalPage: 1,
 
-    RandomBulletin: null,
-
-    BulletinAddressPage: 1,
-    BulletinAddressTotalPage: 1,
-    BulletinAddressList: [],
+    ServerAddressPage: 1,
+    ServerAddressTotalPage: 1,
+    ServerAddressList: [],
 
     SearchTagList: [],
     TagBulletinList: [],
@@ -134,8 +131,8 @@ const MessengerSlice = createSlice({
       state.DisplayBulletinReplyPage = action.payload.Page
       state.DisplayBulletinReplyTotalPage = action.payload.TotalPage
     },
-    setRandomBulletin: (state, action) => {
-      state.RandomBulletin = action.payload
+    setRandomBulletinList: (state, action) => {
+      state.RandomBulletinList = action.payload
     },
     setPortalBulletinList: (state, action) => {
       state.PortalBulletinPage = action.payload.Page
@@ -162,10 +159,10 @@ const MessengerSlice = createSlice({
       state.BookmarkBulletinTotalPage = action.payload.TotalPage
       state.BookmarkBulletinList = action.payload.List
     },
-    setBulletinAddressList: (state, action) => {
-      state.BulletinAddressPage = action.payload.Page
-      state.BulletinAddressTotalPage = action.payload.TotalPage
-      state.BulletinAddressList = action.payload.List
+    setServerAddressList: (state, action) => {
+      state.ServerAddressPage = action.payload.Page
+      state.ServerAddressTotalPage = action.payload.TotalPage
+      state.ServerAddressList = action.payload.List
     },
     setTagBulletinList: (state, action) => {
       state.TagBulletinList = action.payload.List
@@ -264,7 +261,7 @@ export const {
 
   setDisplayBulletin,
   setDisplayBulletinReplyList,
-  setRandomBulletin,
+  setRandomBulletinList,
   setPortalBulletinList,
 
   setBulletinAddress,
@@ -272,7 +269,7 @@ export const {
 
   setFollowBulletinList,
   setBookmarkBulletinList,
-  setBulletinAddressList,
+  setServerAddressList,
   setTagBulletinList,
   setSearchTagList,
 

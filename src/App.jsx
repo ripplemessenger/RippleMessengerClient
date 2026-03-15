@@ -6,14 +6,16 @@ import OpenPage from './pages/OpenPage'
 import PortalPage from './pages/PortalPage'
 import AboutPage from './pages/AboutPage'
 import MainLayout from './layouts/MainLayout'
-import useAuth from './hooks.jsx/useAuth'
-import BulletinHomePage from './pages/BulletinHomePage'
+import useAuth from './hooks/useAuth'
 import BulletinTagPage from './pages/BulletinTagPage'
 import BulletinViewPage from './pages/BulletinViewPage'
 import ChatHomePage from './pages/ChatHomePage'
 import SettingPage from './pages/SettingPage'
 import BulletinAddressPage from './pages/BulletinAddressPage'
 import BookmarkAddressPage from './pages/BulletinBookmarkPage'
+import BulletinFollowPage from './pages/BulletinFollowPage'
+import BulletinRandomPage from './pages/BulletinRandomPage'
+import ServerAddressPage from './pages/ServerAddressPage'
 
 function App() {
   return (
@@ -26,12 +28,14 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/bulletin" element={<BulletinHomePage />} />
+          <Route path="/bulletin_follow" element={<BulletinFollowPage />} />
           <Route path="/bulletin_tag" element={<BulletinTagPage />} />
+          <Route path="/bulletin_random" element={<BulletinRandomPage />} />
           <Route path="/bulletin_address" element={<BulletinAddressPage />} />
           <Route path="/bulletin_bookmark" element={<BookmarkAddressPage />} />
           <Route path="/bulletin_view" element={<BulletinViewPage />} />
           {/* <Route path="/bulletin_view/:bulletin_hash" element={<BulletinViewPage />} /> */}
+          <Route path="/server_address" element={<ServerAddressPage />} />
           <Route path="/chat" element={<ChatHomePage />} />
           <Route path="/setting" element={<SettingPage />} />
 

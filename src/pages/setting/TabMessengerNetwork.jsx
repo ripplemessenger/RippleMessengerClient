@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { createSearchParams, useNavigate } from 'react-router-dom'
 import { SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import { IoCloseOutline } from "react-icons/io5"
 import { TbCloudNetwork } from "react-icons/tb"
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
+import { IoStatsChartOutline } from "react-icons/io5"
 
 export default function TabMessengerNetwork() {
   const [newURL, setNewURL] = useState('')
@@ -50,6 +51,23 @@ export default function TabMessengerNetwork() {
       payload: {
         url: url
       }
+    })
+  }
+
+  const setDefaultServer = async (url) => {
+    dispatch({
+      type: 'ServerSetDefault',
+      payload: {
+        url: url
+      }
+    })
+  }
+
+  const goto_server = async (url) => {
+    const params = { url: url }
+    navigate({
+      pathname: '/server_address',
+      search: `?${createSearchParams(params)}`
     })
   }
 
@@ -97,6 +115,7 @@ export default function TabMessengerNetwork() {
                         <th>Connect</th>
                         <th>Status</th>
                         <th></th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -118,9 +137,21 @@ export default function TabMessengerNetwork() {
                               }
                             </td>
                             <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                              <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
+                                onClick={() => setDefaultServer(server.url)}>
+                                Set Default
+                              </button>
+                            </td>
+                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                              {
+                                server.is_connect &&
+                                <IoStatsChartOutline onClick={() => goto_server(server.url)} />
+                              }
+                            </td>
+                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                               {
                                 !server.is_connect &&
-                                <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
+                                <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-red-600"
                                   onClick={() => delServer(server.url)}>
                                   Delete
                                 </button>

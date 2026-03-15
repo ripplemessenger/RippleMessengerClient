@@ -5,13 +5,6 @@ const Day = 24 * Hour
 const FileDir = 'file'
 const AvatarDir = 'avatar'
 
-const BulletinPageTab = {
-  Follow: 'Follow',
-  Channel: 'Channel',
-  Random: 'Random',
-  Address: 'Address',
-}
-
 const SettingPageTab = {
   Me: 'Me',
   Contact: 'Contact',
@@ -56,7 +49,6 @@ export {
   FileDir,
   AvatarDir,
 
-  BulletinPageTab,
   SettingPageTab,
 
   DefaultBulletinCacheSize,

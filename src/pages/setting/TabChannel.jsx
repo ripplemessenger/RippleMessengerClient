@@ -189,7 +189,7 @@ export default function TabChannel() {
                   </div>
                   :
                   <div>
-                    no channel request...
+                    no channel yet...
                   </div>
               }
             </div>

@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { FaHashtag } from "react-icons/fa"
 import { setSearchTagList, setTagBulletinList } from '../../store/slices/MessengerSlice'
+import { HiHashtag } from 'react-icons/hi2'
 
 const SearchTagItem = ({ tag }) => {
 
@@ -24,7 +24,7 @@ const SearchTagItem = ({ tag }) => {
   return (
     <div className='flex flex-row'>
       <div className='flex flex-row justify-start bulletin-link' title={tag}>
-        <FaHashtag className="icon-sm" />{tag}
+        <HiHashtag className="icon-sm" />{tag}
       </div>
       <div className='quote-del' onClick={() => delTag()}>
         X

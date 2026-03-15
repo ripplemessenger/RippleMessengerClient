@@ -1,7 +1,7 @@
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { FaHashtag } from "react-icons/fa"
 import { setSearchTagList } from '../../store/slices/MessengerSlice'
+import { HiHashtag } from 'react-icons/hi2'
 
 const TagLink = ({ tag }) => {
 
@@ -18,7 +18,7 @@ const TagLink = ({ tag }) => {
   return (
     <div className='flex flex-row justify-start bulletin-link' title={tag}
       onClick={() => { goto_tag(tag) }}>
-      <FaHashtag className="icon-sm" />{tag}
+      <HiHashtag className="icon-sm" />{tag}
     </div>
   )
 }

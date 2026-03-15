@@ -1,6 +1,6 @@
+import { HiHashtag } from 'react-icons/hi2'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { FaHashtag } from "react-icons/fa"
 
 const PublishTagItem = ({ tag }) => {
 
@@ -10,7 +10,7 @@ const PublishTagItem = ({ tag }) => {
   return (
     <div className='flex flex-row'>
       <div className='tag-link' title={tag}>
-        <FaHashtag className="icon-sm" />{tag}
+        <HiHashtag className="icon-sm" />{tag}
       </div>
       <div className='tag-del' onClick={() => dispatch({ type: 'BulletinTagDel', payload: { Tag: tag } })}>
         X

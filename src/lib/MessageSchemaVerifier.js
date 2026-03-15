@@ -1,5 +1,5 @@
 import Ajv from 'ajv'
-import { AvatarListSchema, AvatarRequestSchema, BulletinAddressListSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, PrivateMessageSchema, PrivateMessageSyncSchema } from './MessageSchema'
+import { AvatarListSchema, AvatarRequestSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, PrivateMessageSchema, PrivateMessageSyncSchema, RandomBulletinListSchema, ServerAddressListSchema } from './MessageSchema'
 const ajv = new Ajv({ allErrors: true })
 
 function deriveJson(str) {
@@ -102,14 +102,14 @@ function checkBulletinRequestSchema(json) {
   }
 }
 
-const vBulletinAddressListSchema = ajv.compile(BulletinAddressListSchema)
-function checkBulletinAddressListSchema(json) {
+const vServerAddressListSchema = ajv.compile(ServerAddressListSchema)
+function checkServerAddressListSchema(json) {
   try {
-    if (vBulletinAddressListSchema(json)) {
-      console.log(`BulletinAddressListSchema ok`)
+    if (vServerAddressListSchema(json)) {
+      console.log(`ServerAddressListSchema ok`)
       return true
     } else {
-      console.log(`BulletinAddressListSchema invalid`)
+      console.log(`ServerAddressListSchema invalid`)
       return false
     }
   } catch (e) {
@@ -140,6 +140,21 @@ function checkTagBulletinListSchema(json) {
       return true
     } else {
       console.log(`TagBulletinListSchema invalid`)
+      return false
+    }
+  } catch (e) {
+    return false
+  }
+}
+
+const vRandomBulletinListSchema = ajv.compile(RandomBulletinListSchema)
+function checkRandomBulletinListSchema(json) {
+  try {
+    if (vRandomBulletinListSchema(json)) {
+      console.log(`RandomBulletinListSchema ok`)
+      return true
+    } else {
+      console.log(`RandomBulletinListSchema invalid`)
       return false
     }
   } catch (e) {
@@ -299,11 +314,12 @@ export {
   checkBulletinRequestSchema,
   checkBulletinSchema,
   // checkBulletinAddressRequestSchema,
-  checkBulletinAddressListSchema,
+  checkServerAddressListSchema,
   // checkReplyBulletinRequestSchema,
   checkReplyBulletinListSchema,
   // checkTagBulletinRequestSchema,
   checkTagBulletinListSchema,
+  checkRandomBulletinListSchema,
 
   checkECDHHandshakeSchema,
 

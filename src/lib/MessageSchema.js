@@ -132,13 +132,13 @@ const BulletinSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 64,
+      "maxItems": 16,
       "items": { "type": "string" }
     },
     "Quote": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 64,
+      "maxItems": 16,
       "items": {
         "type": "object",
         "required": ["Address", "Sequence", "Hash"],
@@ -152,7 +152,7 @@ const BulletinSchema = {
     "File": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 64,
+      "maxItems": 16,
       "items": {
         "type": "object",
         "required": ["Name", "Ext", "Size", "Hash"],
@@ -218,12 +218,12 @@ const BulletinSubscribeSchema = {
 
 // Action>>>
 // Client => Server
-const BulletinRandomRequestSchema = {
+const RandomBulletinRequestSchema = {
   "type": "object",
   "required": ["Action", "Timestamp", "PublicKey", "Signature"],
   "maxProperties": 4,
   "properties": {
-    "Action": { "type": "number", "const": ActionCode.BulletinRandomRequest },
+    "Action": { "type": "number", "const": ActionCode.RandomBulletinRequest },
     "Timestamp": { "type": "number" },
     "PublicKey": { "type": "string" },
     "Signature": { "type": "string" }
@@ -233,12 +233,12 @@ const BulletinRandomRequestSchema = {
 // Action>>>
 // Client => Server
 // BulletinCount DESC
-const BulletinAddressRequestSchema = {
+const ServerAddressRequestSchema = {
   "type": "object",
   "required": ["Action", "Page", "Timestamp", "PublicKey", "Signature"],
   "maxProperties": 6,
   "properties": {
-    "Action": { "type": "number", "const": ActionCode.BulletinAddressRequest },
+    "Action": { "type": "number", "const": ActionCode.ServerAddressRequest },
     "Page": { "type": "number" },
     "Timestamp": { "type": "number" },
     "PublicKey": { "type": "string" },
@@ -248,12 +248,12 @@ const BulletinAddressRequestSchema = {
 
 // Object>>>
 // Server => Client
-const BulletinAddressListSchema = {
+const ServerAddressListSchema = {
   "type": "object",
   "required": ["ObjectType", "Page", "TotalPage", "List"],
   "maxProperties": 4,
   "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.BulletinAddressList },
+    "ObjectType": { "type": "number", "const": ObjectType.ServerAddressList },
     "Page": { "type": "number" },
     "TotalPage": { "type": "number" },
     "List": {
@@ -313,13 +313,13 @@ const ReplyBulletinListSchema = {
           "Tag": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
             "items": { "type": "string" }
           },
           "Quote": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
             "items": {
               "type": "object",
               "required": ["Address", "Sequence", "Hash"],
@@ -333,7 +333,7 @@ const ReplyBulletinListSchema = {
           "File": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
             "items": {
               "type": "object",
               "required": ["Name", "Ext", "Size", "Hash"],
@@ -365,7 +365,7 @@ const TagBulletinRequestSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      // "maxItems": 8,
+      "maxItems": 16,
       "items": { "type": "string" }
     },
     "Page": { "type": "number" },
@@ -387,7 +387,7 @@ const TagBulletinListSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      // "maxItems": 8,
+      "maxItems": 16,
       "items": { "type": "string" }
     },
     "Page": { "type": "number" },
@@ -406,13 +406,13 @@ const TagBulletinListSchema = {
           "Tag": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
             "items": { "type": "string" }
           },
           "Quote": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
             "items": {
               "type": "object",
               "required": ["Address", "Sequence", "Hash"],
@@ -426,7 +426,70 @@ const TagBulletinListSchema = {
           "File": {
             "type": "array",
             "minItems": 1,
-            // "maxItems": 8,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "required": ["Name", "Ext", "Size", "Hash"],
+              "properties": {
+                "Name": { "type": "string" },
+                "Ext": { "type": "string" },
+                "Size": { "type": "number" },
+                "Hash": { "type": "string" }
+              }
+            }
+          },
+          "Timestamp": { "type": "number" },
+          "PublicKey": { "type": "string" },
+          "Signature": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+
+// Object>>>
+// Server => Client
+const RandomBulletinListSchema = {
+  "type": "object",
+  "required": ["ObjectType", "List"],
+  "maxProperties": 2,
+  "properties": {
+    "ObjectType": { "type": "number", "const": ObjectType.RandomBulletinList },
+    "List": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ObjectType", "Sequence", "PreHash", "Content", "Timestamp", "PublicKey", "Signature"],
+        "maxProperties": 10,
+        "properties": {
+          "ObjectType": { "type": "number", "const": ObjectType.Bulletin },
+          "Sequence": { "type": "number" },
+          "PreHash": { "type": "string" },
+          "Content": { "type": "string" },
+          "Tag": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": { "type": "string" }
+          },
+          "Quote": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "required": ["Address", "Sequence", "Hash"],
+              "properties": {
+                "Address": { "type": "string" },
+                "Sequence": { "type": "number" },
+                "Hash": { "type": "string" }
+              }
+            }
+          },
+          "File": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
             "items": {
               "type": "object",
               "required": ["Name", "Ext", "Size", "Hash"],
@@ -754,14 +817,15 @@ export {
   // Bulletin
   BulletinSchema,
   BulletinSubscribeSchema,
-  BulletinRandomRequestSchema,
   BulletinRequestSchema,
-  BulletinAddressRequestSchema,
-  BulletinAddressListSchema,
+  ServerAddressRequestSchema,
+  ServerAddressListSchema,
   ReplyBulletinRequestSchema,
   ReplyBulletinListSchema,
   TagBulletinRequestSchema,
   TagBulletinListSchema,
+  RandomBulletinRequestSchema,
+  RandomBulletinListSchema,
 
   // Chat Handshake
   ECDHHandshakeSchema,

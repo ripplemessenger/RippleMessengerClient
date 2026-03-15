@@ -138,3 +138,22 @@ export function sendToAllConn(payload) {
   })
   return count
 }
+
+export function sendToFirstConn(server_list, payload) {
+  for (let i = 0; i < server_list.length; i++) {
+    const server = server_list[i]
+    const entry = manager.channels.get(server.url)
+    if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
+      console.warn(`[WS] Send failed: ${key} not open`)
+      continue
+    }
+
+    if (payload instanceof ArrayBuffer || payload instanceof Blob || ArrayBuffer.isView(payload)) {
+      entry.ws.send(payload)
+    } else {
+      const msg = typeof payload === 'string' ? payload : JSON.stringify(payload)
+      entry.ws.send(msg)
+    }
+    return true
+  }
+}

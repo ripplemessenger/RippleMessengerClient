@@ -4,16 +4,16 @@ import * as rippleKeyPairs from 'ripple-keypairs'
 import * as path from '@tauri-apps/api/path'
 import { open, readFile, writeFile, remove, mkdir, stat, SeekMode } from '@tauri-apps/plugin-fs'
 import { call, delay, put, select, fork, takeEvery, takeLatest, cancel, cancelled, take } from 'redux-saga/effects'
-import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkBulletinAddressListSchema, checkTagBulletinListSchema, checkAvatarListSchema } from '../../lib/MessageSchemaVerifier'
+import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkTagBulletinListSchema, checkAvatarListSchema, checkRandomBulletinListSchema, checkServerAddressListSchema } from '../../lib/MessageSchemaVerifier'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch, DefaultServer } from '../../lib/MessengerConst'
 import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, SessionType } from '../../lib/AppConst'
-import { setBulletinAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setRandomBulletin, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList, setPortalBulletinList, setAddressBulletinList } from '../slices/MessengerSlice'
+import { setServerAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32 } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { dbAPI } from '../../db'
-import { createMultiWsChannel, globalWsChannel, sendToAllConn, sendToSingleConn } from '../../lib/WebsocketUtil'
+import { createMultiWsChannel, globalWsChannel, sendToAllConn, sendToFirstConn, sendToSingleConn } from '../../lib/WebsocketUtil'
 
 // server
 function* WebsocketListener() {
@@ -416,14 +416,13 @@ function* WebsocketListener() {
             if (json.ObjectType === ObjectType.Bulletin && checkBulletinSchema(json) && VerifyJsonSignature(json)) {
               let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
               let bulletin = yield call(CacheBulletin, json)
-              yield put(setRandomBulletin(bulletin))
               const follow_list = yield select(state => state.User.FollowList)
               const subscribe_list = yield select(state => state.Messenger.SubscribeList)
               if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address) || ob_address === address) {
                 yield fork(RequestNextBulletin, { key: action.key, payload: { address: ob_address } })
               }
-            } else if (json.ObjectType === ObjectType.BulletinAddressList && checkBulletinAddressListSchema(json)) {
-              yield put(setBulletinAddressList(json))
+            } else if (json.ObjectType === ObjectType.ServerAddressList && checkServerAddressListSchema(json)) {
+              yield put(setServerAddressList(json))
             } else if (json.ObjectType === ObjectType.ReplyBulletinList && checkReplyBulletinListSchema(json)) {
               let replys = []
               for (let i = 0; i < json.List.length; i++) {
@@ -444,6 +443,16 @@ function* WebsocketListener() {
                 }
               }
               yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
+            } else if (json.ObjectType === ObjectType.RandomBulletinList && checkRandomBulletinListSchema(json)) {
+              let random_bulletin_list = []
+              for (let i = 0; i < json.List.length; i++) {
+                const bulletin = json.List[i]
+                if (VerifyJsonSignature(bulletin)) {
+                  const b = yield call(CacheBulletin, bulletin)
+                  random_bulletin_list.push(b)
+                }
+              }
+              yield put(setRandomBulletinList(random_bulletin_list))
             } else if (json.ObjectType === ObjectType.AvatarList && checkAvatarListSchema(json)) {
               for (let i = 0; i < json.List.length; i++) {
                 const avatar = json.List[i]
@@ -708,6 +717,9 @@ function* SendMessage(payload) {
   console.log('!!!send message: ', payload)
   if (payload.key) {
     yield call(sendToSingleConn, payload.key, payload.msg)
+  } else if (payload.flag) {
+    const priority_server_list = yield call(() => dbAPI.getServerListByPriority())
+    yield call(sendToFirstConn, priority_server_list, payload.msg)
   } else {
     yield call(sendToAllConn, payload.msg)
   }
@@ -753,12 +765,19 @@ function* ServerAdd({ payload }) {
   const server = yield call(() => dbAPI.getServerByURL(payload.url))
   if (server === null) {
     yield call(() => dbAPI.addServer(payload.url, Date.now()))
+    yield call(() => dbAPI.updateServerPriority())
     yield call(LoadServerList)
   }
 }
 
 function* ServerDel({ payload }) {
   yield call(() => dbAPI.deleteServer(payload.url))
+  yield call(LoadServerList)
+}
+
+function* ServerSetDefault({ payload }) {
+  yield call(() => dbAPI.updateServerDefault(payload.url))
+  yield call(() => dbAPI.updateServerPriority())
   yield call(LoadServerList)
 }
 
@@ -1151,22 +1170,22 @@ function* LoadBulletin(action) {
 }
 
 function* RequestRandomBulletin() {
-  yield put(setRandomBulletin(null))
+  yield put(setRandomBulletinList([]))
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     return
   }
-  let random_bulletin_request = yield call(() => mgAPI.genBulletinRandomRequest(seed))
-  yield call(SendMessage, { msg: random_bulletin_request })
+  let random_bulletin_request = yield call(() => mgAPI.genRandomBulletinRequest(seed))
+  yield call(SendMessage, { flag: true, msg: random_bulletin_request })
 }
 
-function* RequestBulletinAddress({ payload }) {
+function* RequestServerAddress({ payload }) {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     return
   }
-  const bulletin_address_request = yield call(() => mgAPI.genBulletinAddressRequest(seed, payload.page))
-  yield call(SendMessage, { msg: bulletin_address_request })
+  const bulletin_address_request = yield call(() => mgAPI.genServerAddressRequest(seed, payload.page))
+  yield call(SendMessage, { key: payload.url, msg: bulletin_address_request })
 }
 
 function* RequestReplyBulletin({ payload }) {
@@ -1899,6 +1918,7 @@ export function* watchMessenger() {
   yield takeLatest('LoadServerList', LoadServerList)
   yield takeLatest('ServerAdd', ServerAdd)
   yield takeLatest('ServerDel', ServerDel)
+  yield takeLatest('ServerSetDefault', ServerSetDefault)
   yield takeLatest('ServerToggle', ServerToggle)
 
   yield takeEvery('LoadPortalBulletin', LoadPortalBulletin)
@@ -1907,7 +1927,7 @@ export function* watchMessenger() {
   yield takeEvery('LoadBookmarkBulletin', LoadBookmarkBulletin)
   yield takeLatest('LoadBulletin', LoadBulletin)
   yield takeLatest('RequestRandomBulletin', RequestRandomBulletin)
-  yield takeLatest('RequestBulletinAddress', RequestBulletinAddress)
+  yield takeLatest('RequestServerAddress', RequestServerAddress)
   yield takeLatest('RequestReplyBulletin', RequestReplyBulletin)
   yield takeLatest('RequestTagBulletin', RequestTagBulletin)
 

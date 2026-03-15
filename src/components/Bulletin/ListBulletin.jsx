@@ -6,10 +6,10 @@ import BulletinTools from './BulletinTools'
 import TextTimestamp from '../TextTimestamp'
 import AvatarImage from '../AvatarImage'
 import { AiOutlineLink } from "react-icons/ai"
-import { FaHashtag } from "react-icons/fa"
 import { BulletinContentPreviewSize } from '../../lib/AppConst'
 import { IoAttachSharp } from 'react-icons/io5'
 import { setBulletinAddress } from '../../store/slices/MessengerSlice'
+import { HiHashtag } from 'react-icons/hi2'
 
 const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
@@ -41,7 +41,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
             {
               bulletin.tag.length !== 0 &&
               <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <FaHashtag />{bulletin.tag.length}
+                <HiHashtag />{bulletin.tag.length}
               </div>
             }
             {

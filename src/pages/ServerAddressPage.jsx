@@ -1,24 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { BulletinPageTab } from '../../lib/AppConst'
-import AvatarImage from '../../components/AvatarImage'
-import AvatarName from '../../components/AvatarName'
-import PageList from '../../components/PageList'
-import { setBulletinAddress } from '../../store/slices/MessengerSlice'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import AvatarImage from '../components/AvatarImage'
+import AvatarName from '../components/AvatarName'
+import PageList from '../components/PageList'
+import { setBulletinAddress } from '../store/slices/MessengerSlice'
 
-export default function TabAddress() {
+export default function ServerAddressPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const url = searchParams.get('url')
+
   const { Address } = useSelector(state => state.User)
-  const { MessengerConnStatus, BulletinAddressPage, BulletinAddressTotalPage, BulletinAddressList, activeTabBulletin } = useSelector(state => state.Messenger)
+  const { ServerAddressPage, ServerAddressTotalPage, ServerAddressList } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Address) {
-      dispatch({ type: 'RequestBulletinAddress', payload: { page: 1 } })
+    if (Address !== null) {
+      dispatch({ type: 'RequestServerAddress', payload: { page: 1 } })
     }
-  }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
+  }, [dispatch, Address])
 
   const goto_address = (address) => {
     dispatch(setBulletinAddress(address))
@@ -30,29 +32,29 @@ export default function TabAddress() {
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
           <div className="card-title">
-            {BulletinPageTab.Address}
+            {url}
           </div>
 
           {
-            BulletinAddressTotalPage > 1 &&
-            <PageList current_page={BulletinAddressPage} total_page={BulletinAddressTotalPage} dispatch_type={'RequestBulletinAddress'} payload={{}} />
+            ServerAddressTotalPage > 1 &&
+            <PageList current_page={ServerAddressPage} total_page={ServerAddressTotalPage} dispatch_type={'RequestServerAddress'} payload={{}} />
           }
           <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
             <div className='flex flex-col'>
               {
-                BulletinAddressList.length > 0 ?
+                ServerAddressList.length > 0 ?
                   <div className={`table-container`}>
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="">
                         <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
                           <th>Avatar</th>
-                          <th>Count</th>
+                          <th>Bulletin Count</th>
                           <th></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {
-                          BulletinAddressList.map((account, index) => (
+                          ServerAddressList.map((account, index) => (
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={account.Address}>

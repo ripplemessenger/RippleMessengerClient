@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTheme } from './ThemeProvider.jsx'
-import useAuth from '../hooks.jsx/useAuth.js'
+import useAuth from '../hooks/useAuth.js'
 
 import { GiBugleCall } from "react-icons/gi"
 import { IoChatboxEllipsesOutline, IoSettingsOutline, IoReloadSharp, IoArrowForwardSharp, IoArrowBackSharp } from "react-icons/io5"
@@ -10,10 +10,8 @@ import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
 import NavBarIconLink from './NavBarIconLink.jsx'
 import NavBarIconButton from './NavBarIconButton.jsx'
 import InternalLink from './InternalLink.jsx'
-import { useLocalStorage } from '../hooks/useLocalStorage.js'
 
 export default function Header() {
-  const [isDark, setIsDark] = useLocalStorage('isDark', false)
 
   const { IsAuth, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -37,7 +35,7 @@ export default function Header() {
             }
           </div>
           <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-            {isDark ?
+            {theme === 'light' ?
               <FiSun className="icon" />
               :
               <FiMoon className="icon" />}
@@ -51,11 +49,6 @@ export default function Header() {
               <span className="pl-4">
                 {Address}
               </span>
-              <NavBarIconLink
-                path="/bulletin"
-                icon={<GiBugleCall className="icon" />}
-                label="Bulletin"
-              />
               <NavBarIconLink
                 path="/chat"
                 icon={<IoChatboxEllipsesOutline className="icon" />}

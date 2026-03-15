@@ -113,7 +113,7 @@ export default function TabContact() {
                           <th>
                             <div className="flex flex-row justify-center items-center">
                               Friend
-                              <AiOutlineQuestionCircle onClick={() => dispatch(setFlashNoticeMessage({ message: "Turn on firend, you are ready to chat with this account. The conversation can only begin with both side's consent.", duration: 5000 }))
+                              <AiOutlineQuestionCircle onClick={() => dispatch(setFlashNoticeMessage({ message: "Turn on friend, you are ready to chat with this account. The conversation can only begin with both side's consent.", duration: 5000 }))
                               } />
                             </div>
                           </th>

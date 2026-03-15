@@ -12,6 +12,7 @@ export async function initDB() {
     await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS servers (
       url TEXT PRIMARY KEY,
+      priority INTEGER DEFAULT 0,
       updated_at INTEGER NOT NULL,
       is_connect INTEGER DEFAULT 0
     );`)
@@ -234,7 +235,7 @@ export const dbAPI = {
   // server
   async getAllServers() {
     const dbInstance = await getDB()
-    let servers = await dbInstance.select('SELECT * FROM servers ORDER BY updated_at DESC')
+    let servers = await dbInstance.select('SELECT * FROM servers ORDER BY priority DESC, updated_at DESC')
     for (let i = 0; i < servers.length; i++) {
       const server = servers[i]
       servers[i].is_connect = Int2Bool(server.is_connect)
@@ -251,12 +252,24 @@ export const dbAPI = {
     return servers.length > 0 ? servers[0] : null
   },
 
+  async getServerListByPriority() {
+    const dbInstance = await getDB()
+    let servers = await dbInstance.select(
+      'SELECT * FROM servers WHERE is_connect = $1 ORDER BY priority DESC',
+      [Bool2Int(true)])
+    for (let i = 0; i < servers.length; i++) {
+      const server = servers[i]
+      servers[i].is_connect = Int2Bool(server.is_connect)
+    }
+    return servers
+  },
+
   async addServer(url, updated_at) {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO servers (url, updated_at, is_connect) VALUES ($1, $2, $3)',
-        [url, updated_at, Bool2Int(false)]
+        'INSERT INTO servers (url, updated_at, is_connect, priority) VALUES ($1, $2, $3, $4)',
+        [url, updated_at, Bool2Int(false), 64]
       )
       return true
     } catch (error) {
@@ -283,6 +296,39 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute('DELETE FROM servers WHERE url = $1', [url])
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  async updateServerDefault(url) {
+    try {
+      const dbInstance = await getDB()
+      await dbInstance.execute(
+        'UPDATE servers SET priority = $1 WHERE url = $2',
+        [64, url]
+      )
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  async updateServerPriority() {
+    try {
+      const dbInstance = await getDB()
+      const server_list = await dbInstance.select('SELECT * FROM servers ORDER BY priority DESC, updated_at DESC')
+      const server_count = server_list.length
+      for (let i = 0; i < server_list.length; i++) {
+        const server = server_list[i]
+        await dbInstance.execute(
+          'UPDATE servers SET priority = $1 WHERE url = $2',
+          [server_count - i, server.url]
+        )
+      }
       return true
     } catch (error) {
       console.log(error)
@@ -393,6 +439,20 @@ export const dbAPI = {
       await dbInstance.execute(
         'DELETE FROM accounts WHERE address = $1',
         [address])
+      return true
+    } catch (error) {
+      console.log(error)
+      return false
+    }
+  },
+
+  async updateAccountUpdatedAt(address, timestamp) {
+    try {
+      const dbInstance = await getDB()
+      await dbInstance.execute(
+        'UPDATE accounts SET updated_at = $1 WHERE address = $2',
+        [timestamp, address]
+      )
       return true
     } catch (error) {
       console.log(error)

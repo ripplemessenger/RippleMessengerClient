@@ -23,8 +23,8 @@ const ActionCode = {
   // bulletin
   BulletinRequest: 400,
   BulletinSubscribe: 401,
-  BulletinRandomRequest: 402,
-  BulletinAddressRequest: 403,
+  RandomBulletinRequest: 402,
+  ServerAddressRequest: 403,
   ReplyBulletinRequest: 404,
   TagBulletinRequest: 405,
 
@@ -34,9 +34,7 @@ const ActionCode = {
 
   // group
   GroupSync: 600,
-  GroupMessageSync: 601,
-
-  // asset
+  GroupMessageSync: 601
 }
 
 const ObjectType = {
@@ -52,9 +50,10 @@ const ObjectType = {
   Bulletin: 400,
   // 401
   // 402
-  BulletinAddressList: 403,
+  ServerAddressList: 403,
   ReplyBulletinList: 404,
   TagBulletinList: 405,
+  RandomBulletinList: 406,
 
   // private
   PrivateMessage: 500,
@@ -64,16 +63,7 @@ const ObjectType = {
   GroupDelete: 601,
   GroupList: 602,
   GroupMessage: 603,
-  GroupMessageList: 604,
-
-  // asset
-  Send: 800,
-  Receive: 801,
-  ReceiveConfirm: 801,
-  OfferCreate: 810,
-  OfferCancel: 811,
-  OfferTake: 812,
-  OfferTakeConfirm: 813
+  GroupMessageList: 604
 }
 
 const FileRequestType = {

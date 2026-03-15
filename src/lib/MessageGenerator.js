@@ -76,10 +76,10 @@ export const mgAPI = {
   },
 
   // bulletin
-  genBulletinRandomRequest(seed) {
+  genRandomBulletinRequest(seed) {
     const mg = getMessageGenerator(seed)
     let json = {
-      Action: ActionCode.BulletinRandomRequest,
+      Action: ActionCode.RandomBulletinRequest,
       Timestamp: Date.now(),
       PublicKey: mg.PublicKey
     }
@@ -111,10 +111,10 @@ export const mgAPI = {
     return JSON.stringify(json)
   },
 
-  genBulletinAddressRequest(seed, page) {
+  genServerAddressRequest(seed, page) {
     const mg = getMessageGenerator(seed)
     let json = {
-      Action: ActionCode.BulletinAddressRequest,
+      Action: ActionCode.ServerAddressRequest,
       Page: page,
       Timestamp: Date.now(),
       PublicKey: mg.PublicKey

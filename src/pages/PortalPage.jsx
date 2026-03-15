@@ -7,8 +7,10 @@ import BulletinForward from '../components/Bulletin/BulletinForward'
 import { IoMdRefresh } from 'react-icons/io'
 import { setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
 import { MdPostAdd } from 'react-icons/md'
-import { FaHashtag } from 'react-icons/fa'
 import { IoStar } from "react-icons/io5"
+import { HiHashtag } from "react-icons/hi2"
+import { SlUserFollowing } from "react-icons/sl"
+import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi"
 
 export default function PortalPage() {
   const { PortalBulletinList, PortalBulletinTotalPage, PortalBulletinPage } = useSelector(state => state.Messenger)
@@ -37,9 +39,11 @@ export default function PortalPage() {
           <div className="card-title row-center-middle">
             Portal
             <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
-            <FaHashtag className="card-icon" onClick={() => goto_tag()} />
+            <SlUserFollowing className="card-icon" onClick={() => navigate('/bulletin_follow')} />
+            <HiHashtag className="card-icon" onClick={() => goto_tag()} />
             <IoStar className="card-icon" onClick={() => navigate('/bulletin_bookmark')} />
-            <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'LoadPortalBulletin', payload: { page: PortalBulletinPage } })} />
+            <GiPerspectiveDiceSixFacesRandom className="card-icon" onClick={() => navigate('/bulletin_random')} />
+            {/* <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'LoadPortalBulletin', payload: { page: PortalBulletinPage } })} /> */}
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">

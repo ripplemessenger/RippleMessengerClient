@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ListBulletin from '../components/Bulletin/ListBulletin'
-import { BulletinPageTab } from '../lib/AppConst'
 import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
 import { setSearchTagList } from '../store/slices/MessengerSlice'
 import SearchTagItem from '../components/Bulletin/SearchTagItem'
@@ -12,18 +11,18 @@ export default function BulletinTagPage() {
   const [tag, setTag] = useState('')
 
   const { Address } = useSelector(state => state.User)
-  const { MessengerConnStatus, TagBulletinList, TagBulletinPage, TagBulletinTotalPage, SearchTagList, activeTabBulletin } = useSelector(state => state.Messenger)
+  const { MessengerConnStatus, TagBulletinList, TagBulletinPage, TagBulletinTotalPage, SearchTagList } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (Address !== undefined && Address !== null && activeTabBulletin === BulletinPageTab.Tag) {
+    if (Address !== null) {
       if (SearchTagList.length > 0) {
         dispatch({ type: 'RequestTagBulletin', payload: { tag: SearchTagList, page: 1 } })
       }
     }
-  }, [dispatch, Address, activeTabBulletin, MessengerConnStatus])
+  }, [dispatch, Address, MessengerConnStatus])
 
   const checkTag = async (tag) => {
     let result = trimEndCommasAndValidate(tag)
@@ -46,7 +45,7 @@ export default function BulletinTagPage() {
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
           <div className="card-title">
-            {BulletinPageTab.Tag}
+            Tag
             <input type={"text"}
               placeholder={','}
               value={tag}

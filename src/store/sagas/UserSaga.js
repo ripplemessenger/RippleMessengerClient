@@ -8,13 +8,14 @@ import { MasterAddress } from '../../lib/MessengerConst'
 import { dbAPI } from '../../db'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
 
-function* handleLogin(action) {
+function* handleLogin({ payload }) {
   let nickname = ''
-  let contact = yield call(() => dbAPI.getContactByAddress(action.payload.address))
+  let contact = yield call(() => dbAPI.getContactByAddress(payload.address))
   if (contact !== null) {
     nickname = contact.nickname
   }
-  yield put(loginSuccess({ seed: action.payload.seed, address: action.payload.address, nickname: nickname }))
+  yield call(() => dbAPI.updateAccountUpdatedAt(payload.address, Date.now()))
+  yield put(loginSuccess({ seed: payload.seed, address: payload.address, nickname: nickname }))
   yield call(LoadContactList)
   yield call(LoadMineBulletinSequence)
   yield call(LoadPortalBulletin, { payload: { page: 1 } })
