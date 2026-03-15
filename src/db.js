@@ -663,7 +663,7 @@ export const dbAPI = {
   async getPortalBulletins(page) {
     const dbInstance = await getDB()
     let bulletins = await dbInstance.select(
-      `SELECT * FROM bulletins ORDER BY sequence DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
+      `SELECT * FROM bulletins ORDER BY signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
     )
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
