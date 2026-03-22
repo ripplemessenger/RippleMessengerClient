@@ -185,7 +185,12 @@ function* WebsocketListener() {
                 break
               case ActionCode.BulletinRequest:
                 if (checkBulletinRequestSchema(json) && VerifyJsonSignature(json)) {
-                  let bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
+                  let bulletin = null
+                  if (json.Hash) {
+                    bulletin = yield call(() => dbAPI.getBulletinByHash(json.Hash))
+                  } else {
+                    bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
+                  }
                   if (bulletin !== null) {
                     yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
                   } else if (json.Address === address) {
