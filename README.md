@@ -21,7 +21,7 @@ rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS
 ## 特点
 1. 账号本地生成，无需手机认证、生物识别，我就是我无需向任何人证明，使用得当可以做到对所有人匿名，也可在物理世界对其他个人实名使用；
 2. 数据本地存储，包括公告、私聊消息、群聊消息及文件等等全部数据均本地存储，使用得当可保证自己的数据安全，与其吐槽服务提供方丢数据、删数据，不如自己保存好数据；
-3. 数据交换服务可私有部署，源码参见[RippleMessengerServer](https://github.com/ripplemessenger/RippleMessengerServer)，部署简单、成本低廉，无需担心服务不可用，鼓励有实力的玩家部署公开服务或提供计算资源；
+3. 数据交换服务可私有部署，服务源码参见[RippleMessengerServer](https://github.com/ripplemessenger/RippleMessengerServer)，部署简单、成本低廉，无需担心服务不可用，鼓励有实力的玩家部署公开服务或提供计算资源，基于公告数据可搭建[网站](https://ripplemessenger.com)，网站源码参见[RippleMessengerSite](https://github.com/ripplemessenger/RippleMessengerSite)；
 4. 公告功能可以实现推特、微博、博客、论坛帖子等网络产品功能，同时基于1、2、3点，公告数据是跟着个人走；
 5. 聊天功能可以实现端到端数据加密（强度为256位的AES算法），保障聊天内容仅仅在聊天参与方可见，同时基于1、2、3点，聊天数据是跟着个人走；
 6. 公告和聊天功能均支持传输文件，当前设定最大可传64M文件，其中聊天文件的传输也是采用端到端加密传输；
