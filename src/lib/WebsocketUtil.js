@@ -4,7 +4,7 @@ const manager = {
   channels: new Map(),
   messageSubscribers: [],
   RETRY_DELAY: 5000,
-  MAX_RETRIES: 8
+  MAX_RETRIES: 12 * 60 * 24
 }
 
 let globalEmitter = null

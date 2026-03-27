@@ -10,6 +10,10 @@ const GenesisHash = '44F8764BCACFF5424D4044B784549A1B'
 
 const MasterAddress = 'rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS'
 
+const ListItemMax = 16
+const GroupMemberMin = 2
+const GroupMemberMax = 16
+
 const ActionCode = {
   // common
   Declare: 100,
@@ -87,6 +91,9 @@ export {
   GenesisHash,
 
   MasterAddress,
+  ListItemMax,
+  GroupMemberMin,
+  GroupMemberMax,
 
   ActionCode,
   ObjectType,

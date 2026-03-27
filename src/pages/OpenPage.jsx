@@ -11,6 +11,7 @@ import { IoCloseOutline } from 'react-icons/io5'
 import { BsIncognito } from "react-icons/bs"
 import { CgDice5 } from "react-icons/cg"
 import { ECDSA, Wallet } from 'xrpl'
+import AvatarImage from '../components/AvatarImage'
 
 export default function OpenPage() {
   const [seed, setSeed] = useLocalStorage('Seed', '')
@@ -263,6 +264,7 @@ export default function OpenPage() {
             addressSelectd !== '' ?
               <div className="p-6 rounded-lg shadow-xl mb-10">
                 <div className="space-y-4 flex flex-col justify-center">
+                  <AvatarImage address={addressSelectd} timestamp={Date.now()} style={'avatar'} />
                   <div className={`mt-1`}>
                     <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => setAddressSelectd(e.target.value)} />
                   </div>

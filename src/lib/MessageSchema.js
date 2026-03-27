@@ -1,4 +1,4 @@
-import { ActionCode, ObjectType, MessageObjectType } from './MessengerConst'
+import { ActionCode, ObjectType, MessageObjectType, ListItemMax, GroupMemberMax, GroupMemberMin } from './MessengerConst'
 
 // Action>>>declare
 // URL for server declare
@@ -132,13 +132,13 @@ const BulletinSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": ListItemMax,
       "items": { "type": "string" }
     },
     "Quote": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": ListItemMax,
       "items": {
         "type": "object",
         "required": ["Address", "Sequence", "Hash"],
@@ -152,7 +152,7 @@ const BulletinSchema = {
     "File": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": ListItemMax,
       "items": {
         "type": "object",
         "required": ["Name", "Ext", "Size", "Hash"],
@@ -313,13 +313,13 @@ const ReplyBulletinListSchema = {
           "Tag": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": { "type": "string" }
           },
           "Quote": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Address", "Sequence", "Hash"],
@@ -333,7 +333,7 @@ const ReplyBulletinListSchema = {
           "File": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Name", "Ext", "Size", "Hash"],
@@ -365,7 +365,7 @@ const TagBulletinRequestSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": ListItemMax,
       "items": { "type": "string" }
     },
     "Page": { "type": "number" },
@@ -387,7 +387,7 @@ const TagBulletinListSchema = {
     "Tag": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 16,
+      "maxItems": ListItemMax,
       "items": { "type": "string" }
     },
     "Page": { "type": "number" },
@@ -406,13 +406,13 @@ const TagBulletinListSchema = {
           "Tag": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": { "type": "string" }
           },
           "Quote": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Address", "Sequence", "Hash"],
@@ -426,7 +426,7 @@ const TagBulletinListSchema = {
           "File": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Name", "Ext", "Size", "Hash"],
@@ -469,13 +469,13 @@ const RandomBulletinListSchema = {
           "Tag": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": { "type": "string" }
           },
           "Quote": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Address", "Sequence", "Hash"],
@@ -489,7 +489,7 @@ const RandomBulletinListSchema = {
           "File": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 16,
+            "maxItems": ListItemMax,
             "items": {
               "type": "object",
               "required": ["Name", "Ext", "Size", "Hash"],
@@ -631,8 +631,8 @@ const GroupListSchema = {
               "Name": { "type": "string" },
               "Member": {
                 "type": "array",
-                "minItems": 2,
-                "maxItems": 16,
+                "minItems": GroupMemberMin,
+                "maxItems": GroupMemberMax,
                 "items": { "type": "string" }
               },
               "Timestamp": { "type": "number" },
@@ -672,8 +672,8 @@ const GroupCreateSchema = {
     "Name": { "type": "string" },
     "Member": {
       "type": "array",
-      "minItems": 2,
-      "maxItems": 16,
+      "minItems": GroupMemberMin,
+      "maxItems": GroupMemberMax,
       "items": { "type": "string" }
     },
     "Timestamp": { "type": "number" },

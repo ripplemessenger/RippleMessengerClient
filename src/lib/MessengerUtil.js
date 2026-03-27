@@ -140,7 +140,15 @@ function trimEndCommasAndValidate(str) {
   const endCommaReg = /,+$/
   const resultStr = str.replace(endCommaReg, '')
   const isEndWithComma = endCommaReg.test(str)
-  return isEndWithComma && resultStr.length > 0 ? resultStr : false
+  const tmp_tag_list = resultStr.split(',')
+  let tag_list = []
+  for (let i = 0; i < tmp_tag_list.length; i++) {
+    const tag = tmp_tag_list[i].trim()
+    if (tag !== '') {
+      tag_list.push(tag)
+    }
+  }
+  return isEndWithComma && tag_list.length > 0 ? tag_list : false
 }
 
 function getMemberIndex(members, member) {

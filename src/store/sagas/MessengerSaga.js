@@ -6,8 +6,8 @@ import { open, readFile, writeFile, remove, mkdir, stat, SeekMode } from '@tauri
 import { call, delay, put, select, fork, takeEvery, takeLatest, cancel, cancelled, take } from 'redux-saga/effects'
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkTagBulletinListSchema, checkAvatarListSchema, checkRandomBulletinListSchema, checkServerAddressListSchema } from '../../lib/MessageSchemaVerifier'
 import { mgAPI } from '../../lib/MessageGenerator'
-import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch, DefaultServer } from '../../lib/MessengerConst'
-import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, MaxMember, MaxSpeaker, SessionType } from '../../lib/AppConst'
+import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch, DefaultServer, GroupMemberMax, ListItemMax } from '../../lib/MessengerConst'
+import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, MaxSpeaker, SessionType } from '../../lib/AppConst'
 import { setServerAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32 } from '../../lib/MessengerUtil'
@@ -1273,14 +1273,9 @@ function* PublishBulletin(action) {
 
 function* BulletinTagAdd({ payload }) {
   const old_list = yield select(state => state.Messenger.PublishTagList)
-  for (let i = 0; i < old_list.length; i++) {
-    const tag = old_list[i]
-    if (tag === payload.Tag) {
-      return
-    }
-  }
-  const new_list = [...old_list, payload.Tag]
-  if (new_list.length > 8) {
+  let new_list = [...old_list, ...payload.tag_list]
+  new_list = [...new Set(new_list)]
+  if (new_list.length > ListItemMax) {
     new_list.shift()
   }
   yield put(setPublishTagList(new_list))
@@ -1302,7 +1297,7 @@ function* BulletinQuoteAdd({ payload }) {
     }
   }
   const new_list = [...old_list, payload]
-  if (new_list.length > 8) {
+  if (new_list.length > ListItemMax) {
     new_list.shift()
   }
   yield put(setPublishQuoteList(new_list))
@@ -1369,7 +1364,7 @@ function* BulletinFileAdd({ payload }) {
       }
     }
     const new_list = [...old_list, new_file]
-    if (new_list.length > 8) {
+    if (new_list.length > ListItemMax) {
       new_list.shift()
     }
     yield put(setPublishFileList(new_list))
@@ -1803,8 +1798,8 @@ function* ComposeMemberAdd({ payload }) {
   new_list = new_list.filter(member => member != payload.address)
   new_list.unshift(payload.address)
   new_list = new_list.filter(member => member !== address)
-  if (new_list.length > MaxMember) {
-    new_list = new_list.slice(0, MaxMember)
+  if (new_list.length > GroupMemberMax) {
+    new_list = new_list.slice(0, GroupMemberMax)
   }
   yield put(setComposeMemberList(new_list))
 }

@@ -16,7 +16,6 @@ const SettingPageTab = {
 const DefaultBulletinCacheSize = 0
 
 const MaxSpeaker = 64
-const MaxMember = 16
 
 const SessionType = {
   Private: 0,
@@ -54,7 +53,6 @@ export {
   DefaultBulletinCacheSize,
   MessageInterval,
   MaxSpeaker,
-  MaxMember,
   NonceMax,
   FileChunkSize,
   FileMaxSize,

@@ -57,12 +57,12 @@ const BulletinPublish = ({ }) => {
   }
 
   const checkTag = async (tag) => {
-    let result = trimEndCommasAndValidate(tag)
-    if (result) {
+    const tag_list = trimEndCommasAndValidate(tag)
+    if (tag_list) {
       dispatch({
         type: 'BulletinTagAdd',
         payload: {
-          Tag: result
+          tag_list: tag_list
         }
       })
       setTag('')
