@@ -43,7 +43,6 @@ export default function PortalPage() {
             <HiHashtag className="card-icon" onClick={() => goto_tag()} />
             <IoStar className="card-icon" onClick={() => navigate('/bulletin_bookmark')} />
             <GiPerspectiveDiceSixFacesRandom className="card-icon" onClick={() => navigate('/bulletin_random')} />
-            {/* <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'LoadPortalBulletin', payload: { page: PortalBulletinPage } })} /> */}
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">

@@ -264,7 +264,9 @@ export default function OpenPage() {
             addressSelectd !== '' ?
               <div className="p-6 rounded-lg shadow-xl mb-10">
                 <div className="space-y-4 flex flex-col justify-center">
-                  <AvatarImage address={addressSelectd} timestamp={Date.now()} style={'avatar'} />
+                  <div className='flex flex-col items-center'>
+                    <AvatarImage address={addressSelectd} timestamp={Date.now()} style={'avatar'} />
+                  </div>
                   <div className={`mt-1`}>
                     <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => setAddressSelectd(e.target.value)} />
                   </div>

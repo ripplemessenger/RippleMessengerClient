@@ -816,6 +816,7 @@ function* CacheBulletin(bulletin_json) {
         }
         yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
       }
+      yield fork(RefreshPortalBulletin)
     }
     bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
   }
@@ -1091,6 +1092,11 @@ export function* LoadPortalBulletin({ payload }) {
   yield put(setPortalBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
 }
 
+export function* RefreshPortalBulletin() {
+  const page = yield select(state => state.Messenger.PortalBulletinPage)
+  yield fork(LoadPortalBulletin, { payload: { page: page } })
+}
+
 export function* LoadMineBulletinSequence() {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
@@ -1268,6 +1274,7 @@ function* PublishBulletin(action) {
   yield put(setPublishTagList([]))
   yield put(setPublishQuoteList([]))
   yield put(setPublishFileList([]))
+  yield fork(RefreshPortalBulletin)
   yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
 }
 

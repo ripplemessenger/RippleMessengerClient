@@ -1,5 +1,5 @@
 import { fork, select, cancelled, delay } from 'redux-saga/effects'
-import { AvatarRequest, FetchFollowBulletin, LoadMineBulletinSequence, LoadPortalBulletin } from './MessengerSaga'
+import { AvatarRequest, FetchFollowBulletin, LoadMineBulletinSequence } from './MessengerSaga'
 
 export function* taskInstant() {
   const interval = 1 * 1000
@@ -44,10 +44,6 @@ export function* taskSlow() {
       }
 
       // 2
-      const page = yield select(state => state.Messenger.PortalBulletinPage)
-      yield fork(LoadPortalBulletin, { payload: { page: page } })
-      
-      // 3
       yield fork(LoadMineBulletinSequence)
 
       yield delay(interval)
