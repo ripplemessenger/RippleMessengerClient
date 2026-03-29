@@ -127,7 +127,7 @@ export default function TabContact() {
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={contact.address}>
-                                <div className='mt-1 px-1 flex flex-col justify-center items-center'>
+                                <div className='mt-1 px-1 flex flex-col justify-center items-center' key={contact.address}>
                                   <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar'} />
                                   <AvatarName address={contact.address} />
                                 </div>

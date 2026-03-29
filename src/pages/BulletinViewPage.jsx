@@ -22,7 +22,7 @@ export default function BulletinViewPage() {
   const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } = useSelector(state => state.Messenger)
 
   useEffect(() => {
-    if (DisplayBulletin !== null && DisplayBulletin !== undefined) {
+    if (DisplayBulletin !== null && DisplayBulletin !== undefined && DisplayBulletin.hash === bulletin_hash) {
       dispatch({ type: 'RequestReplyBulletin', payload: { hash: DisplayBulletin.hash, page: 1 } })
     }
   }, [dispatch, DisplayBulletin])
@@ -55,7 +55,7 @@ export default function BulletinViewPage() {
       }
       {
         DisplayBulletin !== null && DisplayBulletin !== undefined &&
-        <BulletinViewer bulletin={DisplayBulletin} />
+        <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />
       }
       {
         DisplayBulletinReplyList.length === 0 ?
@@ -66,9 +66,7 @@ export default function BulletinViewPage() {
           </div>
           :
           DisplayBulletinReplyList.map((bulletin, index) => (
-            <div key={bulletin.hash} >
-              <BulletinViewer bulletin={bulletin} />
-            </div>
+            <BulletinViewer bulletin={bulletin} key={bulletin.hash} />
           ))
       }
       {

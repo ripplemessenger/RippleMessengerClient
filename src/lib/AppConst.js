@@ -9,7 +9,6 @@ const SettingPageTab = {
   Me: 'Me',
   Contact: 'Contact',
   Group: 'Group',
-  Channel: 'Channel',
   MessengerNetwork: 'Messenger Network',
 }
 
@@ -19,8 +18,7 @@ const MaxSpeaker = 64
 
 const SessionType = {
   Private: 0,
-  Group: 1,
-  Channel: 2
+  Group: 1
 }
 
 const DefaultPartition = 90 * 24 * 3600

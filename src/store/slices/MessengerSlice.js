@@ -54,16 +54,6 @@ const MessengerSlice = createSlice({
     TagBulletinPage: 1,
     TagBulletinTotalPage: 1,
 
-    // channel
-    ChannelList: [],
-    // for follow
-    SubscribeList: [],
-    CurrentChannel: null,
-    ChannelBulletinList: [],
-    ChannelBulletinPage: 1,
-    ChannelBulletinTotalPage: 1,
-    ComposeSpeakerList: [],
-
     // private
     SessionList: [],
     SessionNewMsgCount: 0,
@@ -119,9 +109,6 @@ const MessengerSlice = createSlice({
     },
 
     // bulletin
-    setActiveTabBulletin: (state, action) => {
-      state.activeTabBulletin = action.payload
-    },
     setDisplayBulletin: (state, action) => {
       state.DisplayBulletin = action.payload
       state.DisplayBulletinReplyList = []
@@ -171,30 +158,6 @@ const MessengerSlice = createSlice({
     },
     setSearchTagList: (state, action) => {
       state.SearchTagList = action.payload
-    },
-
-    // channel
-    setChannelList: (state, action) => {
-      const channel_list = action.payload
-      state.ChannelList = channel_list
-      let subscribe_list = []
-      for (let i = 0; i < channel_list.length; i++) {
-        const channel = channel_list[i]
-        subscribe_list = subscribe_list.concat(...channel.speaker)
-      }
-      subscribe_list = [...new Set(subscribe_list)]
-      state.SubscribeList = subscribe_list
-    },
-    setCurrentChannel: (state, action) => {
-      state.CurrentChannel = action.payload
-    },
-    setChannelBulletinList: (state, action) => {
-      state.ChannelBulletinList = action.payload.List
-      state.ChannelBulletinPage = action.payload.Page
-      state.ChannelBulletinTotalPage = action.payload.TotalPage
-    },
-    setComposeSpeakerList: (state, action) => {
-      state.ComposeSpeakerList = action.payload
     },
 
     // session
@@ -272,14 +235,6 @@ export const {
   setServerAddressList,
   setTagBulletinList,
   setSearchTagList,
-
-  setActiveTabBulletin,
-
-  // channel
-  setChannelList,
-  setCurrentChannel,
-  setChannelBulletinList,
-  setComposeSpeakerList,
 
   // session
   setSessionList,

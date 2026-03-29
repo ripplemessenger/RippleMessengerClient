@@ -5,7 +5,6 @@ import TabMe from './setting/TabMe'
 import TabContact from './setting/TabContact'
 import TabMessengerNetwork from './setting/TabMessengerNetwork'
 import { setActiveTabSetting } from '../store/slices/UserSlice'
-import TabChannel from './setting/TabChannel'
 import TabGroup from './setting/TabGroup'
 
 export default function SettingPage() {
@@ -13,7 +12,6 @@ export default function SettingPage() {
     { name: SettingPageTab.Me, content: <TabMe /> },
     { name: SettingPageTab.Contact, content: <TabContact /> },
     { name: SettingPageTab.Group, content: <TabGroup /> },
-    { name: SettingPageTab.Channel, content: <TabChannel /> },
     { name: SettingPageTab.MessengerNetwork, content: <TabMessengerNetwork /> },
   ]
 

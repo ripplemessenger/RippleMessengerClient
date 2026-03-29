@@ -7,8 +7,8 @@ import { call, delay, put, select, fork, takeEvery, takeLatest, cancel, cancelle
 import { checkAvatarRequestSchema, checkBulletinRequestSchema, checkBulletinSchema, checkECDHHandshakeSchema, checkPrivateMessageSchema, checkFileRequestSchema, checkMessageObjectSchema, deriveJson, checkGroupSyncSchema, checkGroupListSchema, checkGroupMessageListSchema, checkPrivateMessageSyncSchema, checkGroupMessageSyncSchema, checkReplyBulletinListSchema, checkTagBulletinListSchema, checkAvatarListSchema, checkRandomBulletinListSchema, checkServerAddressListSchema } from '../../lib/MessageSchemaVerifier'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { ActionCode, FileRequestType, GenesisHash, ObjectType, MessageObjectType, Epoch, DefaultServer, GroupMemberMax, ListItemMax } from '../../lib/MessengerConst'
-import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, MaxSpeaker, SessionType } from '../../lib/AppConst'
-import { setServerAddressList, setChannelList, setComposeMemberList, setComposeSpeakerList, setCurrentBulletinSequence, setCurrentChannel, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setChannelBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
+import { AvatarDir, BulletinPageSize, Day, DefaultPartition, FileChunkSize, FileDir, FileMaxSize, Hour, SessionType } from '../../lib/AppConst'
+import { setServerAddressList, setComposeMemberList, setCurrentBulletinSequence, setPublishFileList, setPublishQuoteList, setCurrentSession, setCurrentSessionMessageList, setFollowBulletinList, setForwardBulletin, setForwardFlag, setGroupList, setGroupRequestList, setPublishFlag, setSessionList, updateMessengerConnStatus, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setServerList, setBookmarkBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, ConsoleError, ConsoleWarn, filesize_format, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import { calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupFileEHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32 } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
@@ -33,7 +33,7 @@ function* WebsocketListener() {
           let msg = yield call(() => mgAPI.genDeclare(seed))
           yield call(SendMessage, { key: action.key, msg: msg })
           yield call(AvatarRequest, { payload: { flag: true } })
-          yield call(SubscribeChannel)
+          yield call(SubscribeFollow)
           yield call(FetchFollowBulletin)
         } else if (action.status === WebSocket.CLOSED) {
           yield call(UpdateConnStatus, action)
@@ -422,8 +422,7 @@ function* WebsocketListener() {
               let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
               let bulletin = yield call(CacheBulletin, json)
               const follow_list = yield select(state => state.User.FollowList)
-              const subscribe_list = yield select(state => state.Messenger.SubscribeList)
-              if (subscribe_list.includes(ob_address) || follow_list.includes(ob_address) || ob_address === address) {
+              if (follow_list.includes(ob_address) || ob_address === address) {
                 yield fork(RequestNextBulletin, { key: action.key, payload: { address: ob_address } })
               }
             } else if (json.ObjectType === ObjectType.ServerAddressList && checkServerAddressListSchema(json)) {
@@ -817,6 +816,7 @@ function* CacheBulletin(bulletin_json) {
         yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
       }
       yield fork(RefreshPortalBulletin)
+      yield fork(LoadFollowBulletin)
     }
     bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
   }
@@ -1163,6 +1163,7 @@ function* LoadBookmarkBulletin({ payload }) {
 }
 
 function* LoadBulletin(action) {
+  yield put(setDisplayBulletin(null))
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     return
@@ -1392,73 +1393,14 @@ function* BulletinMarkToggle({ payload }) {
   }
 }
 
-// channel
-function* ComposeSpeakerAdd({ payload }) {
-  const address = yield select(state => state.User.Address)
-  const old_list = yield select(state => state.Messenger.ComposeSpeakerList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(speaker => speaker !== payload.address)
-  new_list.unshift(payload.address)
-  if (new_list.length > MaxSpeaker) {
-    new_list = new_list.slice(0, MaxSpeaker)
-  }
-  yield put(setComposeSpeakerList(new_list))
-}
-
-function* ComposeSpeakerDel({ payload }) {
-  const old_list = yield select(state => state.Messenger.ComposeSpeakerList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(speaker => speaker !== payload.address)
-  yield put(setComposeSpeakerList(new_list))
-}
-
-function* RefreshChannelMessageList({ payload }) {
-  const CurrentChannel = yield select(state => state.Messenger.CurrentChannel)
-  const bulletins = yield call(() => dbAPI.getBulletinListByAddresses(CurrentChannel.speaker, payload.page, 'ASC'))
-  const total = yield call(() => dbAPI.getBulletinCountByAddresses(CurrentChannel.speaker))
-  const total_page = calcTotalPage(total, BulletinPageSize)
-  yield put(setChannelBulletinList({ List: bulletins, Page: payload.page, TotalPage: total_page }))
-}
-
-function* CreateChannel(action) {
-  const address = yield select(state => state.User.Address)
-  const speaker = yield select(state => state.Messenger.ComposeSpeakerList)
-  const db_channel = yield call(() => dbAPI.getChannelByName(address, action.payload.name))
-  if (db_channel === null) {
-    yield call(() => dbAPI.addChannel(address, action.payload.name, speaker, Date.now()))
-  } else {
-    yield call(() => dbAPI.updateChannel(address, action.payload.name, speaker, Date.now()))
-  }
-  yield put(setComposeSpeakerList([]))
-  yield call(LoadChannelList)
-}
-
-function* DeleteChannel(action) {
-  const address = yield select(state => state.User.Address)
-  yield call(() => dbAPI.deleteChannel(address, action.payload.name))
-  yield call(LoadChannelList)
-}
-
-export function* LoadChannelList() {
-  const address = yield select(state => state.User.Address)
-  const channel_list = yield call(() => dbAPI.getMyChannels(address))
-  yield put(setChannelList(channel_list))
-}
-
-function* LoadCurrentChannel({ payload }) {
-  yield put(setChannelBulletinList({ List: [], Page: 1, TotalPage: 1 }))
-  const channel = { name: payload.name, speaker: payload.speaker, updated_at: payload.created_at }
-  yield put(setCurrentChannel(channel))
-  yield call(RefreshChannelMessageList, { payload: { page: 1 } })
-}
-
-export function* SubscribeChannel() {
+export function* SubscribeFollow() {
   const seed = yield select(state => state.User.Seed)
   if (!seed) {
     return
   }
-  const subscribe_list = yield select(state => state.Messenger.SubscribeList)
-  let subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, subscribe_list))
+  const follow_list = yield select(state => state.User.FollowList)
+  console.log(follow_list)
+  let subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, follow_list))
   yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
 }
 
@@ -1962,15 +1904,6 @@ export function* watchMessenger() {
   yield takeLatest('BulletinQuote', BulletinQuote)
 
   yield takeLatest('BulletinMarkToggle', BulletinMarkToggle)
-
-  // channel
-  yield takeLatest('ComposeSpeakerAdd', ComposeSpeakerAdd)
-  yield takeLatest('ComposeSpeakerDel', ComposeSpeakerDel)
-  yield takeLatest('CreateChannel', CreateChannel)
-  yield takeLatest('DeleteChannel', DeleteChannel)
-  yield takeLatest('LoadChannelList', LoadChannelList)
-  yield takeLatest('LoadCurrentChannel', LoadCurrentChannel)
-  yield takeLatest('RefreshChannelMessageList', RefreshChannelMessageList)
 
   // session
   yield takeLatest('LoadSessionList', LoadSessionList)

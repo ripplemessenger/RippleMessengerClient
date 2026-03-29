@@ -1,9 +1,9 @@
-import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
+import { call, put, takeLatest, select, delay, fork } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
 import { decryptWithPassword } from '../../lib/AppUtil'
-import { LoadChannelList, LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadServerList, LoadSessionList, RefreshPortalBulletin } from './MessengerSaga'
+import { LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadServerList, LoadSessionList, RefreshPortalBulletin, SubscribeFollow } from './MessengerSaga'
 import { SessionType } from '../../lib/AppConst'
-import { setChannelList, setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
+import { setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
 import { MasterAddress } from '../../lib/MessengerConst'
 import { dbAPI } from '../../db'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
@@ -20,7 +20,6 @@ function* handleLogin({ payload }) {
   yield call(LoadMineBulletinSequence)
   yield call(RefreshPortalBulletin)
   yield call(LoadGroupList)
-  yield call(LoadChannelList)
   yield call(LoadSessionList)
   yield call(LoadGroupRequestList)
 
@@ -41,7 +40,6 @@ function* handleLogout() {
   yield put(setFriendList([]))
   yield put(setSessionList([]))
   yield put(setGroupList({ group_list: [], group_member_map: {} }))
-  yield put(setChannelList([]))
   yield put(setCurrentSession(null))
   yield call(disconnectAllWebsockets)
 }
@@ -125,6 +123,7 @@ function* LoadContactList() {
   }
   yield put(setContactList({ contact_list: contact_list, contact_map: contact_map }))
   yield put(setFollowList(follow_list))
+  yield fork(SubscribeFollow)
   yield put(setFriendList(friend_list))
 }
 
