@@ -816,7 +816,7 @@ function* CacheBulletin(bulletin_json) {
         yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
       }
       yield fork(RefreshPortalBulletin)
-      yield fork(LoadFollowBulletin)
+      yield fork(RefreshFollowBulletin)
     }
     bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
   }
@@ -1153,6 +1153,11 @@ function* LoadFollowBulletin({ payload }) {
   } else {
     yield put(setFollowBulletinList({ List: [], Page: 0, TotalPage: 0 }))
   }
+}
+
+function* RefreshFollowBulletin() {
+  const page = yield select(state => state.Messenger.FollowBulletinPage)
+  yield fork(LoadFollowBulletin, { payload: { page: page } })
 }
 
 function* LoadBookmarkBulletin({ payload }) {

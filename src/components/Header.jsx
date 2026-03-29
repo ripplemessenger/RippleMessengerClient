@@ -10,6 +10,7 @@ import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
 import NavBarIconLink from './NavBarIconLink.jsx'
 import NavBarIconButton from './NavBarIconButton.jsx'
 import InternalLink from './InternalLink.jsx'
+import AvatarImage from './AvatarImage.jsx'
 
 export default function Header() {
 
@@ -46,7 +47,8 @@ export default function Header() {
           {
             IsAuth &&
             <div className="flex flex-row items-center">
-              <span className="pl-4">
+              <AvatarImage address={Address} timestamp={Date.now()} style={'avatar-sm'} />
+              <span>
                 {Address}
               </span>
               <NavBarIconLink
