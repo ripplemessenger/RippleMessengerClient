@@ -22,9 +22,9 @@ function App() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<RootRouter />} />
+        <Route path="/about" element={<AboutPage />} />
 
         <Route element={<PublicOnlyRoute />}>
-          <Route path="/about" element={<AboutPage />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
@@ -38,7 +38,6 @@ function App() {
           <Route path="/server_address" element={<ServerAddressPage />} />
           <Route path="/chat" element={<ChatHomePage />} />
           <Route path="/setting" element={<SettingPage />} />
-
         </Route>
 
         {/* 404 */}

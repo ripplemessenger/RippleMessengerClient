@@ -38,6 +38,7 @@ function* WebsocketListener() {
         } else if (action.status === WebSocket.CLOSED) {
           yield call(UpdateConnStatus, action)
         } else if (action.status === 'error') {
+          yield call(UpdateConnStatus, action)
         }
         break
       case 'message':
@@ -1404,7 +1405,6 @@ export function* SubscribeFollow() {
     return
   }
   const follow_list = yield select(state => state.User.FollowList)
-  console.log(follow_list)
   let subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, follow_list))
   yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
 }

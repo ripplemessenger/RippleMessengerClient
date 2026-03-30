@@ -4,7 +4,8 @@ const manager = {
   channels: new Map(),
   messageSubscribers: [],
   RETRY_DELAY: 5000,
-  MAX_RETRIES: 12 * 60 * 24
+  MAX_RETRIES: 12
+  // MAX_RETRIES: 12 * 60 * 24
 }
 
 let globalEmitter = null
@@ -63,16 +64,16 @@ export function createMultiWsChannel(configs) {
 
       ws.onopen = () => {
         manager.channels.set(key, { ws, config: cfg, retryCount: 0 })
-        emitToGlobal({ type: 'status', key, status: WebSocket.OPEN })
         console.log(`[WS] Connected: ${key} → ${url}`)
+        emitToGlobal({ type: 'status', key, status: WebSocket.OPEN })
       }
 
-      ws.onclose = (e) => {
+      ws.onclose = (ev) => {
+        console.log(`[WS] Closed: ${key} (code: ${ev.code}) (wasClean: ${ev.wasClean})`)
+        emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
         manager.channels.delete(key)
-        emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: e.code, wasClean: e.wasClean })
-        console.log(`[WS] Closed: ${key} (code: ${e.code})`)
 
-        if (!e.wasClean && retryCount < manager.MAX_RETRIES) {
+        if ((!ev.wasClean || (ev.code !== 1000 && ev.code !== 1001)) && retryCount < manager.MAX_RETRIES) {
           retryCount++
           console.log(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
           setTimeout(connect, manager.RETRY_DELAY)
