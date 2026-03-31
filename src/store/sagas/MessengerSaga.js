@@ -824,6 +824,15 @@ function* CacheBulletin(bulletin_json) {
   return bulletin_db
 }
 
+function* UploadBulletin({ payload }) {
+  let bulletin = yield call(CacheBulletin, payload.json)
+  if (bulletin !== null) {
+    yield put(setFlashNoticeMessage({ message: 'bulletin saved', duration: 3000 }))
+  } else {
+    yield put(setFlashNoticeMessage({ message: 'bulletin not saved...', duration: 3000 }))
+  }
+}
+
 let FileRequestList = []
 function genFileNonce() {
   let nonce = genNonce()
@@ -1909,6 +1918,8 @@ export function* watchMessenger() {
   yield takeLatest('BulletinQuote', BulletinQuote)
 
   yield takeLatest('BulletinMarkToggle', BulletinMarkToggle)
+
+  yield takeLatest('UploadBulletin', UploadBulletin)
 
   // session
   yield takeLatest('LoadSessionList', LoadSessionList)

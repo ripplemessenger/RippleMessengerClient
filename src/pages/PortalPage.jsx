@@ -4,17 +4,18 @@ import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
-import { IoMdRefresh } from 'react-icons/io'
-import { setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
+import { TfiWrite } from "react-icons/tfi"
+import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
 import { MdPostAdd } from 'react-icons/md'
 import { IoStar } from "react-icons/io5"
 import { HiHashtag } from "react-icons/hi2"
 import { SlUserFollowing } from "react-icons/sl"
 import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi"
+import BulletinPaste from '../components/Bulletin/BulletinPaste'
 
 export default function PortalPage() {
   const { PortalBulletinList, PortalBulletinTotalPage, PortalBulletinPage } = useSelector(state => state.Messenger)
-  const { ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
+  const { ShowPublishFlag, ShowForwardFlag, ShowPasteFlag } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -34,6 +35,10 @@ export default function PortalPage() {
         ShowForwardFlag &&
         <BulletinForward />
       }
+      {
+        ShowPasteFlag &&
+        <BulletinPaste />
+      }
       <div className="tab-page">
         <div className="mx-auto flex flex-col mt-4">
           <div className="card-title row-center-middle">
@@ -43,6 +48,7 @@ export default function PortalPage() {
             <HiHashtag className="card-icon" onClick={() => goto_tag()} />
             <IoStar className="card-icon" onClick={() => navigate('/bulletin_bookmark')} />
             <GiPerspectiveDiceSixFacesRandom className="card-icon" onClick={() => navigate('/bulletin_random')} />
+            <TfiWrite className="card-icon" onClick={() => dispatch(setPasteFlag(true))} />
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
