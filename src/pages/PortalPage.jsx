@@ -72,6 +72,10 @@ export default function PortalPage() {
                   ))
               }
             </div>
+            {
+              PortalBulletinTotalPage > 1 &&
+              <PageList current_page={PortalBulletinPage} total_page={PortalBulletinTotalPage} dispatch_type={'LoadPortalBulletin'} payload={{}} />
+            }
           </div>
         </div>
       </div>
