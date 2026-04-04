@@ -78,7 +78,7 @@ export default function TabContact() {
             <TextInput label={'Address:'} value={contactAddress} onChange={(e) => setContactAddress(e.target.value.trim())} />
             <TextInput label={'Nickname:'} value={contactNickname} onChange={(e) => setContactNickname(e.target.value.trim())} />
             <button
-              className="btn-primary"
+              className="btn-primary btn-green"
               disabled={contactAddress === '' || contactNickname === ''}
               onClick={() => addContact()}>
               Add/Update

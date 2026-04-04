@@ -132,7 +132,7 @@ export default function TabGroup() {
               }
             </div>
             <button
-              className="btn-primary"
+              className="btn-primary btn-green"
               disabled={ComposeMemberList.length === 0}
               onClick={() => createGroup()}>
               Create

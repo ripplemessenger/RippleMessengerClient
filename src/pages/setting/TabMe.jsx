@@ -8,15 +8,18 @@ import TextInput from '../../components/Form/TextInput'
 import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
 import { setNickname } from '../../store/slices/UserSlice'
+import { confirmBegin, confirmDone, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
   const [imageSrc, setImageSrc] = useState(null)
   const [imageTimestamp, setImageTimestamp] = useState(Date.now())
+  const [showRemoveButton, setShowRemoveButton] = useState(false)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { Address, Nickname, activeTabSetting } = useSelector(state => state.User)
+  const { Address, Nickname, Seed, AccountList, activeTabSetting } = useSelector(state => state.User)
+  const { ConfirmResult, ConfirmContent } = useSelector(state => state.Common)
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Me) {
@@ -24,12 +27,20 @@ export default function TabMe() {
     }
   }, [activeTabSetting])
 
+  useEffect(() => {
+    let account = AccountList.filter(a => a.address === Address)
+    if (account.length > 0) {
+      setShowRemoveButton(true)
+    } else {
+      setShowRemoveButton(false)
+    }
+  }, [AccountList])
+
   const browseAvatarSource = async () => {
     const file = await open({
       multiple: false,
       directory: false,
     })
-    console.log(file)
 
     if (file) {
       const bytes = await readFile(file)
@@ -54,6 +65,26 @@ export default function TabMe() {
     setImageTimestamp(Date.now())
   }
 
+  const delAccount = async () => {
+    dispatch({ type: 'AccountDel', payload: { address: Address } })
+  }
+
+  useEffect(() => {
+    if (ConfirmContent === 'remove account' && ConfirmResult) {
+      delAccount()
+      dispatch(confirmDone({ content: null, result: false }))
+    }
+  }, [ConfirmResult, ConfirmContent])
+
+  const confirmDelAccount = () => {
+    dispatch(confirmBegin({ content: 'remove account' }))
+  }
+
+  const copySeed = async () => {
+    await navigator.clipboard.writeText(Seed)
+    dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: 3000 }))
+  }
+
   return (
     <div className="tab-page">
       <div className="mx-auto flex flex-col mt-4">
@@ -75,6 +106,21 @@ export default function TabMe() {
             imageSrc &&
             <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
           }
+          {
+            showRemoveButton &&
+            <button
+              onClick={() => confirmDelAccount()}
+              className={`btn-primary btn-yellow`}
+            >
+              Remove Account
+            </button>
+          }
+          <button
+            onClick={() => copySeed()}
+            className={`btn-primary btn-yellow`}
+          >
+            Copy Seed
+          </button>
         </div>
       </div>
     </div>

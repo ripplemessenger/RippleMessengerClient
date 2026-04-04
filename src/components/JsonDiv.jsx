@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
@@ -26,15 +26,16 @@ const JsonDiv = ({ json }) => {
   return (
     <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
       <div className="flex flex-row items-center justify-center">
-        {copied ? (
-          <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-            <IoCheckmarkOutline />copied
-          </button>
-        ) : (
-          <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-            <IoCopyOutline /> copy
-          </button>
-        )}
+        {
+          copied ?
+            <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <IoCheckmarkOutline />copied
+            </button>
+            :
+            <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <IoCopyOutline /> copy
+            </button>
+        }
         <button onClick={() => dispatch(setDisplayJson({ json: null, isExpand: false }))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600">
           <IoCloseOutline /> close
         </button>

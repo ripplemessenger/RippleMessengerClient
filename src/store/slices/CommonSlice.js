@@ -5,14 +5,30 @@ const CommonSlice = createSlice({
   initialState: {
     AppBaseDir: null,
 
+    ConfirmFlag: false,
+    ConfirmContent: null,
+    ConfirmResult: false,
+
     FlashNoticeMessage: null,
     FlashNoticeDuration: 0,
+
     DisplayJson: null,
     DisplayJsonOption: false
   },
   reducers: {
     setAppBaseDir: (state, action) => {
       state.AppBaseDir = action.payload
+    },
+
+    confirmBegin: (state, action) => {
+      state.ConfirmFlag = true
+      state.ConfirmContent = action.payload.content
+      state.ConfirmResult = false
+    },
+    confirmDone: (state, action) => {
+      state.ConfirmFlag = false
+      state.ConfirmContent = action.payload.content
+      state.ConfirmResult = action.payload.result
     },
 
     setFlashNoticeMessage: (state, action) => {
@@ -28,6 +44,8 @@ const CommonSlice = createSlice({
 
 export const {
   setAppBaseDir,
+  confirmBegin,
+  confirmDone,
   setFlashNoticeMessage,
   setDisplayJson
 } = CommonSlice.actions

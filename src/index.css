@@ -20,7 +20,32 @@
   }
 }
 
+@layer utilities {
+  .no-scrollbar {
+    @apply overflow-x-auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
+  .avatar-container {
+    @apply flex gap-12 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-16 px-8 scroll-smooth;
+  }
+
+  .avatar-item {
+    @apply flex-shrink-0 snap-center cursor-pointer transition-all duration-500 active:scale-110;
+  }
+
+  .avatar-face {
+    @apply absolute inset-0 rounded-3xl overflow-hidden shadow-2xl border-4;
+    backface-visibility: hidden;
+  }
+
   .bar {
     @apply bg-gradient-bar dark:bg-dark-gradient-bar shadow-lg;
     @apply text-text-primary dark:text-dark-text-primary;
@@ -161,7 +186,19 @@
   }
 
   .btn-primary {
-    @apply w-96 mt-4 py-2 text-3xl font-bold bg-green-500 text-white rounded hover:bg-green-600;
+    @apply w-96 mt-4 py-2 text-3xl font-bold rounded;
+  }
+
+  .btn-green{
+    @apply bg-green-500 text-white hover:bg-green-600;
+  }
+
+  .btn-yellow {
+    @apply bg-yellow-500 text-white hover:bg-yellow-600;
+  }
+
+   .btn-red {
+    @apply bg-red-500 text-white hover:bg-red-600;
   }
 
   .page {

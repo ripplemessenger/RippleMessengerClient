@@ -11,7 +11,7 @@ import { IoCloseOutline } from 'react-icons/io5'
 import { BsIncognito } from "react-icons/bs"
 import { CgDice5 } from "react-icons/cg"
 import { ECDSA, Wallet } from 'xrpl'
-import AvatarImage from '../components/AvatarImage'
+import AvatarSelector from '../components/AvatarSelector'
 
 export default function OpenPage() {
   const [seed, setSeed] = useLocalStorage('Seed', '')
@@ -101,6 +101,7 @@ export default function OpenPage() {
   const [addressOptions, setAddressOptions] = useState([])
   const [addressSelectd, setAddressSelectd] = useState('')
   const [openPassword, setOpenPassword] = useState('')
+  const [avatarIndex, setAvatarIndex] = useState(0)
 
   const { IsAuth, AccountList, UserError, Seed } = useSelector(state => state.User)
 
@@ -139,10 +140,6 @@ export default function OpenPage() {
     dispatch({ type: loadAccountListStart.type })
   }, [])
 
-  const delAccount = async () => {
-    dispatch({ type: 'AccountDel', payload: { password: openPassword, address: addressSelectd } })
-  }
-
   useEffect(() => {
     if (IsAuth) {
       navigate('/bulletin',
@@ -170,7 +167,7 @@ export default function OpenPage() {
             <div className="flex flex-col justify-center">
               <button
                 onClick={genNewAccount}
-                className="btn-primary"
+                className="btn-primary btn-green"
               >
                 Generate Account
               </button>
@@ -243,7 +240,7 @@ export default function OpenPage() {
             <button
               onClick={addAccount}
               disabled={saveSeed === '' || savePassword.trim() === ''}
-              className="btn-primary"
+              className="btn-primary btn-green"
             >
               Add Account
             </button>
@@ -262,29 +259,28 @@ export default function OpenPage() {
           </div>
           {
             addressSelectd !== '' ?
-              <div className="p-6 rounded-lg shadow-xl mb-10">
-                <div className="space-y-4 flex flex-col justify-center">
-                  <div className='flex flex-col items-center'>
-                    <AvatarImage address={addressSelectd} timestamp={Date.now()} style={'avatar'} />
-                  </div>
+              <div className="rounded-lg shadow-xl mb-10">
+                <div className="flex flex-col justify-center">
+                  <AvatarSelector avatars={addressOptions} defaultIndex={avatarIndex} onSelect={(address) => setAddressSelectd(address)} />
                   <div className={`mt-1`}>
-                    <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => setAddressSelectd(e.target.value)} />
+                    <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => {
+                      setAddressSelectd(e.target.value)
+                      let index = addressOptions.map(a => a.value).indexOf(e.target.value)
+                      setAvatarIndex(index)
+                    }
+                    } />
                   </div>
-                  <div className={`mt-1`}>
-                    <TextInput label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
-                  </div>
-                  <button
-                    onClick={login}
-                    className={`btn-primary`}
-                  >
-                    Open Account
-                  </button>
-                  <button
-                    onClick={delAccount}
-                    className={`w-96 py-2 text-3xl font-bold bg-yellow-500 text-white rounded hover:bg-yellow-600`}
-                  >
-                    Remove Account
-                  </button>
+                  <form onSubmit={login}>
+                    <div className={`mt-1`}>
+                      <TextInput label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
+                    </div>
+                    <button
+                      type="submit"
+                      className={`btn-primary btn-green`}
+                    >
+                      Open Account
+                    </button>
+                  </form>
                 </div>
               </div>
               :

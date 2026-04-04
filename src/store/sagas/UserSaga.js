@@ -63,19 +63,8 @@ function* AccountAdd({ payload }) {
 function* AccountDel({ payload }) {
   let account = yield call(() => dbAPI.getAccountByAddress(payload.address))
   if (account !== null) {
-    try {
-      let tmpSeed = decryptWithPassword(payload.password, account.salt, account.cipher_data)
-      if (tmpSeed !== '') {
-        yield call(() => dbAPI.deleteAccountByAddress(payload.address))
-        yield put(loadAccountListStart())
-        yield put(setUserError(null))
-      } else {
-        yield put(setUserError('password wrong...'))
-      }
-    } catch (error) {
-      console.log(error)
-      yield put(setUserError('password wrong...'))
-    }
+    yield call(() => dbAPI.deleteAccountByAddress(payload.address))
+    yield put(loadAccountListStart())
   }
 }
 

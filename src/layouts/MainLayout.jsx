@@ -2,15 +2,20 @@ import { Outlet } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
-import FlashNotice from '../components/FlashNotice.jsx'
 import { ThemeProvider } from '../components/ThemeProvider.jsx'
+import ConfirmDiv from '../components/ConfirmDiv.jsx'
+import FlashNotice from '../components/FlashNotice.jsx'
 import JsonDiv from '../components/JsonDiv.jsx'
 
 export default function MainLayout() {
-  const { DisplayJson, FlashNoticeMessage, FlashNoticeDuration } = useSelector(state => state.Common)
+  const { ConfirmFlag, FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col">
+        {
+          ConfirmFlag &&
+          <ConfirmDiv />
+        }
         {
           FlashNoticeMessage &&
           <FlashNotice message={FlashNoticeMessage} duration={FlashNoticeDuration} />
