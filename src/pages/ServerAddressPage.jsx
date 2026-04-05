@@ -1,10 +1,9 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import AvatarImage from '../components/AvatarImage'
+import { useSearchParams } from 'react-router-dom'
 import AvatarName from '../components/AvatarName'
 import PageList from '../components/PageList'
-import { setBulletinAddress } from '../store/slices/MessengerSlice'
+import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
 
 export default function ServerAddressPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -14,18 +13,12 @@ export default function ServerAddressPage() {
   const { ServerAddressPage, ServerAddressTotalPage, ServerAddressList } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
 
   useEffect(() => {
     if (Address !== null) {
       dispatch({ type: 'RequestServerAddress', payload: { page: 1 } })
     }
   }, [dispatch, Address])
-
-  const goto_address = (address) => {
-    dispatch(setBulletinAddress(address))
-    navigate('/bulletin_address')
-  }
 
   return (
     <div className="flex justify-center items-center">
@@ -49,7 +42,6 @@ export default function ServerAddressPage() {
                         <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
                           <th>Avatar</th>
                           <th>Bulletin Count</th>
-                          <th></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -58,16 +50,13 @@ export default function ServerAddressPage() {
                             <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={account.Address}>
-                                <div className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => goto_address(account.Address)}>
-                                  <AvatarImage address={account.Address} timestamp={Date.now()} style={'avatar'} />
+                                <div className='mt-1 px-1 flex flex-col justify-center items-center'>
+                                  <BulletinAvatarLink address={account.Address} timestamp={Date.now()} style={'avatar'} />
                                   <AvatarName address={account.Address} />
                                 </div>
                               </td>
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                                 {account.Count}
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-
                               </td>
                             </tr>
                           ))

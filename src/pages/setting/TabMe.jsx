@@ -2,13 +2,12 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
 import { setNickname } from '../../store/slices/UserSlice'
-import { confirmBegin, confirmDone, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
+import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
@@ -17,9 +16,7 @@ export default function TabMe() {
   const [showRemoveButton, setShowRemoveButton] = useState(false)
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { Address, Nickname, Seed, AccountList, activeTabSetting } = useSelector(state => state.User)
-  const { ConfirmResult, ConfirmContent } = useSelector(state => state.Common)
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Me) {
@@ -65,19 +62,19 @@ export default function TabMe() {
     setImageTimestamp(Date.now())
   }
 
-  const delAccount = async () => {
-    dispatch({ type: 'AccountDel', payload: { address: Address } })
-  }
-
+  const { ConfirmPopup } = useSelector(state => state.Common)
   useEffect(() => {
-    if (ConfirmContent === 'remove account' && ConfirmResult) {
-      delAccount()
-      dispatch(confirmDone({ content: null, result: false }))
+    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.RemoveAccount && ConfirmPopup.Result) {
+      dispatch({
+        type: 'AccountDel',
+        payload: { address: Address }
+      })
+      dispatch(setConfirmPopup(null))
     }
-  }, [ConfirmResult, ConfirmContent])
+  }, [ConfirmPopup])
 
-  const confirmDelAccount = () => {
-    dispatch(confirmBegin({ content: 'remove account' }))
+  const confirmDelAccount = (address) => {
+    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.RemoveAccount, Result: false }))
   }
 
   const copySeed = async () => {

@@ -38,6 +38,13 @@ const BulletinContentPreviewSize = 256
 const MessageInterval = 1000
 const MessagePageSize = 50
 
+const ConfirmContentOptions = {
+  RemoveAccount: 'RemoveAccount',
+  DelContact: 'DelContact',
+  DelGroup: 'DelGroup',
+  DelServer: 'DelServer',
+}
+
 export {
   Minute,
   Hour,
@@ -60,4 +67,6 @@ export {
   BulletinPageSize,
   BulletinContentPreviewSize,
   MessagePageSize,
+
+  ConfirmContentOptions
 }

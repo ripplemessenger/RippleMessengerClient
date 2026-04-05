@@ -8,12 +8,12 @@ import FlashNotice from '../components/FlashNotice.jsx'
 import JsonDiv from '../components/JsonDiv.jsx'
 
 export default function MainLayout() {
-  const { ConfirmFlag, FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
+  const { ConfirmPopup, FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col">
         {
-          ConfirmFlag &&
+          ConfirmPopup &&
           <ConfirmDiv />
         }
         {

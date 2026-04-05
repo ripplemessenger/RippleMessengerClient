@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSearchParams, useNavigate } from 'react-router-dom'
-import { SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import { IoCloseOutline } from "react-icons/io5"
 import { TbCloudNetwork } from "react-icons/tb"
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
 import { IoStatsChartOutline } from "react-icons/io5"
+import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabMessengerNetwork() {
   const [newURL, setNewURL] = useState('')
@@ -45,13 +46,19 @@ export default function TabMessengerNetwork() {
     })
   }
 
-  const delServer = async (url) => {
-    dispatch({
-      type: 'ServerDel',
-      payload: {
-        url: url
-      }
-    })
+  const { ConfirmPopup } = useSelector(state => state.Common)
+  useEffect(() => {
+    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.DelServer && ConfirmPopup.Result) {
+      dispatch({
+        type: 'ServerDel',
+        payload: { url: ConfirmPopup.Params.URL }
+      })
+      dispatch(setConfirmPopup(null))
+    }
+  }, [ConfirmPopup])
+
+  const confirmDelServer = (url) => {
+    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelServer, Result: false, Params: { URL: url } }))
   }
 
   const setDefaultServer = async (url) => {
@@ -152,7 +159,7 @@ export default function TabMessengerNetwork() {
                               {
                                 !server.is_connect &&
                                 <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-red-600"
-                                  onClick={() => delServer(server.url)}>
+                                  onClick={() => confirmDelServer(server.url)}>
                                   Delete
                                 </button>
                               }

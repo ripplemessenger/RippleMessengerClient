@@ -1,19 +1,16 @@
-import { useDispatch } from 'react-redux'
 import { createSearchParams, useNavigate } from 'react-router-dom'
 import BulletinContent from './BulletinContent'
 import BulletinLink from './BulletinLink'
 import BulletinTools from './BulletinTools'
 import TextTimestamp from '../TextTimestamp'
-import AvatarImage from '../AvatarImage'
 import { AiOutlineLink } from "react-icons/ai"
 import { BulletinContentPreviewSize } from '../../lib/AppConst'
 import { IoAttachSharp } from 'react-icons/io5'
-import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 import { HiHashtag } from 'react-icons/hi2'
+import BulletinAvatarLink from './BulletinAvatarLink'
 
 const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
-  const dispatch = useDispatch()
   const navigate = useNavigate()
 
   const goto_bulletin = () => {
@@ -24,15 +21,10 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
     })
   }
 
-  const goto_address = (address) => {
-    dispatch(setBulletinAddress(address))
-    navigate('/bulletin_address')
-  }
-
   return (
     <div className={`${textSize}`}>
       <div className={`flex flex-row mx-5px mt-5px`}>
-        <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} onClick={() => goto_address(bulletin.address)} />
+        <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} />
         <div className={`flex flex-col`}>
 
           <div className={`flex flex-row justify-between`}>

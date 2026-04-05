@@ -10,28 +10,19 @@ import BulletinTools from './BulletinTools'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { BsMarkdown, BsFiletypeTxt } from "react-icons/bs"
-import AvatarImage from '../AvatarImage'
 import TagLink from './TagLink'
 import BulletinFileViewer from './BulletinFileViewer'
-import { setBulletinAddress } from '../../store/slices/MessengerSlice'
+import BulletinAvatarLink from './BulletinAvatarLink'
 
 const BulletinViewer = ({ bulletin }) => {
 
   const [isMarkdown, setIsMarkdown] = useState(false)
 
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-
-  const goto_address = (address) => {
-    dispatch(setBulletinAddress(address))
-    navigate('/bulletin_address')
-  }
-
   return (
     <div className={`flex flex-row mx-2 mt-2`}>
       <div className={` flex flex-col items-center pt-3`}>
         <div className='items-center flex flex-row justify-center'>
-          <AvatarImage address={bulletin.address} timestamp={Date.now()} style={'avatar'} onClick={() => goto_address(bulletin.address)} />
+          <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} style={'avatar'} />
         </div>
         <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} timestamp={Date.now()} />
         <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />

@@ -1,17 +1,18 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import AvatarName from '../components/AvatarName'
+import { setPublishFlag } from '../store/slices/MessengerSlice'
+import { MdPostAdd } from 'react-icons/md'
 
 export default function BulletinAddressPage() {
+  const { Address } = useSelector(state => state.User)
   const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
 
   useEffect(() => {
     if (BulletinAddress !== null) {
@@ -33,6 +34,9 @@ export default function BulletinAddressPage() {
         <div className="mx-auto flex flex-col mt-4">
           <div className="card-title row-center-middle">
             <AvatarName address={BulletinAddress} />
+            {BulletinAddress === Address &&
+              < MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
+            }
           </div>
 
           <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">

@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
   }, [dispatch, IsAuth])
 
   const logout = () => {
-    console.log('userLogout')
     dispatch(logoutStart())
     navigate('/')
   }

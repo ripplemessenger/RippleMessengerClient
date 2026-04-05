@@ -5,9 +5,7 @@ const CommonSlice = createSlice({
   initialState: {
     AppBaseDir: null,
 
-    ConfirmFlag: false,
-    ConfirmContent: null,
-    ConfirmResult: false,
+    ConfirmPopup: null,
 
     FlashNoticeMessage: null,
     FlashNoticeDuration: 0,
@@ -20,15 +18,8 @@ const CommonSlice = createSlice({
       state.AppBaseDir = action.payload
     },
 
-    confirmBegin: (state, action) => {
-      state.ConfirmFlag = true
-      state.ConfirmContent = action.payload.content
-      state.ConfirmResult = false
-    },
-    confirmDone: (state, action) => {
-      state.ConfirmFlag = false
-      state.ConfirmContent = action.payload.content
-      state.ConfirmResult = action.payload.result
+    setConfirmPopup: (state, action) => {
+      state.ConfirmPopup = action.payload
     },
 
     setFlashNoticeMessage: (state, action) => {
@@ -44,8 +35,7 @@ const CommonSlice = createSlice({
 
 export const {
   setAppBaseDir,
-  confirmBegin,
-  confirmDone,
+  setConfirmPopup,
   setFlashNoticeMessage,
   setDisplayJson
 } = CommonSlice.actions

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import TextTimestamp from '../../components/TextTimestamp'
 import { IoCloseOutline } from "react-icons/io5"
@@ -9,6 +8,7 @@ import AvatarName from '../../components/AvatarName'
 import { MdOutlineVerifiedUser } from "react-icons/md"
 import { GrGroup } from "react-icons/gr"
 import AvatarImage from '../../components/AvatarImage'
+import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabGroup() {
   const [showCreateGroup, setShowCreateGroup] = useState(false)
@@ -17,12 +17,10 @@ export default function TabGroup() {
   const [groupName, setGroupName] = useState('')
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { Address, ContactList, activeTabSetting } = useSelector(state => state.User)
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(state => state.Messenger)
 
   useEffect(() => {
-    console.log(GroupList)
     if (activeTabSetting === SettingPageTab.Group) {
     }
   }, [dispatch, activeTabSetting])
@@ -58,13 +56,21 @@ export default function TabGroup() {
     }
   }
 
-  const delGroup = async (hash) => {
-    dispatch({
-      type: 'DeleteGroup',
-      payload: {
-        hash: hash
-      }
-    })
+  const { ConfirmPopup } = useSelector(state => state.Common)
+  useEffect(() => {
+    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.DelGroup && ConfirmPopup.Result) {
+      dispatch({
+        type: 'DeleteGroup',
+        payload: {
+          hash: ConfirmPopup.Params.Hash
+        }
+      })
+      dispatch(setConfirmPopup(null))
+    }
+  }, [ConfirmPopup])
+
+  const confirmDelGroup = (hash) => {
+    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelGroup, Result: false, Params: { Hash: hash } }))
   }
 
   const acceptGroupRequest = async (hash) => {
@@ -273,7 +279,7 @@ export default function TabGroup() {
                                     <div>
                                       {
                                         group.created_by === Address && <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                          onClick={() => delGroup(group.hash)}>
+                                          onClick={() => confirmDelGroup(group.hash)}>
                                           Delete
                                         </button>}
                                     </div>

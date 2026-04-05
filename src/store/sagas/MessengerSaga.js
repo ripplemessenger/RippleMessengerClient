@@ -1291,6 +1291,10 @@ function* PublishBulletin(action) {
   yield put(setPublishQuoteList([]))
   yield put(setPublishFileList([]))
   yield fork(RefreshPortalBulletin)
+  const bulletin_address = yield select(state => state.Messenger.BulletinAddress)
+  if (bulletin_address === address) {
+    yield fork(LoadAddressBulletin, { payload: { address: address, page: 1 } })
+  }
   yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
 }
 
@@ -1827,7 +1831,7 @@ function* DeleteGroup(action) {
   }
   const address = yield select(state => state.User.Address)
   const group = yield call(() => dbAPI.getGroupByHash(action.payload.hash))
-  if (group !== null && group.created_by === address && group.delete_json === undefined) {
+  if (group !== null && group.created_by === address && group.delete_json === null) {
     let json = yield call(() => mgAPI.genGroupDelete(seed, action.payload.hash))
     let result = yield call(() => dbAPI.updateGroupDelete(action.payload.hash, json))
     if (result > 0) {

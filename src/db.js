@@ -1356,7 +1356,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'UPDATE groups SET delete_json = $1, delete_at = $2 WHERE hash = $3',
+        'UPDATE groups SET delete_json = $1, deleted_at = $2 WHERE hash = $3',
         [JSON.stringify(delete_json), delete_json.Timestamp, hash]
       )
       return true

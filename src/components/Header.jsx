@@ -11,6 +11,7 @@ import NavBarIconLink from './NavBarIconLink.jsx'
 import NavBarIconButton from './NavBarIconButton.jsx'
 import InternalLink from './InternalLink.jsx'
 import AvatarImage from './AvatarImage.jsx'
+import BulletinAvatarLink from './Bulletin/BulletinAvatarLink.jsx'
 
 export default function Header() {
 
@@ -47,7 +48,7 @@ export default function Header() {
           {
             IsAuth &&
             <div className="flex flex-row items-center">
-              <AvatarImage address={Address} timestamp={Date.now()} style={'avatar-sm'} />
+              <BulletinAvatarLink address={Address} timestamp={Date.now()} style={'avatar-sm'} />
               <span>
                 {Address}
               </span>

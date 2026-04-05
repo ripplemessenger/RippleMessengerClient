@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
 import ToggleSwitch from '../../components/ToggleSwitch'
 import TextTimestamp from '../../components/TextTimestamp'
@@ -10,7 +10,7 @@ import AvatarName from '../../components/AvatarName'
 import { IoCloseOutline } from "react-icons/io5"
 import { AiOutlineUserAdd } from "react-icons/ai"
 import { AiOutlineQuestionCircle } from "react-icons/ai"
-import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
+import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
 export default function TabContact() {
   const [contactAddress, setContactAddress] = useState('')
@@ -40,11 +40,19 @@ export default function TabContact() {
     setShowAddContact(false)
   }
 
-  const delContact = async (address) => {
-    dispatch({
-      type: 'ContactDel',
-      payload: { contact_address: address }
-    })
+  const { ConfirmPopup } = useSelector(state => state.Common)
+  useEffect(() => {
+    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.DelContact && ConfirmPopup.Result) {
+      dispatch({
+        type: 'ContactDel',
+        payload: { contact_address: ConfirmPopup.Params.Address }
+      })
+      dispatch(setConfirmPopup(null))
+    }
+  }, [ConfirmPopup])
+
+  const confirmDelContact = (address) => {
+    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelContact, Result: false, Params: { Address: address } }))
   }
 
   const toggleIsFollow = async (address) => {
@@ -145,7 +153,7 @@ export default function TabContact() {
                                 {
                                   contact.is_follow === false && contact.is_friend === false &&
                                   <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                    onClick={() => delContact(contact.address)}>
+                                    onClick={() => confirmDelContact(contact.address)}>
                                     Delete
                                   </button>
                                 }
