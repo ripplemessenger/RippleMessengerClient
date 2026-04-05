@@ -9,6 +9,7 @@ const GenesisAddress = 'rBTC99bat6K8LAMWoxSvBxWw3HtVpSQLAV'
 const GenesisHash = '44F8764BCACFF5424D4044B784549A1B'
 
 const MasterAddress = 'rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS'
+const PostAddress = 'rLondondYY5Tf1T9fcRMP9KDF9ZS2dUHZZ'
 
 const ListItemMax = 16
 const GroupMemberMin = 2
@@ -91,6 +92,7 @@ export {
   GenesisHash,
 
   MasterAddress,
+  PostAddress,
   ListItemMax,
   GroupMemberMin,
   GroupMemberMax,

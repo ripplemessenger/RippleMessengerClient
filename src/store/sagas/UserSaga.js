@@ -1,10 +1,9 @@
 import { call, put, takeLatest, select, delay, fork } from 'redux-saga/effects'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from "../slices/UserSlice"
-import { decryptWithPassword } from '../../lib/AppUtil'
 import { LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadServerList, LoadSessionList, RefreshPortalBulletin, SubscribeFollow } from './MessengerSaga'
 import { SessionType } from '../../lib/AppConst'
 import { setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
-import { MasterAddress } from '../../lib/MessengerConst'
+import { PostAddress } from '../../lib/MessengerConst'
 import { dbAPI } from '../../db'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
 
@@ -25,10 +24,9 @@ function* handleLogin({ payload }) {
 
   const contact_list = yield select(state => state.User.ContactList)
   if (contact_list.length === 0) {
-    yield call(ContactAdd, { payload: { address: MasterAddress, nickname: 'RippleMessenger' } })
-    yield call(ContactToggleIsFollow, { payload: { contact_address: MasterAddress } })
+    yield call(ContactAdd, { payload: { address: PostAddress, nickname: 'London' } })
+    yield call(ContactToggleIsFollow, { payload: { contact_address: PostAddress } })
   }
-  // TODO Bulletin handle batch...
   yield call(LoadServerList)
 }
 
