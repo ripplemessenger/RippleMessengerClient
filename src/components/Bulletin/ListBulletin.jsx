@@ -1,5 +1,4 @@
 import { createSearchParams, useNavigate } from 'react-router-dom'
-import BulletinContent from './BulletinContent'
 import BulletinLink from './BulletinLink'
 import BulletinTools from './BulletinTools'
 import TextTimestamp from '../TextTimestamp'
@@ -8,6 +7,7 @@ import { BulletinContentPreviewSize } from '../../lib/AppConst'
 import { IoAttachSharp } from 'react-icons/io5'
 import { HiHashtag } from 'react-icons/hi2'
 import BulletinAvatarLink from './BulletinAvatarLink'
+import BulletinContentForList from './BulletinContentForList'
 
 const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
@@ -54,9 +54,9 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
       </div>
 
       {bulletin.content.length <= BulletinContentPreviewSize ?
-        <BulletinContent content={bulletin.content} onClick={() => goto_bulletin()} />
+        <BulletinContentForList content={bulletin.content} onClick={() => goto_bulletin()} />
         :
-        <BulletinContent content={bulletin.content.slice(0, BulletinContentPreviewSize)} onClick={() => goto_bulletin()} />
+        <BulletinContentForList content={bulletin.content.slice(0, BulletinContentPreviewSize)} onClick={() => goto_bulletin()} />
       }
     </div>
   )
