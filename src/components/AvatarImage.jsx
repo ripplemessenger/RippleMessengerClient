@@ -36,7 +36,7 @@ const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
   }, [address, timestamp])
 
   return (
-    <div key={timestamp} onClick={onClick} >
+    <div key={timestamp} onClick={onClick} className='flex-shrink-0'>
       {
         avatarImage ?
           <img

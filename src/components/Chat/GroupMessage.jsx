@@ -12,12 +12,14 @@ const GroupMessage = ({ message }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { Address } = useSelector(state => state.User)
-  // console.log(message)
+
+  const isSlef = message.address === Address
+
   return (
-    <div className={`flex ${message.address !== Address ? 'mr-auto flex-row' : 'ml-auto flex-row-reverse'}`}>
+    <div className={`flex ${isSlef ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}>
       <AvatarImage address={message.address} timestamp={Date.now()} style={'avatar-sm'} />
 
-      <div className={`flex flex-col ${message.address !== Address ? 'items-start' : 'items-end'}`}>
+      <div className={`flex flex-col ${isSlef ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div className={`flex flex-row justify-between`}>
           <div className={`rounded-full px-1 border border-gray-400 shrink-0`} onClick={() => { dispatch(setDisplayJson({ json: message.json, isExpand: true })) }}>
             <span className={`text-xs text-gray-500 dark:text-slate-200 text-left`}>
@@ -27,12 +29,12 @@ const GroupMessage = ({ message }) => {
           <TextTimestamp timestamp={message.signed_at} textSize={'text-xs'} />
         </div>
 
-        <div className={`${message.address !== Address ? 'mr-auto' : 'ml-auto'}`}>
+        <div className={`${isSlef ? 'rounded-tr-none' : 'rounded-tl-none'} max-w-full`}>
           {
             message.is_object === false &&
-            <span className={`w-full text-base text-slate-800 dark:text-slate-200`} >
+            <pre className="chat-content-pop whitespace-pre-wrap break-words text-base leading-relaxed m-0">
               {message.content}
-            </span>
+            </pre>
           }
           {
             message.is_object === true && message.content.ObjectType === MessageObjectType.Bulletin &&
@@ -44,7 +46,7 @@ const GroupMessage = ({ message }) => {
           }
         </div>
       </div>
-    </div>
+    </div >
   )
 }
 

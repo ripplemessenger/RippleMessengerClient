@@ -1450,6 +1450,7 @@ export function* LoadSessionList() {
       session_list.push({ type: SessionType.Group, hash: group.hash, name: group.name, member: member, new_msg_count: new_msg_count, updated_at: last_msg_signed_at })
     }
   }
+  session_list = [...session_list].sort((a, b) => b.updated_at - a.updated_at)
   yield put(setSessionList(session_list))
 }
 
