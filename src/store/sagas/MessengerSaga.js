@@ -14,7 +14,15 @@ import { calcTotalPage, DHSequence, PrivateFileEHash, FileHash, genNonce, GroupF
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { dbAPI } from '../../db'
 import { createMultiWsChannel, globalWsChannel, sendToAllConn, sendToFirstConn, sendToSingleConn } from '../../lib/WebsocketUtil'
+import { invoke } from '@tauri-apps/api/core';
 
+
+async function notifyNewMessage() {
+  await invoke('start_message_flash')
+  setTimeout(() => {
+    invoke('stop_message_flash')
+  }, 10000)
+}
 // server
 function* WebsocketListener() {
   const channel = globalWsChannel
@@ -564,6 +572,7 @@ function* WebsocketListener() {
                           yield call(RefreshPrivateMessageList)
                         }
                         yield call(LoadSessionList)
+                        yield call(invoke, 'start_message_flash')
                       }
                     }
                   }
@@ -690,6 +699,7 @@ function* WebsocketListener() {
                             yield call(RefreshGroupMessageList)
                           }
                           yield call(LoadSessionList)
+                          yield call(invoke, 'start_message_flash')
                         }
                       }
                     } else {
