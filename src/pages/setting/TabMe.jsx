@@ -90,12 +90,12 @@ export default function TabMe() {
         </div>
         <div className="min-w-full p-2 flex flex-col rounded-lg shadow-xl justify-center">
           <div className="justify-center flex flex-col">
-            <span className={`lable`} >
+            <span className={`label`} >
               Avatar:
             </span>
             {
               Address &&
-              <AvatarImage address={Address} timestamp={imageTimestamp} onClick={() => browseAvatarSource()} style={'avatar'} />
+              <AvatarImage address={Address} timestamp={imageTimestamp} onClick={() => browseAvatarSource()} classNames={'avatar'} />
             }
           </div>
           <TextInput label={'Nick Name:'} value={displayNickname} autoComplete={"off"} placeholder={"Alice"} onChange={(e) => updateNickname(e.target.value)} />

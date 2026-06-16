@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
@@ -24,23 +24,23 @@ const JsonDiv = ({ json }) => {
   }
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-      <div className="flex flex-row items-center justify-center">
+    <div className={`modal-overlay`}>
+      <div className="modal-action-row">
         {
           copied ?
-            <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => copyText(JSON.stringify(json))} className="modal-btn-yellow">
               <IoCheckmarkOutline />copied
             </button>
             :
-            <button onClick={() => copyText(JSON.stringify(json))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+            <button onClick={() => copyText(JSON.stringify(json))} className="modal-btn-yellow">
               <IoCopyOutline /> copy
             </button>
         }
-        <button onClick={() => dispatch(setDisplayJson({ json: null, isExpand: false }))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <button onClick={() => dispatch(setDisplayJson({ json: null, isExpand: false }))} className="modal-btn-green">
           <IoCloseOutline /> close
         </button>
       </div>
-      <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
+      <div className="modal-content-wrapper">
         <JsonView data={json} shouldExpandNode={DisplayJsonOption ? allExpanded : collapseAllNested} style={theme === 'dark' ? darkStyles : defaultStyles} />
       </div>
     </div>

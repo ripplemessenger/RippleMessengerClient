@@ -98,7 +98,7 @@ export default function ChatHomePage() {
             {
               CurrentSession.type === SessionType.Private &&
               <div className='flex flex-col h-full' >
-                <div className="card-title row-center-middle" key={CurrentSession.remote} >
+                <div className="card-title flex flex-row items-center" key={CurrentSession.remote} >
                   <AvatarName address={CurrentSession.remote} />
                 </div>
 
@@ -145,7 +145,7 @@ export default function ChatHomePage() {
             {
               CurrentSession.type === SessionType.Group &&
               <div className='flex flex-col h-full' >
-                <div className="card-title row-center-middle" title={CurrentSession.hash}>
+                <div className="card-title flex flex-row items-center" title={CurrentSession.hash}>
                   <GrGroup className="session-icon" /><SessionName name={CurrentSession.name} />
                 </div>
 

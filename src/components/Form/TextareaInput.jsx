@@ -1,7 +1,7 @@
 const TextareaInput = ({ label, placeholder, value, onChange, disabled = false }) => {
   return (
     <div className="justify-center flex flex-col">
-      <span className={`lable`}>
+      <span className={`label`}>
         {label}
       </span>
       <textarea

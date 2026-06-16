@@ -104,7 +104,7 @@ export default function TabMessengerNetwork() {
       }
 
       <div className="mx-auto flex flex-col mt-4">
-        <div className="card-title row-center-middle">
+        <div className="card-title flex flex-row items-center">
           {SettingPageTab.MessengerNetwork}
           <TbCloudNetwork className="card-icon" onClick={() => setShowAddServer(true)} />
         </div>

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
-const AvatarName = ({ address, style = '', short_flag = false }) => {
+const AvatarName = ({ address, classNames = '', short_flag = false }) => {
   const [nickname, setNickname] = useState(address)
   const [contactFlag, setContactFlag] = useState(false)
   const { Address, ContactMap } = useSelector(state => state.User)
@@ -26,11 +26,11 @@ const AvatarName = ({ address, style = '', short_flag = false }) => {
     <div>
       {
         contactFlag ?
-          <span className={`avatar-name ${style}`} title={address}>
+          <span className={`avatar-name ${classNames}`} title={address}>
             {nickname}
           </span>
           :
-          <span className={`plain-address ${style}`} title={address}>
+          <span className={`plain-address ${classNames}`} title={address}>
             {nickname}
           </span>
       }

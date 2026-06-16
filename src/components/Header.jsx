@@ -48,7 +48,7 @@ export default function Header() {
           {
             IsAuth &&
             <div className="flex flex-row items-center">
-              <BulletinAvatarLink address={Address} timestamp={Date.now()} style={'avatar-sm'} />
+              <BulletinAvatarLink address={Address} timestamp={Date.now()} classNames={'avatar-sm'} />
               <span>
                 {Address}
               </span>

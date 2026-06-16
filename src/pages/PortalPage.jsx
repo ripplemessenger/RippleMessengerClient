@@ -41,7 +41,7 @@ export default function PortalPage() {
       }
       <div className="tab-page">
         <div className="mx-auto flex flex-col mt-4">
-          <div className="card-title row-center-middle">
+          <div className="card-title flex flex-row items-center">
             Portal
             <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
             <SlUserFollowing className="card-icon" onClick={() => navigate('/bulletin_follow')} />

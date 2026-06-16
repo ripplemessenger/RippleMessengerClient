@@ -145,7 +145,7 @@ export function sendToFirstConn(server_list, payload) {
     const server = server_list[i]
     const entry = manager.channels.get(server.url)
     if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
-      console.warn(`[WS] Send failed: ${key} not open`)
+      console.warn(`[WS] Send failed: ${server.url} not open`)
       continue
     }
 

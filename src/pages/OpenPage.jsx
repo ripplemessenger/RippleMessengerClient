@@ -161,7 +161,7 @@ export default function OpenPage() {
             </button>
           </div>
           <div className="space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title row-center-middle">
+            <div className="card-title flex flex-row items-center">
               Generate
             </div>
             <div className="flex flex-col justify-center">
@@ -191,7 +191,7 @@ export default function OpenPage() {
             </button>
           </div>
           <div className="space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title row-center-middle">
+            <div className="card-title flex flex-row items-center">
               Tmp Open
             </div>
             {
@@ -225,7 +225,7 @@ export default function OpenPage() {
             </button>
           </div>
           <div className="space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title row-center-middle">
+            <div className="card-title flex flex-row items-center">
               Add Account
             </div>
             <div className={`mt-1`}>
@@ -251,7 +251,7 @@ export default function OpenPage() {
       <div className="w-full overflow-y-auto text-gray-800 dark:text-gray-200 transition-width duration-300 ease-in-out"
       >
         <div className="tab-page">
-          <div className="card-title row-center-middle">
+          <div className="card-title flex flex-row items-center">
             Open Account
             <AiOutlineUserAdd className="card-icon" onClick={() => setShowAdd(true)} />
             <BsIncognito className="card-icon" onClick={() => setShowTmp(true)} />

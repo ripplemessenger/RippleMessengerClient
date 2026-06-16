@@ -1,6 +1,7 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { MasterAddress } from '../lib/MessengerConst';
+import markdownListComponents from '../components/MarkdownListCustom';
 
 export default function AboutPage() {
   const content = `
@@ -31,35 +32,7 @@ ${MasterAddress}
             h3: ({ node, ...props }) => (
               <h3 className="text-xl font-semibold my-3" {...props} />
             ),
-            ul({ depth, ordered, className, children, ...props }) {
-              return (
-                <ul
-                  className={`list-disc pl-6 ${className}`}
-                  style={{ paddingLeft: depth * 20 + 'px' }}
-                  {...props}
-                >
-                  {children}
-                </ul>
-              );
-            },
-            ol({ depth, ordered, className, children, ...props }) {
-              return (
-                <ol
-                  className={`list-decimal pl-6 ${className}`}
-                  style={{ paddingLeft: depth * 20 + 'px' }}
-                  {...props}
-                >
-                  {children}
-                </ol>
-              );
-            },
-            li({ className, children, ...props }) {
-              return (
-                <li className={`mb-2 ${className}`} {...props}>
-                  {children}
-                </li>
-              );
-            }
+            ...markdownListComponents
           }}
         >
           {content}

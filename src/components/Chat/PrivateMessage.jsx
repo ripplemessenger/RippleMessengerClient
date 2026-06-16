@@ -17,7 +17,7 @@ const PrivateMessage = ({ message }) => {
 
   return (
     <div className={`flex ${isSlef ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}>
-      <AvatarImage address={message.sour} timestamp={Date.now()} style={'avatar-sm'} />
+      <AvatarImage address={message.sour} timestamp={Date.now()} classNames={'avatar-sm'} />
 
       <div className={`flex flex-col ${isSlef ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div className={`flex flex-row justify-between`}>

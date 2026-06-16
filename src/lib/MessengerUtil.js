@@ -16,22 +16,6 @@ function AddressToName(address_map, address) {
   }
 }
 
-//input encode:'utf-8', 'ascii', 'binary'
-//output encode:'hex', 'binary', 'base64'
-var encrypt = function (key, iv, data) {
-  var cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
-  var crypted = cipher.update(data, 'utf8', 'base64')
-  crypted += cipher.final('base64')
-  return crypted
-}
-
-var decrypt = function (key, iv, crypted) {
-  var decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
-  var decoded = decipher.update(crypted, 'base64', 'utf8')
-  decoded += decipher.final('utf8')
-  return decoded
-}
-
 function FileHash(buffer) {
   const wordArray = CryptoJS.lib.WordArray.create(buffer)
   const hash = QuarterSHA512WordArray(wordArray)
@@ -167,7 +151,7 @@ function getMemberByIndex(members, index) {
 function bulletin2Display(bulletin) {
   bulletin.json = JSON.parse(bulletin.json)
   bulletin.content = bulletin.json.Content
-  bulletin.is_marked = JSON.parse(bulletin.is_marked)
+  bulletin.is_marked = Int2Bool(bulletin.is_marked)
   bulletin.tag = []
   bulletin.file = []
   bulletin.quote = []
@@ -213,8 +197,6 @@ export {
   FileHash,
   PrivateFileEHash,
   GroupFileEHash,
-  encrypt,
-  decrypt,
 
   Sign,
   VerifyJsonSignature,

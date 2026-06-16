@@ -72,22 +72,22 @@ const BulletinPublish = ({ }) => {
   }
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-      <div className="flex flex-row items-center justify-center">
-        <button onClick={() => browseFile()} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+    <div className={`modal-overlay`}>
+      <div className="modal-action-row">
+        <button onClick={() => browseFile()} className="modal-btn-yellow">
           <IoAttachSharp className='icon' />file
         </button>
-        <button onClick={() => publish()} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <button onClick={() => publish()} className="modal-btn-green">
           <MdPublish className='icon' /> publish
         </button>
-        <button onClick={() => dispatch(setPublishFlag(false))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <button onClick={() => dispatch(setPublishFlag(false))} className="modal-btn-gray">
           <IoCloseOutline className='icon' /> cancel
         </button>
       </div>
-      <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
-        <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
+      <div className="modal-content-wrapper">
+        <div className="form-card-container-gap">
           <div className={`mt-1 flex flex-col flex-1 p-2`}>
-            <span className={`lable`}>
+            <span className={`label`}>
               {`Bulletin#${CurrentBulletinSequence + 1}:`}
             </span>
             <textarea type={"text"}

@@ -176,7 +176,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             start_message_flash,
-            stop_message_flash
+            stop_message_flash,
+            refresh_tray_menu
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -28,7 +28,7 @@ export default function BulletinRandomPage() {
       }
       <div className="tab-page">
         <div className="mx-auto flex flex-col mt-4">
-          <div className="card-title row-center-middle">
+          <div className="card-title flex flex-row items-center">
             Random
             <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} />
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import AvatarImage from './AvatarImage'
 
 const AvatarSelector = ({ avatars = [], defaultIndex = 0, onSelect }) => {
@@ -143,8 +143,7 @@ const AvatarSelector = ({ avatars = [], defaultIndex = 0, onSelect }) => {
       <div className="max-w-6xl mx-auto">
         <div
           ref={containerRef}
-          className="relative flex items-center justify-center w-full"
-          style={{ perspective: '1500px', perspectiveOrigin: 'center center', }}
+          className="relative flex items-center justify-center w-full perspective-3d"
         >
           {avatars.map((id, index) => {
             const isSelected = index === selectedIndex
@@ -157,7 +156,7 @@ const AvatarSelector = ({ avatars = [], defaultIndex = 0, onSelect }) => {
                 onClick={() => handleAvatarClick(index)}
                 className="cursor-pointer"
               >
-                <AvatarImage address={id.value} timestamp={Date.now()} style={`avatar object-cover rounded-xl shadow-lg transition-all duration-300 ${isSelected ? 'ring-4 ring-green-400 shadow-green-500/50' : ''}`} />
+                <AvatarImage address={id.value} timestamp={Date.now()} classNames={`avatar object-cover rounded-xl shadow-lg transition-all duration-300 ${isSelected ? 'ring-4 ring-green-400 shadow-green-500/50' : ''}`} />
               </div>
             )
           })}

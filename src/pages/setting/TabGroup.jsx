@@ -103,7 +103,7 @@ export default function TabGroup() {
                     {
                       ComposeMemberList.map((member, index) => (
                         <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeMember(member)}>
-                          <AvatarImage address={member} timestamp={Date.now()} style={'avatar'} />
+                          <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar'} />
                           <AvatarName address={member} />
                         </div>
                       ))
@@ -121,7 +121,7 @@ export default function TabGroup() {
                     {
                       ContactList.map((contact, index) => (
                         <div key={contact.address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeMember(contact.address)}>
-                          <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar-sm'} />
+                          <AvatarImage address={contact.address} timestamp={Date.now()} classNames={'avatar-sm'} />
                           <div>
                             <span className='avatar-name text-xs' title={contact.address}>
                               {contact.nickname}
@@ -176,7 +176,7 @@ export default function TabGroup() {
                           </td>
                           <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
                             <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                              <AvatarImage address={request.created_by} timestamp={Date.now()} style={'avatar'} />
+                              <AvatarImage address={request.created_by} timestamp={Date.now()} classNames={'avatar'} />
                               <AvatarName address={request.created_by} />
                             </div>
                           </td>
@@ -185,8 +185,8 @@ export default function TabGroup() {
                               {
                                 request.member.map((member, index) => (
                                   <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                    <AvatarImage address={member} timestamp={Date.now()} style={'avatar-sm'} />
-                                    <AvatarName address={member} style={'text-xs'} />
+                                    <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar-sm'} />
+                                    <AvatarName address={member} classNames={'text-xs'} />
                                   </div>
                                 ))
                               }
@@ -216,7 +216,7 @@ export default function TabGroup() {
       }
 
       <div className="mx-auto flex flex-col mt-4">
-        <div className="card-title row-center-middle">
+        <div className="card-title flex flex-row items-center">
           {SettingPageTab.Group}
           <GrGroup className="card-icon" onClick={() => setShowCreateGroup(true)} />
           <MdOutlineVerifiedUser className="card-icon" onClick={() => setShowRequest(true)} />
@@ -250,7 +250,7 @@ export default function TabGroup() {
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={group.created_by}>
                                 <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                                  <AvatarImage address={group.created_by} timestamp={Date.now()} style={'avatar'} />
+                                  <AvatarImage address={group.created_by} timestamp={Date.now()} classNames={'avatar'} />
                                   <AvatarName address={group.created_by} />
                                 </div>
                               </td>
@@ -259,8 +259,8 @@ export default function TabGroup() {
                                   {
                                     group.member.map((member, index) => (
                                       <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                        <AvatarImage address={member} timestamp={Date.now()} style={'avatar-sm'} />
-                                        <AvatarName address={member} style={'text-xs'} />
+                                        <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar-sm'} />
+                                        <AvatarName address={member} classNames={'text-xs'} />
                                       </div>
                                     ))
                                   }

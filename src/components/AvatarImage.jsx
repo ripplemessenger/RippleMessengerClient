@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { RxAvatar } from "react-icons/rx"
 import { readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { AvatarDir } from '../lib/AppConst'
 
-const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
+const AvatarImage = ({ address, timestamp = Date.now(), onClick, classNames }) => {
   const { AppBaseDir } = useSelector(state => state.Common)
   const [avatarImage, setAvatarImage] = useState(null)
 
@@ -42,10 +42,10 @@ const AvatarImage = ({ address, timestamp = Date.now(), onClick, style }) => {
           <img
             src={avatarImage}
             alt={address}
-            className={`${style}`}
+            className={`${classNames}`}
           />
           :
-          <RxAvatar className={`${style}`} />
+          <RxAvatar className={`${classNames}`} />
       }
     </div>
   )

@@ -9,7 +9,7 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
     dispatch({ type: dispatch_type, payload: tmp })
   }
   return (
-    <div className='row-center-middle'>
+    <div className='flex flex-row items-center'>
       {pages.map((page) => (
         <div key={page.toString()} className={`${page == current_page ? 'current-page' : 'page'}`} onClick={() => goto_page(page)}>
           {page}

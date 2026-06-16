@@ -51,7 +51,7 @@ export default function ServerAddressPage() {
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={account.Address}>
                                 <div className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                  <BulletinAvatarLink address={account.Address} timestamp={Date.now()} style={'avatar'} />
+                                  <BulletinAvatarLink address={account.Address} timestamp={Date.now()} classNames={'avatar'} />
                                   <AvatarName address={account.Address} />
                                 </div>
                               </td>

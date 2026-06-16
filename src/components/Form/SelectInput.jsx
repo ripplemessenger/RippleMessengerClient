@@ -1,7 +1,7 @@
 const SelectInput = ({ label, options, selectdOption, onChange, disabled }) => {
   return (
     <div className="justify-center flex flex-col">
-      <span className={`lable`}>
+      <span className={`label`}>
         {label}
       </span>
       <select

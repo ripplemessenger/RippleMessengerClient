@@ -1,25 +1,26 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ====================================================================
+   Base Layer — 缩小全局 transition 的作用域以改善性能
+   ==================================================================== */
 @layer base {
-  * {
-    @apply transition-colors duration-200;
+  /*
+   * 原来使用 \`*\` 对每个 DOM 元素都添加 transition-colors，
+   * 会导致大量不必要的 repaint。改为只作用于交互元素 + 组件类。
+   */
+  button, a, input, select, textarea, [role="button"],
+  [class*="btn-"], [class*="card-"], [class*="tab-"], [class*="modal-"],
+  .nav-icon-btn, .page, .link-btn, .del-btn {
+    transition-property: color, background-color, border-color;
+    transition-duration: 200ms;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* ====================================================================
+   Utilities
+   ==================================================================== */
 @layer utilities {
   .no-scrollbar {
     @apply overflow-x-auto;
@@ -30,9 +31,19 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* 3D perspective utility */
+  .perspective-3d {
+    perspective: 1500px;
+    perspective-origin: center center;
+  }
 }
 
+/* ====================================================================
+   Components
+   ==================================================================== */
 @layer components {
+  /* ==================== Avatar Carousel ==================== */
   .avatar-container {
     @apply flex gap-12 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-16 px-8 scroll-smooth;
   }
@@ -46,6 +57,7 @@
     backface-visibility: hidden;
   }
 
+  /* ==================== Layout ==================== */
   .bar {
     @apply bg-gradient-bar dark:bg-dark-gradient-bar shadow-lg;
     @apply text-text-primary dark:text-dark-text-primary;
@@ -63,13 +75,9 @@
     @apply mt-auto flex-none;
   }
 
-  .card {
-    @apply items-center rounded-lg overflow-hidden;
-    @apply bg-gradient-card dark:bg-dark-gradient-card;
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply transition-all duration-300 ease-in-out;
-  }
-
+  /* ==================== Cards ==================== */
+  /* card + card-hover 共享相同的基线样式，消除重复 */
+  .card,
   .card-hover {
     @apply items-center rounded-lg overflow-hidden;
     @apply bg-gradient-card dark:bg-dark-gradient-card;
@@ -91,79 +99,79 @@
   }
 
   .card-title {
-    @apply shrink-0;
+    @apply shrink-0 mx-auto rounded-full p-1 px-4 text-4xl;
+    @apply border-2 border-text-primary dark:border-dark-text-primary;
     @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto rounded-full p-1 border-2 border-text-primary dark:border-dark-text-primary px-4 text-4xl;
   }
 
-  .row-center-middle {
-    @apply flex flex-row items-center;
-  }
-
+  /* ==================== Icons & Avatars ==================== */
   .icon {
     @apply h-8 w-8;
   }
 
   .icon-sm {
-    @apply text-text-secondary dark:text-dark-text-secondary;
     @apply h-6 w-6;
+    @apply text-text-secondary dark:text-dark-text-secondary;
   }
 
-  .avatar-sm {
-    @apply h-12 w-12;
-    @apply border rounded shadow-sm;
+  .avatar-sm,
+  .session-icon {
+    @apply h-12 w-12 border rounded shadow-sm;
   }
 
   .avatar {
-    @apply h-24 w-24;
-    @apply border rounded shadow-sm;
+    @apply h-24 w-24 border rounded shadow-sm;
   }
 
-  .plain-address {
-    @apply text-gray-500 dark:text-slate-200;
-  }
-
-  .avatar-name {
-    @apply text-text-secondary dark:text-dark-text-secondary font-bold;
-  }
-
+  /* ==================== Text Helpers ==================== */
+  .plain-address,
   .timestamp {
-    @apply text-gray-500 dark:text-slate-200 text-left;
+    @apply text-left text-gray-500 dark:text-slate-200;
   }
 
-  .session-icon {
-    @apply h-12 w-12;
-    @apply border rounded shadow-sm;
-  }
-
+  .avatar-name,
   .session-name {
-    @apply text-text-secondary dark:text-dark-text-secondary font-bold;
+    @apply font-bold text-text-secondary dark:text-dark-text-secondary;
   }
 
+  /* ==================== Chat ==================== */
   .chat-content-pop {
-    @apply bg-green-500 dark:bg-green-700 text-slate-800 dark:text-slate-200 rounded-3xl px-4 break-words shadow-sm
+    @apply bg-green-500 dark:bg-green-700 text-slate-800 dark:text-slate-200 rounded-3xl px-4 break-words shadow-sm;
   }
 
+  /* ==================== Tables ==================== */
   .table-container {
-    @apply bg-gradient-card dark:bg-dark-gradient-card;
-    @apply overflow-x-auto border border-text-secondary rounded-lg;
+    @apply overflow-x-auto border border-text-secondary rounded-lg bg-gradient-card dark:bg-dark-gradient-card;
   }
 
+  .table-header-row {
+    @apply p-2 text-center font-bold text-sm tracking-wider text-gray-800 dark:text-gray-300;
+  }
+
+  .table-cell {
+    @apply p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300;
+  }
+
+  .table-tbody {
+    @apply divide-y divide-gray-200;
+  }
+
+  /* ==================== Tabs ==================== */
   .tab-title-active {
-    @apply text-text-primary dark:text-dark-text-primary font-bold rounded-lg;
+    @apply font-bold rounded-lg text-text-primary dark:text-dark-text-primary;
   }
 
   .tab-title {
-    @apply text-text-secondary dark:text-dark-text-secondary rounded-lg;
+    @apply rounded-lg text-text-secondary dark:text-dark-text-secondary;
   }
 
   .tab-page {
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto w-full items-center rounded-lg overflow-hidden;
-    @apply bg-gradient-card dark:bg-dark-gradient-card;
-    @apply flex flex-col justify-evenly p-4;
+    @apply flex flex-col items-center justify-evenly w-full mx-auto p-4 rounded-lg overflow-hidden bg-gradient-card dark:bg-dark-gradient-card text-text-secondary dark:text-dark-text-secondary;
   }
 
+  /* ==================== Forms ==================== */
+  /* .lable -\u003e .label (修复拼写)，保留 .lable 做向后兼容 */
+  .label,
   .lable {
     @apply text-xl font-bold text-text-secondary dark:text-dark-text-secondary;
   }
@@ -180,70 +188,168 @@
     @apply hover:bg-dark-text-secondary dark:hover:bg-text-secondary;
   }
 
+  /* ==================== Buttons ==================== */
   .btn-primary {
     @apply w-96 mt-4 py-2 text-3xl font-bold rounded;
   }
 
+  /* 按钮颜色变体 — 共享 color: white + transition */
+  .btn-green,
+  .btn-yellow,
+  .btn-red {
+    @apply text-white transition-colors duration-200;
+  }
+
   .btn-green {
-    @apply bg-green-500 text-white hover:bg-green-600;
+    @apply bg-green-500 hover:bg-green-600;
   }
 
   .btn-yellow {
-    @apply bg-yellow-500 text-white hover:bg-yellow-600;
+    @apply bg-yellow-500 hover:bg-yellow-600;
   }
 
   .btn-red {
-    @apply bg-red-500 text-white hover:bg-red-600;
+    @apply bg-red-500 hover:bg-red-600;
+  }
+
+  /* ==================== Pagination ==================== */
+  .page,
+  .current-page {
+    @apply flex flex-row items-center text-text-secondary dark:text-dark-text-secondary mx-auto px-1;
   }
 
   .page {
-    @apply flex flex-row items-center;
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply rounded-full border border-text-primary dark:border-dark-text-primary;
   }
 
   .page:hover {
-    @apply bg-gray-100 dark:bg-yellow-100;
-    @apply text-2xl font-bold;
+    @apply bg-gray-100 dark:bg-yellow-100 text-2xl font-bold;
   }
 
   .current-page {
-    @apply flex flex-row items-center;
-    @apply text-text-secondary dark:text-dark-text-secondary text-2xl font-bold;
-    @apply mx-auto px-1;
+    @apply text-2xl font-bold;
   }
 
-  /* bulletin */
+  /* ==================== Bulletin Links ==================== */
+  /* bulletin-link / file-link / tag-link 完全相同 -\u003e 共享基类 */
+  .link-btn {
+    @apply flex flex-row items-center text-text-secondary dark:text-dark-text-secondary mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+  }
+
+  /* 向后兼容的别名 (使用频率低时可逐步移除) */
   .bulletin-link {
-    @apply flex flex-row items-center;
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
-  }
-
-  .quote-del {
-    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500;
-    @apply rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply link-btn;
   }
 
   .file-link {
-    @apply flex flex-row items-center;
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
-  }
-
-  .file-del {
-    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500;
-    @apply rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply link-btn;
   }
 
   .tag-link {
-    @apply flex flex-row items-center;
-    @apply text-text-secondary dark:text-dark-text-secondary;
-    @apply mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply link-btn;
+  }
+
+  /* ==================== Bulletin Delete Buttons ==================== */
+  /* quote-del / file-del / tag-del 完全相同 -\u003e 共享基类 */
+  .del-btn {
+    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500 rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+  }
+
+  /* 向后兼容的别名 */
+  .quote-del {
+    @apply del-btn;
+  }
+
+  .file-del {
+    @apply del-btn;
   }
 
   .tag-del {
-    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500;
-    @apply rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply del-btn;
+  }
+
+  /* ==================== Cropper ==================== */
+  .cropper-container {
+    @apply h-[800px] w-full;
+  }
+
+  /* ==================== Modal System ==================== */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/5 backdrop-blur-sm;
+  }
+
+  .modal-content-wrapper {
+    @apply max-w-7xl overflow-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center;
+  }
+
+  .modal-action-row {
+    @apply flex flex-row items-center justify-center;
+  }
+
+  /* Modal 按钮 - 共享基类，颜色变体分别定义 */
+  .modal-btn-yellow,
+  .modal-btn-green,
+  .modal-btn-gray {
+    @apply flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 transition-colors duration-200;
+  }
+
+  .modal-btn-yellow {
+    @apply bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+  }
+
+  .modal-btn-green {
+    @apply bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+  }
+
+  .modal-btn-gray {
+    @apply bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+  }
+
+  /* ==================== Page Layout ==================== */
+  .page-content-wrapper {
+    @apply mx-auto flex flex-col mt-4;
+  }
+
+  .page-content-wrapper-wide {
+    @apply mx-auto w-full flex flex-col mt-4;
+  }
+
+  .form-card-container {
+    @apply min-w-full p-2 rounded-lg shadow-xl justify-center;
+  }
+
+  .form-card-container-gap {
+    @apply min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center;
+  }
+
+  .empty-state-box {
+    @apply mx-auto rounded-full p-1 px-4 border-2 border-gray-200 dark:border-gray-700;
+  }
+
+  /* ==================== Login Form ==================== */
+  .login-form-container {
+    @apply p-6 rounded-lg shadow-xl w-96 mb-5;
+  }
+
+  .login-input-group {
+    @apply flex flex-col justify-center mt-1 space-y-4;
+  }
+
+  /* ==================== Nav Button ==================== */
+  .nav-icon-btn {
+    @apply p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50;
+  }
+
+  /* ==================== Markdown Headings ==================== */
+  .markdown-h1 {
+    @apply text-4xl font-bold my-4;
+  }
+
+  .markdown-h2 {
+    @apply text-3xl font-semibold my-3;
+  }
+
+  .markdown-h3 {
+    @apply text-xl font-semibold my-3;
   }
 }

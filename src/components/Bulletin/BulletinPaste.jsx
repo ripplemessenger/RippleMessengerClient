@@ -60,7 +60,7 @@ const BulletinPaste = ({ }) => {
             />
             {
               tmpError !== '' &&
-              <span className={`lable`}>
+              <span className={`label`}>
                 {tmpError}
               </span>
             }

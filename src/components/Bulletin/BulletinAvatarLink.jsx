@@ -1,9 +1,9 @@
-import { useDispatch } from 'react-redux'
+﻿import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import AvatarImage from '../AvatarImage'
 import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 
-const BulletinAvatarLink = ({ address, timestamp, style }) => {
+const BulletinAvatarLink = ({ address, timestamp, classNames }) => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -14,7 +14,7 @@ const BulletinAvatarLink = ({ address, timestamp, style }) => {
   }
 
   return (
-    <AvatarImage address={address} timestamp={timestamp} style={style} onClick={() => goto_address(address)} />
+    <AvatarImage address={address} timestamp={timestamp} classNames={classNames} onClick={() => goto_address(address)} />
   )
 }
 

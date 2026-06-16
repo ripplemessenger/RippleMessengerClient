@@ -17,7 +17,7 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
       <div className={`overflow-hidden border border-white shadow ${size}`}>
         {
           session_type === SessionType.Private &&
-          <AvatarImage address={address} timestamp={Date.now()} style={'avatar-sm'} />
+          <AvatarImage address={address} timestamp={Date.now()} classNames={'avatar-sm'} />
         }
          {
           session_type === SessionType.Group &&

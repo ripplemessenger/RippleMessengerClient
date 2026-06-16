@@ -3,7 +3,7 @@ const TextInput = ({ label, type = "text", placeholder, autoComplete = "on", val
   // const id = `${label}`
   return (
     <div className="justify-center flex flex-col">
-      <span className={`lable`} htmlFor={id}>
+      <span className={`label`} htmlFor={id}>
         {label}
       </span>
       <input type={type}

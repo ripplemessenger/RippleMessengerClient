@@ -707,9 +707,10 @@ export const dbAPI = {
       return []
     }
 
+    const sortDirection = (order && order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
     const dbInstance = await getDB()
     const placeholders = addresses.map(() => '?').join(', ');
-    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at ${order} LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
+    const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at ${sortDirection} LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     let bulletins = await dbInstance.select(query, addresses)
     for (let i = 0; i < bulletins.length; i++) {
       const bulletin = bulletins[i]
@@ -1132,7 +1133,7 @@ export const dbAPI = {
     try {
       const dbInstance = await getDB()
       await dbInstance.execute(
-        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        'INSERT INTO handshakes (self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json, pair_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
         [self_address, pair_address, partition, sequence, aes_key, private_key, public_key, JSON.stringify(self_json), JSON.stringify(pair_json)]
       )
       return true

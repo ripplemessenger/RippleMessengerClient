@@ -13,6 +13,7 @@ import { BsMarkdown, BsFiletypeTxt } from "react-icons/bs"
 import TagLink from './TagLink'
 import BulletinFileViewer from './BulletinFileViewer'
 import BulletinAvatarLink from './BulletinAvatarLink'
+import markdownListComponents from '../../components/MarkdownListCustom'
 
 const BulletinViewer = ({ bulletin }) => {
 
@@ -22,7 +23,7 @@ const BulletinViewer = ({ bulletin }) => {
     <div className={`flex flex-row mx-2 mt-2`}>
       <div className={` flex flex-col items-center pt-3`}>
         <div className='items-center flex flex-row justify-center'>
-          <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} style={'avatar'} />
+          <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} classNames={'avatar'} />
         </div>
         <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} timestamp={Date.now()} />
         <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
@@ -67,35 +68,7 @@ const BulletinViewer = ({ bulletin }) => {
                   h3: ({ node, ...props }) => (
                     <h3 className="text-xl font-semibold my-3" {...props} />
                   ),
-                  ul({ depth, ordered, className, children, ...props }) {
-                    return (
-                      <ul
-                        className={`list-disc pl-6 ${className}`}
-                        style={{ paddingLeft: depth * 20 + 'px' }}
-                        {...props}
-                      >
-                        {children}
-                      </ul>
-                    );
-                  },
-                  ol({ depth, ordered, className, children, ...props }) {
-                    return (
-                      <ol
-                        className={`list-decimal pl-6 ${className}`}
-                        style={{ paddingLeft: depth * 20 + 'px' }}
-                        {...props}
-                      >
-                        {children}
-                      </ol>
-                    );
-                  },
-                  li({ className, children, ...props }) {
-                    return (
-                      <li className={`mb-2 ${className}`} {...props}>
-                        {children}
-                      </li>
-                    );
-                  }
+                  ...markdownListComponents
                 }}
               >
                 {bulletin.content}

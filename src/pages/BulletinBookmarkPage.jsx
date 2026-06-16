@@ -19,7 +19,7 @@ export default function BookmarkAddressPage() {
     <div className="flex justify-center items-center">
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
-          <div className="card-title  row-center-middle">
+          <div className="card-title  flex flex-row items-center">
             Bookmark
           </div>
 

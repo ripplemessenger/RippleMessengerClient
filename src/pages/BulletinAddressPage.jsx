@@ -32,7 +32,7 @@ export default function BulletinAddressPage() {
       }
       <div className="tab-page">
         <div className="mx-auto flex flex-col mt-4">
-          <div className="card-title row-center-middle">
+          <div className="card-title flex flex-row items-center">
             <AvatarName address={BulletinAddress} />
             {BulletinAddress === Address &&
               < MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />

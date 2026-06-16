@@ -96,7 +96,7 @@ export default function TabContact() {
       }
 
       <div className="mx-auto flex flex-col mt-4">
-        <div className="card-title row-center-middle">
+        <div className="card-title flex flex-row items-center">
           {SettingPageTab.Contact}
           <AiOutlineUserAdd className="card-icon" onClick={() => setShowAddContact(true)} />
         </div>
@@ -136,7 +136,7 @@ export default function TabContact() {
                               <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
                                 title={contact.address}>
                                 <div className='mt-1 px-1 flex flex-col justify-center items-center' key={contact.address}>
-                                  <AvatarImage address={contact.address} timestamp={Date.now()} style={'avatar'} />
+                                  <AvatarImage address={contact.address} timestamp={Date.now()} classNames={'avatar'} />
                                   <AvatarName address={contact.address} />
                                 </div>
                               </td>

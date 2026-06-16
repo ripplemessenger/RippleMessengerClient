@@ -24,7 +24,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
   return (
     <div className={`${textSize}`}>
       <div className={`flex flex-row mx-5px mt-5px`}>
-        <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} style={'avatar-sm'} />
+        <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} classNames={'avatar-sm'} />
         <div className={`flex flex-col`}>
 
           <div className={`flex flex-row justify-between`}>
