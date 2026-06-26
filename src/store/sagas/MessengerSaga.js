@@ -270,7 +270,6 @@ function* WebsocketListener() {
                             const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
                             yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_content]) })
                           }
-                          yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, content]) })
                         } else {
                           const fileHandle = yield call(() => open(file_path, { read: true }))
                           try {
