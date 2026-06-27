@@ -73,9 +73,9 @@ export default function TabContact() {
     <div className="tab-page">
       {
         showAddContact &&
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-          <div className="flex flex-row items-center justify-center">
-            <button onClick={() => setShowAddContact(false)} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <div className={`modal-overlay`}>
+          <div className="modal-action-row">
+            <button onClick={() => setShowAddContact(false)} className="modal-btn-gray">
               <IoCloseOutline className='icon' /> cancel
             </button>
           </div>
@@ -101,76 +101,59 @@ export default function TabContact() {
           <AiOutlineUserAdd className="card-icon" onClick={() => setShowAddContact(true)} />
         </div>
 
-        <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
-          <div className={`mt-1 flex-1`}>
-            <div className='flex flex-col'>
-              {
-                ContactList.length > 0 ?
-                  <div className={`table-container`}>
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="">
-                        <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
-                          <th>Avatar</th>
-                          <th>
-                            <div className="flex flex-row justify-center items-center">
-                              Follow
-                              <AiOutlineQuestionCircle onClick={() => dispatch(setFlashNoticeMessage({ message: 'Turn on follow, you will cache all bulletins by this account', duration: 5000 }))
-                              } />
-                            </div>
-                          </th>
-                          <th>
-                            <div className="flex flex-row justify-center items-center">
-                              Friend
-                              <AiOutlineQuestionCircle onClick={() => dispatch(setFlashNoticeMessage({ message: "Turn on friend, you are ready to chat with this account. The conversation can only begin with both side's consent.", duration: 5000 }))
-                              } />
-                            </div>
-                          </th>
-                          <th>Updated At</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {
-                          ContactList.map((contact, index) => (
-                            <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
-                                title={contact.address}>
-                                <div className='mt-1 px-1 flex flex-col justify-center items-center' key={contact.address}>
-                                  <AvatarImage address={contact.address} timestamp={Date.now()} classNames={'avatar'} />
-                                  <AvatarName address={contact.address} />
-                                </div>
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.is_follow} onClick={() => { toggleIsFollow(contact.address) }} />
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <ToggleSwitch isChecked={contact.is_friend} onClick={() => { toggleIsFriend(contact.address) }} />
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                <TextTimestamp timestamp={contact.updated_at} />
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                {
-                                  contact.is_follow === false && contact.is_friend === false &&
-                                  <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
-                                    onClick={() => confirmDelContact(contact.address)}>
-                                    Delete
-                                  </button>
-                                }
-                              </td>
-                            </tr>
-                          ))
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                  :
-                  <div>
-                    no contact yet..
-                  </div>
-              }
+        <div className="min-w-full rounded-xl card">
+          {ContactList.length > 0 ? (
+            <div className={`table-container`}>
+              <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
+                <thead>
+                  <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
+                    <th>Avatar</th>
+                    <th>Follow</th>
+                    <th>Friend</th>
+                    <th>Updated At</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
+                  {ContactList.map((contact) => (
+                    <tr key={contact.address} className="table-tr">
+                      <td className="p-3 text-text-primary dark:text-dark-text-primary" title={contact.address}>
+                        <div className="mt-1 px-1 flex flex-col justify-center items-center">
+                          <AvatarImage address={contact.address} classNames="avatar" />
+                          <AvatarName address={contact.address} />
+                        </div>
+                      </td>
+                      <td className="p-3 text-text-primary dark:text-dark-text-primary">
+                        <ToggleSwitch isChecked={contact.is_follow} onClick={() => toggleIsFollow(contact.address)} />
+                      </td>
+                      <td className="p-3 text-text-primary dark:text-dark-text-primary">
+                        <ToggleSwitch isChecked={contact.is_friend} onClick={() => toggleIsFriend(contact.address)} />
+                      </td>
+                      <td className="p-3 text-text-primary dark:text-dark-text-primary">
+                        <TextTimestamp timestamp={contact.updated_at} />
+                      </td>
+                      <td className="p-3 text-text-primary dark:text-dark-text-primary">
+                        {contact.is_follow === false && contact.is_friend === false && (
+                          <button className="btn-sm btn-danger"
+                            onClick={() => confirmDelContact(contact.address)}>
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          ) : (
+            <div className="empty-state-box mx-auto max-w-sm mt-8">
+              <AiOutlineUserAdd className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />
+              <h3 className="text-lg font-medium text-text-secondary dark:text-dark-text-secondary">
+                No contact yet
+              </h3>
+              <p className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Add a contact to start connecting</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

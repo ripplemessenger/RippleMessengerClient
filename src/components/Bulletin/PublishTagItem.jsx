@@ -1,20 +1,19 @@
 import { HiHashtag } from 'react-icons/hi2'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { IoCloseOutline } from 'react-icons/io5'
+import { useDispatch } from 'react-redux'
 
 const PublishTagItem = ({ tag }) => {
 
-  const navigate = useNavigate()
   const dispatch = useDispatch()
 
   return (
-    <div className='flex flex-row'>
+    <div className="flex flex-row items-center gap-1">
       <div className='tag-link' title={tag}>
         <HiHashtag className="icon-sm" />{tag}
       </div>
-      <div className='tag-del' onClick={() => dispatch({ type: 'BulletinTagDel', payload: { Tag: tag } })}>
-        X
-      </div>
+      <button className="close-btn-icon" onClick={() => dispatch({ type: 'BulletinTagDel', payload: { Tag: tag } })}>
+        <IoCloseOutline className="text-sm" />
+      </button>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { RxAvatar } from "react-icons/rx"
 import { readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { AvatarDir } from '../lib/AppConst'
 
-const AvatarImage = ({ address, timestamp = Date.now(), onClick, classNames }) => {
+const AvatarImage = ({ address, onClick, classNames }) => {
   const { AppBaseDir } = useSelector(state => state.Common)
   const [avatarImage, setAvatarImage] = useState(null)
 
@@ -21,31 +21,40 @@ const AvatarImage = ({ address, timestamp = Date.now(), onClick, classNames }) =
       const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
       const url = URL.createObjectURL(blob)
       setAvatarImage(url)
+      return url
     }
+    return null
+  }
 
+  useEffect(() => {
+    let objectUrl = null
+    setAvatar().then(url => { objectUrl = url })
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [address])
+
+  useEffect(() => {
     if (address !== undefined) {
       dispatch({
         type: 'CheckAvatar',
         payload: { address: address }
       })
     }
-  }
-
-  useEffect(() => {
-    setAvatar()
-  }, [address, timestamp])
+  }, [address, dispatch])
 
   return (
-    <div key={timestamp} onClick={onClick} className='flex-shrink-0'>
+    <div onClick={onClick} className={`flex-shrink-0 transition-transform duration-200 ease-in-out ${onClick ? 'cursor-pointer avatar-hover' : ''}`}>
       {
         avatarImage ?
           <img
             src={avatarImage}
             alt={address}
-            className={`${classNames}`}
+            className={`${classNames} ${onClick ? 'transition-all duration-200 ease-in-out' : ''}`}
           />
           :
-          <RxAvatar className={`${classNames}`} />
+          <RxAvatar className={`${classNames} text-text-primary/70 dark:text-dark-text-primary/60 ${onClick ? 'transition-all duration-200 ease-in-out' : ''}`} />
       }
     </div>
   )

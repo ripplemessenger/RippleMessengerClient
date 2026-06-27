@@ -7,29 +7,30 @@ export default function Footer() {
     <footer className="footer bar">
       <div className="mx-auto max-w-7xl flex justify-between items-center px-8">
         <ExternalLink href={"https://github.com/RippleMessenger/RippleMessengerClient"} title={"RippleMessenger"} text_size={"text-base"} />
-        <div className="flex justify-center items-center">
+        <div className="flex items-center gap-1 bg-surface/20 dark:bg-dark-surface/20 rounded-lg p-1 backdrop-blur-sm">
           <button
             onClick={() => window.history.back()}
-            className="px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+            className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            title="Back"
           >
             <IoArrowBackSharp className="icon" />
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+            className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            title="Reload"
           >
             <IoReloadSharp className="icon" />
           </button>
           <button
             onClick={() => window.history.forward()}
-            className="px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+            className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            title="Forward"
           >
             <IoArrowForwardSharp className="icon" />
           </button>
         </div>
-        <div className="flex space-x-4">
-          <InternalLink path={"/about"} title={"About"} text_size={"text-base"} />
-        </div>
+        <InternalLink path={"/about"} title={"About"} text_size={"text-base"} />
       </div>
     </footer>
   )

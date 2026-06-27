@@ -1,27 +1,21 @@
 const AssetSelect = ({ label, options, selectdOption, onChange, disabled }) => {
   return (
-    <div className="flex flex-row items-center">
-      <div className="items-center shadow-sm">
-        <span className='text-xl text-gray-500 dark:text-gray-200 p-2'>
-          {label}
-        </span>
-      </div>
-      <div>
-        <select
-          id={label}
-          name={label}
-          className="w-96 p-2 border rounded shadow-xl appearance-none block dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:border-green-500 hover:bg-green-300 bg-gray-200"
-          value={selectdOption}
-          onChange={onChange}
-          disabled={disabled}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex flex-row items-center gap-2">
+      <label className="label">{label}</label>
+      <select
+        id={label}
+        name={label}
+        className="w-96 px-3 py-2 border rounded-lg appearance-none block input-color input-hover focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        value={selectdOption}
+        onChange={onChange}
+        disabled={disabled}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }

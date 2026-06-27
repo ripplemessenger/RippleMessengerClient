@@ -12,20 +12,20 @@ const NavBarIconLink = ({ path, icon, label, count = 0, size = "w-12 h-12" }) =>
   return (
     <Link
       to={path}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex flex-col items-center justify-center"
+      className="p-2 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 flex flex-col items-center justify-center focus:outline-none overflow-visible"
     >
       <div className="relative inline-block">
         {icon}
         {showBadge && (
           <div
             className={`
-            absolute -bottom-1 -right-1 
+            absolute -bottom-1 -right-1
             flex items-center justify-center
-            bg-red-500 text-white text-xs font-bold
-            rounded-full border border-white
-            shadow-sm
+            bg-primary text-white text-xs font-bold
+            rounded-full border-2 border-surface dark:border-dark-surface
+            shadow-gold
             ${badgeWidthClass}
-            h-5
+            h-5 px-1.5
             leading-none
           `}
           >
@@ -33,7 +33,7 @@ const NavBarIconLink = ({ path, icon, label, count = 0, size = "w-12 h-12" }) =>
           </div>
         )}
       </div>
-      <span className="text-base">
+      <span className="text-sm text-text-primary dark:text-dark-text-primary">
         {label}
       </span>
     </Link>

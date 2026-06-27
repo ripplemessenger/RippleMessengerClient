@@ -1,10 +1,8 @@
-const BulletinContentForList = ({ content, onClick }) => {
+const BulletinContentForList = ({ content, onClick, className = '' }) => {
   return (
-    <div className={`mt-1 p-1 rounded-lg bg-neutral-200 dark:bg-neutral-700`} onClick={onClick}>
-      <p className={`w-full break-all text-base text-slate-800 dark:text-slate-200`}>
-        {content}
-      </p>
-    </div>
+    <p className={`mt-1 min-w-0 overflow-hidden text-sm leading-relaxed text-text-primary dark:text-dark-text-primary break-all whitespace-pre-wrap line-clamp-6 ${onClick ? 'cursor-pointer' : ''} ${className}`} onClick={onClick}>
+      {content}
+    </p>
   )
 }
 

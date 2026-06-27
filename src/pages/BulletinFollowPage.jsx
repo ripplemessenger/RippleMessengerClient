@@ -5,6 +5,7 @@ import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
+import { SlUserFollowing } from 'react-icons/sl'
 
 export default function BulletinFollowPage() {
   const { Address } = useSelector(state => state.User)
@@ -20,7 +21,7 @@ export default function BulletinFollowPage() {
   }, [dispatch, Address, MessengerConnStatus])
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex justify-center items-center w-full max-w-full overflow-hidden">
       {
         ShowPublishFlag &&
         <BulletinPublish />
@@ -30,31 +31,27 @@ export default function BulletinFollowPage() {
         <BulletinForward />
       }
       <div className="tab-page">
-        <div className="mx-auto flex flex-col mt-4">
+        <div className="mx-auto w-full max-w-full min-w-0 flex flex-col mt-4">
           <div className="card-title">
             Follow
           </div>
 
-          <div className="min-w-full p-2 rounded-lg shadow-xl justify-center">
-            {
-              FollowBulletinTotalPage > 1 &&
+          <div className="max-w-full min-w-0 p-4 rounded-xl card overflow-hidden">
+            {FollowBulletinTotalPage > 1 && (
               <PageList current_page={FollowBulletinPage} total_page={FollowBulletinTotalPage} dispatch_type={'LoadFollowBulletin'} payload={{}} />
-            }
-            <div className={`mt-1 flex-1 justify-center`}>
-              {
-                FollowBulletinList.length === 0 ?
-                  <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-                    <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-                      no bulletin yet...
-                    </h3>
-                  </div>
-                  :
-                  FollowBulletinList.map((bulletin, index) => (
-                    <div key={bulletin.hash} className='text-xs text-gray-200 mt-1 p-1'>
-                      <ListBulletin bulletin={bulletin} />
-                    </div>
-                  ))
-              }
+            )}
+            <div className={`mt-2 flex-1 justify-center min-w-0 overflow-hidden`}>
+              {FollowBulletinList.length === 0 ? (
+                <div className="empty-state-box mx-auto max-w-sm py-12">
+                  <SlUserFollowing className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
+                  <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No followed bulletins</h3>
+                  <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-2">Enable follow on a contact to see their bulletins here</p>
+                </div>
+              ) : (
+                FollowBulletinList.map((bulletin) => (
+                  <ListBulletin key={bulletin.hash} bulletin={bulletin} />
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -1,11 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useTheme } from './ThemeProvider.jsx'
 import useAuth from '../hooks/useAuth.js'
 
-import { GiBugleCall } from "react-icons/gi"
-import { IoChatboxEllipsesOutline, IoSettingsOutline, IoReloadSharp, IoArrowForwardSharp, IoArrowBackSharp } from "react-icons/io5"
-import { FiSun, FiMoon, FiLogOut, FiLogIn } from "react-icons/fi"
+import { IoChatboxEllipsesOutline, IoSettingsOutline } from "react-icons/io5"
+import { FiSun, FiMoon, FiLogOut } from "react-icons/fi"
 import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
 import NavBarIconLink from './NavBarIconLink.jsx'
 import NavBarIconButton from './NavBarIconButton.jsx'
@@ -17,7 +15,6 @@ export default function Header() {
 
   const { IsAuth, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const navigate = useNavigate()
 
   const { MessengerConnStatus, SessionNewMsgCount } = useSelector(state => state.Messenger)
   const { Address } = useSelector(state => state.User)
@@ -28,15 +25,15 @@ export default function Header() {
       <div className="mx-auto max-w-7xl flex justify-between items-center px-8">
         <div className="flex items-center">
           <InternalLink path={"/"} title={"RippleMessenger"} text_size={"text-2xl"} />
-          <div className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50">
+          <div className="nav-icon-btn">
             {
               MessengerConnStatus ?
-                <HiOutlineStatusOnline className="icon text-green-600 dark:text-green-400" />
+                <HiOutlineStatusOnline className="icon text-status-success dark:text-status-success-dark" />
                 :
-                <HiOutlineStatusOffline className="icon text-red-600 dark:text-red-400" />
+                <HiOutlineStatusOffline className="icon text-status-error dark:text-status-error-dark" />
             }
           </div>
-          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+          <button onClick={toggleTheme} className="nav-icon-btn">
             {theme === 'light' ?
               <FiSun className="icon" />
               :
@@ -48,7 +45,7 @@ export default function Header() {
           {
             IsAuth &&
             <div className="flex flex-row items-center">
-              <BulletinAvatarLink address={Address} timestamp={Date.now()} classNames={'avatar-sm'} />
+              <BulletinAvatarLink address={Address} classNames={'avatar-sm'} />
               <span>
                 {Address}
               </span>

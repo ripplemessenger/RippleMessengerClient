@@ -3,8 +3,8 @@ const FormError = ({ error }) => {
     <div className="justify-center items-center">
       {
         error !== null &&
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
-          <span className='text-3xl font-bold text-red-800 dark:text-red-200'>
+        <div className="bg-gradient-card dark:bg-dark-gradient-card p-6 rounded-xl shadow-gold-lg w-96 border border-status-error/30 dark:border-status-error/40">
+          <span className='text-sm font-medium text-status-error dark:text-status-error-dark'>
             {error}
           </span>
         </div>

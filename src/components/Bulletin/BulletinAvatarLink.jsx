@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AvatarImage from '../AvatarImage'
 import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 
-const BulletinAvatarLink = ({ address, timestamp, classNames }) => {
+const BulletinAvatarLink = ({ address, classNames }) => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -14,7 +14,7 @@ const BulletinAvatarLink = ({ address, timestamp, classNames }) => {
   }
 
   return (
-    <AvatarImage address={address} timestamp={timestamp} classNames={classNames} onClick={() => goto_address(address)} />
+    <AvatarImage address={address} classNames={classNames} onClick={() => goto_address(address)} />
   )
 }
 

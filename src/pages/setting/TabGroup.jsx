@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import TextInput from '../../components/Form/TextInput'
+import useEscClose from '../../hooks/useEscClose'
 import TextTimestamp from '../../components/TextTimestamp'
 import { IoCloseOutline } from "react-icons/io5"
 import AvatarName from '../../components/AvatarName'
@@ -85,9 +86,9 @@ export default function TabGroup() {
     <div className="tab-page">
       {
         showCreateGroup &&
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-          <div className="flex flex-row items-center justify-center">
-            <button onClick={() => setShowCreateGroup(false)} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <div className={`modal-overlay`}>
+          <div className="modal-action-row">
+            <button onClick={() => setShowCreateGroup(false)} className="modal-btn-gray">
               <IoCloseOutline className='icon' /> cancel
             </button>
           </div>
@@ -95,7 +96,7 @@ export default function TabGroup() {
             <div className="card-title">
               Create Group
             </div>
-            <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
+            <div className="modal-content-wrapper max-w-7xl overflow-auto">
               <TextInput label={'Group Name:'} value={groupName} onChange={(e) => setGroupName(e.target.value.trim())} />
               {
                 ComposeMemberList.length > 0 ?
@@ -103,15 +104,16 @@ export default function TabGroup() {
                     {
                       ComposeMemberList.map((member, index) => (
                         <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeMember(member)}>
-                          <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar'} />
+                          <AvatarImage address={member} classNames={'avatar'} />
                           <AvatarName address={member} />
                         </div>
                       ))
                     }
                   </div>
                   :
-                  <div>
-                    no group member yet...
+                  <div className="text-center py-8 text-text-secondary/60 dark:text-dark-text-secondary/60">
+                    <p className="text-sm">No group member yet</p>
+                    <p className="text-xs mt-1">Tap a contact below to add them</p>
                   </div>
               }
               <hr />
@@ -121,7 +123,7 @@ export default function TabGroup() {
                     {
                       ContactList.map((contact, index) => (
                         <div key={contact.address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeMember(contact.address)}>
-                          <AvatarImage address={contact.address} timestamp={Date.now()} classNames={'avatar-sm'} />
+                          <AvatarImage address={contact.address} classNames={'avatar-sm'} />
                           <div>
                             <span className='avatar-name text-xs' title={contact.address}>
                               {contact.nickname}
@@ -132,8 +134,9 @@ export default function TabGroup() {
                     }
                   </div>
                   :
-                  <div>
-                    no contact yet...
+                  <div className="text-center py-8 text-text-secondary/60 dark:text-dark-text-secondary/60">
+                    <p className="text-sm">No contact available</p>
+                    <p className="text-xs mt-1">Add contacts first to create groups</p>
                   </div>
               }
             </div>
@@ -148,18 +151,18 @@ export default function TabGroup() {
       }
       {
         showRequest &&
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-          <div className="flex flex-row items-center justify-center">
-            <button onClick={() => setShowRequest(false)} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+        <div className={`modal-overlay`}>
+          <div className="modal-action-row">
+            <button onClick={() => setShowRequest(false)} className="modal-btn-gray">
               <IoCloseOutline className='icon' /> cancel
             </button>
           </div>
           {
             GroupRequestList.length > 0 ?
               <div className={`table-container`}>
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                   <thead className="">
-                    <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
+                    <tr className="table-header-row">
                       <th>Name</th>
                       <th>Created By</th>
                       <th>Member</th>
@@ -167,36 +170,36 @@ export default function TabGroup() {
                       <th></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
                     {
                       GroupRequestList.map((request, index) => (
-                        <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                        <tr key={index} className='table-tr'>
+                          <td className="table-cell">
                             {request.name}
                           </td>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                          <td className="table-cell">
                             <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                              <AvatarImage address={request.created_by} timestamp={Date.now()} classNames={'avatar'} />
+                              <AvatarImage address={request.created_by} classNames={'avatar'} />
                               <AvatarName address={request.created_by} />
                             </div>
                           </td>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                          <td className="table-cell">
                             <div className='flex flex-wrap'>
                               {
                                 request.member.map((member, index) => (
                                   <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                    <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar-sm'} />
+                                    <AvatarImage address={member} classNames={'avatar-sm'} />
                                     <AvatarName address={member} classNames={'text-xs'} />
                                   </div>
                                 ))
                               }
                             </div>
                           </td>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                          <td className="table-cell">
                             <TextTimestamp timestamp={request.created_at} />
                           </td>
-                          <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                            <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
+                          <td className="table-cell">
+                            <button className="btn-sm btn-primary-outline"
                               onClick={() => acceptGroupRequest(request.hash)}>
                               Join
                             </button>
@@ -208,8 +211,12 @@ export default function TabGroup() {
                 </table>
               </div>
               :
-              <div>
-                no group request...
+              <div className="empty-state-box mx-auto max-w-sm mt-8">
+                <MdOutlineVerifiedUser className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />
+                <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>
+                  No group requests
+                </h3>
+                <p className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Pending group invitations will appear here</p>
               </div>
           }
         </div>
@@ -222,17 +229,16 @@ export default function TabGroup() {
           <MdOutlineVerifiedUser className="card-icon" onClick={() => setShowRequest(true)} />
         </div>
 
-        <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
-          <div className={`mt-1 flex-1`}>
-            <div className='flex flex-row'>
-            </div>
-            <div className='flex flex-col'>
-              {
-                GroupList.length > 0 ?
-                  <div className={`table-container`}>
-                    <table className="min-w-full divide-y divide-gray-200">
+        <div className={`mt-1 flex-1`}>
+          <div className='flex flex-row'>
+          </div>
+          <div className='flex flex-col'>
+            {
+              GroupList.length > 0 ?
+                <div className={`table-container`}>
+                    <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                       <thead className="">
-                        <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
+                        <tr className="table-header-row">
                           <th>Group Name</th>
                           <th>Created By</th>
                           <th>Group Member</th>
@@ -240,36 +246,36 @@ export default function TabGroup() {
                           <th></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
                         {
                           GroupList.map((group, index) => (
-                            <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                            <tr key={index} className='table-tr'>
+                              <td className="table-cell">
                                 {group.name}
                               </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
+                              <td className="table-cell"
                                 title={group.created_by}>
                                 <div className='mt-1 pl-1 flex flex-col justify-center items-center'>
-                                  <AvatarImage address={group.created_by} timestamp={Date.now()} classNames={'avatar'} />
+                                  <AvatarImage address={group.created_by} classNames={'avatar'} />
                                   <AvatarName address={group.created_by} />
                                 </div>
                               </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                              <td className="table-cell">
                                 <div className='flex flex-wrap'>
                                   {
                                     group.member.map((member, index) => (
                                       <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                        <AvatarImage address={member} timestamp={Date.now()} classNames={'avatar-sm'} />
+                                        <AvatarImage address={member} classNames={'avatar-sm'} />
                                         <AvatarName address={member} classNames={'text-xs'} />
                                       </div>
                                     ))
                                   }
                                 </div>
                               </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                              <td className="table-cell">
                                 <TextTimestamp timestamp={group.created_at} />
                               </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
+                              <td className="table-cell">
                                 {
                                   group.delete_json !== null ?
                                     <div>
@@ -278,7 +284,7 @@ export default function TabGroup() {
                                     :
                                     <div>
                                       {
-                                        group.created_by === Address && <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-green-600"
+                                        group.created_by === Address && <button className="btn-sm btn-danger"
                                           onClick={() => confirmDelGroup(group.hash)}>
                                           Delete
                                         </button>}
@@ -290,13 +296,16 @@ export default function TabGroup() {
                         }
                       </tbody>
                     </table>
-                  </div>
-                  :
-                  <div>
-                    no group yet...
-                  </div>
-              }
-            </div>
+                </div>
+                :
+                <div className="empty-state-box mx-auto max-w-sm mt-8">
+                  <GrGroup className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />
+                  <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>
+                    No groups yet
+                  </h3>
+                  <p className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Groups you create or join will appear here</p>
+                </div>
+            }
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import AvatarName from '../components/AvatarName'
 import PageList from '../components/PageList'
 import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
+import { BsGlobe2 } from 'react-icons/bs'
 
 export default function ServerAddressPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,50 +29,43 @@ export default function ServerAddressPage() {
             {url}
           </div>
 
-          {
-            ServerAddressTotalPage > 1 &&
+          {ServerAddressTotalPage > 1 && (
             <PageList current_page={ServerAddressPage} total_page={ServerAddressTotalPage} dispatch_type={'RequestServerAddress'} payload={{}} />
-          }
-          <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
-            <div className='flex flex-col'>
-              {
-                ServerAddressList.length > 0 ?
-                  <div className={`table-container`}>
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="">
-                        <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
-                          <th>Avatar</th>
-                          <th>Bulletin Count</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {
-                          ServerAddressList.map((account, index) => (
-                            <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300"
-                                title={account.Address}>
-                                <div className='mt-1 px-1 flex flex-col justify-center items-center'>
-                                  <BulletinAvatarLink address={account.Address} timestamp={Date.now()} classNames={'avatar'} />
-                                  <AvatarName address={account.Address} />
-                                </div>
-                              </td>
-                              <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                                {account.Count}
-                              </td>
-                            </tr>
-                          ))
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                  :
-                  <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-                    <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-                      no address yet...
-                    </h3>
-                  </div>
-              }
-            </div>
+          )}
+          <div className="min-w-full p-4 rounded-xl card">
+            {ServerAddressList.length > 0 ? (
+              <div className={`table-container`}>
+                <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
+                  <thead>
+                    <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
+                      <th>Avatar</th>
+                      <th>Bulletin Count</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
+                    {ServerAddressList.map((account) => (
+                      <tr key={account.Address} className='table-tr'>
+                        <td className="p-3 whitespace-nowrap text-base text-text-primary dark:text-dark-text-primary" title={account.Address}>
+                          <div className='flex flex-col justify-center items-center gap-1'>
+                            <BulletinAvatarLink address={account.Address} classNames={'avatar'} />
+                            <AvatarName address={account.Address} />
+                          </div>
+                        </td>
+                        <td className="p-3 text-base text-text-primary dark:text-dark-text-primary">
+                          {account.Count}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-state-box mx-auto max-w-sm py-12">
+                <BsGlobe2 className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
+                <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No addresses yet</h3>
+                <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-2">Server-discovered bulletin authors will appear here</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

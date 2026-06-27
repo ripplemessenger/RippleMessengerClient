@@ -1,11 +1,9 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { setSearchTagList, setTagBulletinList } from '../../store/slices/MessengerSlice'
 import { HiHashtag } from 'react-icons/hi2'
 
 const SearchTagItem = ({ tag }) => {
 
-  const navigate = useNavigate()
   const dispatch = useDispatch()
 
   const { SearchTagList } = useSelector(state => state.Messenger)

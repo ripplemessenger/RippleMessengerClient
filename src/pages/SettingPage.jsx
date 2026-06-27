@@ -20,18 +20,16 @@ export default function SettingPage() {
   const { activeTabSetting } = useSelector(state => state.User)
 
   return (
-    <div className="p-1 mt-8 flex justify-center items-center">
-      <div className="w-full overflow-y-auto transition-width duration-300 ease-in-out"
-      >
-        <div className="flex border-b border-gray-700 dark:border-gray-200">
-          {tabItems.map((item, index) => (
+    <div className="p-4 mt-2 w-full max-w-4xl mx-auto">
+      <div className="rounded-xl card p-5">
+        <div className="flex border-b border-primary/20 dark:border-primary/30 -mx-2 -mb-4">
+          {tabItems.map((item) => (
             <button
-              key={index}
+              key={item.name}
               onClick={() => dispatch(setActiveTabSetting(item.name))}
-              className={`px-6 py-3 ${activeTabSetting === item.name ?
-                'tab-title-active'
-                :
-                'tab-title'
+              className={`px-5 py-3 text-sm font-medium transition-colors rounded-t-lg ${activeTabSetting === item.name ?
+                'tab-title-active border-b-2 border-primary dark:border-dark-primary' :
+                'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
                 }`}
             >
               {item.name}
@@ -39,18 +37,11 @@ export default function SettingPage() {
           ))}
         </div>
         <div className="p-4">
-          <div>
-            {
-              tabItems.map((item, index) => (
-                <div
-                  key={index}
-                  className={`${activeTabSetting === item.name ? 'block' : 'hidden'}`}
-                >
-                  {item.content}
-                </div>
-              ))
-            }
-          </div>
+          {tabItems.map((item) => (
+            <div key={item.name} className={`${activeTabSetting === item.name ? 'block' : 'hidden'}`}>
+              {item.content}
+            </div>
+          ))}
         </div>
       </div>
     </div>

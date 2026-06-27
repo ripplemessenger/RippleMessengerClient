@@ -21,43 +21,56 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
     })
   }
 
-  return (
-    <div className={`${textSize}`}>
-      <div className={`flex flex-row mx-5px mt-5px`}>
-        <BulletinAvatarLink address={bulletin.address} timestamp={Date.now()} classNames={'avatar-sm'} />
-        <div className={`flex flex-col`}>
+  const previewContent = bulletin.content.length > BulletinContentPreviewSize
+    ? bulletin.content.slice(0, BulletinContentPreviewSize)
+    : bulletin.content
 
-          <div className={`flex flex-row justify-between`}>
-            <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} timestamp={Date.now()} />
-            <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
-            {
-              bulletin.tag.length !== 0 &&
-              <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <HiHashtag />{bulletin.tag.length}
-              </div>
-            }
-            {
-              bulletin.quote.length !== 0 &&
-              <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <AiOutlineLink />{bulletin.quote.length}
-              </div>
-            }
-            {
-              bulletin.file.length !== 0 &&
-              <div className={`text-base flex flex-row items-center font-bold text-gray-400 dark:text-gray-200`}>
-                <IoAttachSharp />{bulletin.file.length}
-              </div>
-            }
+  return (
+    <div className={`${textSize} w-full min-w-0 overflow-hidden rounded-xl card-hover mt-2 bg-surface-alt/30 dark:bg-dark-surface-alt/30`}>
+
+      {/* Header row — avatar + link grouped tight; metadata, tags, tools on the right. */}
+      <div className="flex flex-row items-center w-full px-3 py-2 gap-2 rounded-t-xl">
+        <BulletinAvatarLink address={bulletin.address} classNames={'avatar-sm'} />
+        <div className="flex flex-col flex-1 min-w-0 gap-1.5">
+
+          {/* Top line: link+timestamp grouped left, tags right */}
+          <div className="flex flex-row items-center gap-2 font-semibold">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
+              <TextTimestamp timestamp={bulletin.signed_at} textSize={'text-xs'} />
+            </div>
+            <div className="flex flex-row items-center gap-1.5 flex-wrap">
+              {
+                bulletin.tag.length !== 0 &&
+                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-dark-primary">
+                  <HiHashtag className="text-sm" />{bulletin.tag.length}
+                </span>
+              }
+              {
+                bulletin.quote.length !== 0 &&
+                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/30 text-secondary-dark dark:bg-secondary/40 dark:text-secondary-light">
+                  <AiOutlineLink className="text-sm" />{bulletin.quote.length}
+                </span>
+              }
+              {
+                bulletin.file.length !== 0 &&
+                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-status-success/10 text-status-success dark:bg-status-success-dark/20 dark:text-status-success-dark">
+                  <IoAttachSharp className="text-sm" />{bulletin.file.length}
+                </span>
+              }
+            </div>
           </div>
           <BulletinTools address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} json={bulletin.json} content={bulletin.content} is_marked={bulletin.is_marked} />
         </div>
       </div>
 
-      {bulletin.content.length <= BulletinContentPreviewSize ?
-        <BulletinContentForList content={bulletin.content} onClick={() => goto_bulletin()} />
-        :
-        <BulletinContentForList content={bulletin.content.slice(0, BulletinContentPreviewSize)} onClick={() => goto_bulletin()} />
-      }
+      {/* Divider — same width as header and content sections */}
+      <div className="w-full border-b border-primary/10 dark:border-primary/20" />
+
+      {/* Content section — clickable to navigate to bulletin detail */}
+      <div className="px-3 py-2 w-full min-w-0 overflow-hidden" onClick={goto_bulletin}>
+        <BulletinContentForList content={previewContent} />
+      </div>
     </div>
   )
 }

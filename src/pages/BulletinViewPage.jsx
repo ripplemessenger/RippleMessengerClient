@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { FiMessageSquare } from 'react-icons/fi'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinViewer from '../components/Bulletin/BulletinViewer'
@@ -40,39 +41,28 @@ export default function BulletinViewPage() {
   }, [bulletin_hash])
 
   return (
-    <div className="p-1 mt-2 card">
-      {
-        ShowPublishFlag &&
-        <BulletinPublish />
-      }
-      {
-        ShowForwardFlag &&
-        <BulletinForward />
-      }
-      {
-        DisplayBulletinReplyTotalPage > 1 &&
-        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
-      }
-      {
-        DisplayBulletin !== null && DisplayBulletin !== undefined &&
+    <div className="flex justify-center items-start">
+      <div className="w-full max-w-6xl p-4 mt-2 rounded-xl card">
+      {ShowPublishFlag && <BulletinPublish />}
+      {ShowForwardFlag && <BulletinForward />}
+      {DisplayBulletin !== null && DisplayBulletin !== undefined && (
         <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />
-      }
-      {
-        DisplayBulletinReplyList.length === 0 ?
-          <div className="mx-auto rounded-full p-1 border-2 border-gray-200 dark:border-gray-700 px-4">
-            <h3 className='text-2xl text-gray-500 dark:text-gray-200'>
-              no reply yet...
-            </h3>
-          </div>
-          :
-          DisplayBulletinReplyList.map((bulletin, index) => (
-            <BulletinViewer bulletin={bulletin} key={bulletin.hash} />
-          ))
-      }
+      )}
+      {DisplayBulletinReplyList.length === 0 ? (
+        <div className="empty-state-box mx-auto max-w-sm py-12">
+          <FiMessageSquare className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />
+          <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No replies yet</h3>
+        </div>
+      ) : (
+        DisplayBulletinReplyList.map((bulletin) => (
+          <BulletinViewer bulletin={bulletin} key={bulletin.hash} />
+        ))
+      )}
       {
         DisplayBulletinReplyTotalPage > 1 &&
         <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
       }
-    </div >
+    </div>
+    </div>
   )
 }

@@ -1,70 +1,80 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoCloseOutline } from "react-icons/io5"
-import { setPasteFlag, setPublishFlag } from '../../store/slices/MessengerSlice'
+import { setPasteFlag } from '../../store/slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { checkBulletinSchema } from '../../lib/MessageSchemaVerifier'
 import { VerifyJsonSignature } from '../../lib/MessengerUtil'
 
-const BulletinPaste = ({ }) => {
-
+const BulletinPaste = () => {
   const [tmpBulletin, setTmpBulletin] = useState('')
-  const [tmpError, setTmpError] = useState('')
+  const [validation, setValidation] = useState(null)
+  const textareaRef = useRef(null)
   const dispatch = useDispatch()
 
-  const checkBulletin = async (value) => {
-    setTmpBulletin(value)
-    setTmpError('')
-    try {
-      let json = JSON.parse(value)
-      if (checkBulletinSchema(json)) {
-        if (VerifyJsonSignature(json)) {
-          setTmpBulletin('')
-          dispatch({
-            type: 'UploadBulletin',
-            payload: {
-              json: json
-            }
-          })
-          dispatch(setFlashNoticeMessage({ message: 'bulletin saved success', duration: 3000 }))
-          dispatch(setPasteFlag(false))
-        } else {
-          setTmpError('signature invalid...')
-        }
-      } else {
-        setTmpError('schema invalid...')
+  // Auto-focus on mount
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  // ESC to close
+  useEffect(() => {
+    const handleKeydown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        dispatch(setPasteFlag(false))
       }
-    } catch (error) {
-      setTmpError('not a json...')
     }
-  }
+    window.addEventListener('keydown', handleKeydown)
+    return () => window.removeEventListener('keydown', handleKeydown)
+  }, [])
+
+  // Validate on every change — auto-submit when valid
+  useEffect(() => {
+    const trimmed = tmpBulletin.trim()
+    if (trimmed === '') { setValidation(null); return }
+    try {
+      const json = JSON.parse(trimmed)
+      if (!checkBulletinSchema(json)) { setValidation('schema'); return }
+      if (!VerifyJsonSignature(json)) { setValidation('signature'); return }
+      // Valid — save immediately
+      dispatch({ type: 'UploadBulletin', payload: { json } })
+      dispatch(setFlashNoticeMessage({ message: 'bulletin saved success', duration: 3000 }))
+      dispatch(setPasteFlag(false))
+      setValidation(null)
+    } catch {
+      setValidation('json')
+    }
+  }, [tmpBulletin])
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-      <div className="flex flex-row items-center justify-center">
-        <button onClick={() => dispatch(setPasteFlag(false))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-          <IoCloseOutline className='icon' /> cancel
-        </button>
-      </div>
-      <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
-        <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
-          <div className={`mt-1 flex flex-col flex-1 p-2`}>
-            <textarea type={"text"}
-              id={`${'New Bulletin:' + Math.random()}`}
-              name={'New Bulletin:'}
-              value={tmpBulletin}
-              placeholder='paste bulletin json here'
-              rows="6"
-              onChange={(e) => checkBulletin(e.target.value)}
-              className={`p-2 border rounded shadow-xl appearance-none input-color`}
-            />
-            {
-              tmpError !== '' &&
-              <span className={`label`}>
-                {tmpError}
-              </span>
-            }
-          </div>
+    <div className={`modal-overlay`}>
+      <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-primary/20 dark:border-primary/30 rounded-t-xl bg-gradient-card dark:bg-dark-gradient-card shadow-lg">
+          <span className={`label text-base`}>Paste Bulletin</span>
+          <button onClick={() => dispatch(setPasteFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
+            <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+          </button>
+        </div>
+
+        <div className="flex flex-col overflow-y-auto px-4 py-3 bg-gradient-card dark:bg-dark-gradient-card grow gap-3">
+          <textarea
+            ref={textareaRef}
+            value={tmpBulletin}
+            placeholder='Paste bulletin JSON here'
+            rows="6"
+            onChange={(e) => setTmpBulletin(e.target.value)}
+            className={`px-3 py-2 border rounded-lg appearance-none resize-none input-color input-hover`}
+          />
+          {validation === 'json' && (
+            <span className="text-sm font-medium text-status-error dark:text-status-error-dark">⚠ not valid JSON</span>
+          )}
+          {validation === 'schema' && (
+            <span className="text-sm font-medium text-status-error dark:text-status-error-dark">⚠ bulletin schema invalid</span>
+          )}
+          {validation === 'signature' && (
+            <span className="text-sm font-medium text-status-error dark:text-status-error-dark">⚠ signature invalid</span>
+          )}
         </div>
       </div>
     </div>

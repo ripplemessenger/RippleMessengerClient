@@ -20,7 +20,7 @@ const AvatarName = ({ address, classNames = '', short_flag = false }) => {
         setNickname(address)
       }
     }
-  }, [ContactMap])
+  }, [ContactMap, address])
 
   return (
     <div>

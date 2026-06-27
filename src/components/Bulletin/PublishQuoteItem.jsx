@@ -1,19 +1,17 @@
-import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import BulletinLink from './BulletinLink'
+import { IoCloseOutline } from 'react-icons/io5'
 
 const PublishQuoteItem = ({ address, sequence, hash }) => {
 
-  const navigate = useNavigate()
   const dispatch = useDispatch()
 
   return (
-    <div className='flex flex-row'>
-      <BulletinLink address={address} sequence={sequence} hash={hash} timestamp={Date.now()} />
-      <div className='quote-del' onClick={() => dispatch({ type: 'BulletinQuoteDel', payload: { Hash: hash } })}>
-        X
-      </div>
+    <div className="flex flex-row items-center gap-1">
+      <BulletinLink address={address} sequence={sequence} hash={hash} />
+      <button className="close-btn-icon" onClick={() => dispatch({ type: 'BulletinQuoteDel', payload: { Hash: hash } })}>
+        <IoCloseOutline className="text-sm" />
+      </button>
     </div>
   )
 }

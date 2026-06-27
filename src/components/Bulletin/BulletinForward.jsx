@@ -18,19 +18,19 @@ const BulletinForward = ({ }) => {
   }
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-      <div className="flex flex-row items-center justify-center">
-        <button onClick={() => dispatch(setForwardFlag(false))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+    <div className={`modal-overlay`}>
+      <div className="modal-action-row">
+        <button onClick={() => dispatch(setForwardFlag(false))} className="modal-btn-gray">
           <IoCloseOutline className='icon' /> cancel
         </button>
       </div>
-      <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
+      <div className="modal-content-wrapper">
         {
           SessionList.length > 0 ?
             <div className='flex flex-wrap'>
               {
                 SessionList.map((session, index) => (
-                  <div key={index} className='text-xs text-gray-200 mt-1 p-1'>
+                  <div key={index} className='text-xs text-text-primary dark:text-dark-text-primary mt-1 p-1'>
                     <ListSession session={session} onClick={() => forward(session)} />
                   </div>
                 ))

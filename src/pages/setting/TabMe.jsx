@@ -84,40 +84,31 @@ export default function TabMe() {
 
   return (
     <div className="tab-page">
-      <div className="mx-auto flex flex-col mt-4">
-        <div className="card-title">
-          {SettingPageTab.Me}
-        </div>
-        <div className="min-w-full p-2 flex flex-col rounded-lg shadow-xl justify-center">
-          <div className="justify-center flex flex-col">
-            <span className={`label`} >
-              Avatar:
-            </span>
-            {
-              Address &&
-              <AvatarImage address={Address} timestamp={imageTimestamp} onClick={() => browseAvatarSource()} classNames={'avatar'} />
-            }
-          </div>
-          <TextInput label={'Nick Name:'} value={displayNickname} autoComplete={"off"} placeholder={"Alice"} onChange={(e) => updateNickname(e.target.value)} />
-          {
-            imageSrc &&
+      <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
+        <div className="card-title">{SettingPageTab.Me}</div>
+        <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col items-center gap-4">
+          {Address && (
+            <AvatarImage
+              address={Address}
+              timestamp={imageTimestamp}
+              onClick={() => browseAvatarSource()}
+              classNames={'avatar'}
+            />
+          )}
+          <TextInput
+            label={'Nickname:'}
+            value={displayNickname}
+            autoComplete={"off"}
+            placeholder={"Alice"}
+            onChange={(e) => updateNickname(e.target.value)}
+          />
+          {imageSrc && (
             <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
-          }
-          {
-            showRemoveButton &&
-            <button
-              onClick={() => confirmDelAccount()}
-              className={`btn-primary btn-yellow`}
-            >
-              Remove Account
-            </button>
-          }
-          <button
-            onClick={() => copySeed()}
-            className={`btn-primary btn-yellow`}
-          >
-            Copy Seed
-          </button>
+          )}
+          <button onClick={() => copySeed()} className="btn-primary btn-yellow">Copy Seed</button>
+          {showRemoveButton && (
+            <button onClick={() => confirmDelAccount()} className="btn-primary btn-red">Remove Account</button>
+          )}
         </div>
       </div>
     </div>

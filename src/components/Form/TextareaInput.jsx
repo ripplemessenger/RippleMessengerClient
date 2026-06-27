@@ -11,7 +11,7 @@ const TextareaInput = ({ label, placeholder, value, onChange, disabled = false }
         disabled={disabled}
         value={value}
         onChange={onChange}
-        className={`w-96 min-h-[100px] resize-y p-2 border rounded shadow-xl appearance-none ${disabled ? 'input-hover-disabled' : 'input-hover border-green-500'} input-color`}
+        className={`w-full min-h-[100px] resize-y px-3 py-2 border rounded-lg shadow-sm appearance-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${disabled ? 'input-hover-disabled' : 'input-hover border-primary/30 dark:border-primary/40'} input-color`}
       />
     </div>
   )

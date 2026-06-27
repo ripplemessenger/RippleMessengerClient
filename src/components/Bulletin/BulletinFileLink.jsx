@@ -1,11 +1,9 @@
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { filesize_format } from '../../lib/AppUtil'
 import { IoAttachSharp } from "react-icons/io5"
 
 const BulletinFileLink = ({ name, ext, size, hash }) => {
 
-  const navigate = useNavigate()
   const dispatch = useDispatch()
 
   return (

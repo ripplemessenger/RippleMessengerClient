@@ -17,24 +17,24 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
       <div className={`overflow-hidden border border-white shadow ${size}`}>
         {
           session_type === SessionType.Private &&
-          <AvatarImage address={address} timestamp={Date.now()} classNames={'avatar-sm'} />
+          <AvatarImage address={address} classNames={'avatar-sm'} />
         }
          {
           session_type === SessionType.Group &&
-          <GrGroup className="session-icon" />
+          <GrGroup className="session-icon text-text-primary dark:text-dark-text-primary" />
         }
       </div>
 
       {showBadge && (
         <div
           className={`
-            absolute -bottom-1 -right-1 
+            absolute -bottom-1 -right-1
             flex items-center justify-center
-            bg-red-500 text-white text-xs font-bold
-            rounded-full border border-white
-            shadow-sm
+            bg-primary hover:bg-primary-dark text-white text-xs font-bold
+            rounded-full border-2 border-surface dark:border-dark-surface
+            shadow-gold
             ${badgeWidthClass}
-            h-5
+            h-5 px-1.5
             leading-none
           `}
         >

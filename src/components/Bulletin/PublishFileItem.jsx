@@ -1,22 +1,19 @@
-import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { IoCloseOutline, IoAttachSharp } from 'react-icons/io5'
 import { filesize_format } from '../../lib/AppUtil'
-import { IoAttachSharp } from 'react-icons/io5'
+import { useDispatch } from 'react-redux'
 
 const PublishFileItem = ({ name, ext, size, hash }) => {
 
-  const navigate = useNavigate()
   const dispatch = useDispatch()
 
   return (
-    <div className='flex flex-row'>
+    <div className="flex flex-row items-center gap-1">
       <div className='file-link' title={filesize_format(size)} >
         <IoAttachSharp />{name}{ext}
       </div>
-      <div className='file-del' onClick={() => dispatch({ type: 'BulletinFileDel', payload: { Hash: hash } })}>
-        X
-      </div>
+      <button className="close-btn-icon" onClick={() => dispatch({ type: 'BulletinFileDel', payload: { Hash: hash } })}>
+        <IoCloseOutline className="text-sm" />
+      </button>
     </div>
   )
 }

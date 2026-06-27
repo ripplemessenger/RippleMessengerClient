@@ -2,9 +2,9 @@ const InternalButton = ({ title, onClick, text_size }) => {
   return (
     <button
       onClick={onClick}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+      className="p-2 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 flex flex-col items-center justify-center"
     >
-      <span className={`${text_size} font-bold text-blue-600 dark:text-blue-400`}>
+      <span className={`${text_size} font-bold text-primary dark:text-dark-primary`}>
         {title}
       </span>
     </button>

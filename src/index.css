@@ -3,6 +3,43 @@
 @tailwind utilities;
 
 /* ====================================================================
+   Animations
+   ==================================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.25s ease-out; }
+.animate-slideUp { animation: slideUp 0.25s ease-out; }
+
+/* ====================================================================
+   Custom Scrollbar
+   ==================================================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(230, 180, 32, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 180, 32, 0.4);
+}
+
+/* ====================================================================
    Base Layer — 缩小全局 transition 的作用域以改善性能
    ==================================================================== */
 @layer base {
@@ -37,6 +74,11 @@
     perspective: 1500px;
     perspective-origin: center center;
   }
+
+  /* Focus ring utility for accessible focus indicators */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50;
+  }
 }
 
 /* ====================================================================
@@ -64,7 +106,7 @@
   }
 
   .nav {
-    @apply fixed h-16 w-full z-10;
+    @apply fixed h-16 w-full z-10 overflow-hidden;
   }
 
   .main {
@@ -79,14 +121,17 @@
   /* card + card-hover 共享相同的基线样式，消除重复 */
   .card,
   .card-hover {
-    @apply items-center rounded-lg overflow-hidden;
+    @apply rounded-xl overflow-hidden;
     @apply bg-gradient-card dark:bg-dark-gradient-card;
+    @apply border border-primary/20 dark:border-primary/30;
     @apply text-text-secondary dark:text-dark-text-secondary;
     @apply transition-all duration-300 ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   }
 
   .card-hover:hover {
-    @apply bg-yellow-100 dark:bg-gray-100;
+    @apply border-primary/50 dark:border-primary/60;
+    box-shadow: 0 4px 12px rgba(230, 180, 32, 0.15), 0 2px 4px rgba(0,0,0,0.08);
   }
 
   .card-square {
@@ -94,14 +139,22 @@
   }
 
   .card-icon {
-    @apply h-8 w-8;
-    @apply bg-green-300 dark:bg-green-700;
+    @apply h-8 w-8 cursor-pointer rounded-lg p-0.5;
+    @apply text-primary dark:text-dark-primary;
+    @apply hover:bg-primary/10 dark:hover:bg-primary/20;
+    transition-property: background-color, color, transform;
+    transition-duration: 150ms;
+  }
+
+  .card-icon:hover {
+    @apply text-text-primary dark:text-dark-text-primary;
+    transform: scale(1.1);
   }
 
   .card-title {
-    @apply shrink-0 mx-auto rounded-full p-1 px-4 text-4xl;
-    @apply border-2 border-text-primary dark:border-dark-text-primary;
-    @apply text-text-secondary dark:text-dark-text-secondary;
+    @apply shrink-0 mx-auto rounded-full p-1 px-4 text-2xl font-semibold;
+    @apply border border-primary/30 dark:border-primary/50;
+    @apply text-text-primary dark:text-dark-text-primary;
   }
 
   /* ==================== Icons & Avatars ==================== */
@@ -114,19 +167,49 @@
     @apply text-text-secondary dark:text-dark-text-secondary;
   }
 
+  /* Tool icons with hover affordance */
+  .tool-icon {
+    @apply icon-sm cursor-pointer p-1 rounded-md;
+    @apply hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary dark:hover:text-dark-primary;
+    transition-property: background-color, color, transform;
+    transition-duration: 150ms;
+  }
+
+  .tool-icon:hover {
+    transform: scale(1.15);
+  }
+
   .avatar-sm,
   .session-icon {
-    @apply h-12 w-12 border rounded shadow-sm;
+    @apply h-12 w-12 border border-primary/20 dark:border-primary/40 rounded-xl shadow-sm;
   }
 
   .avatar {
-    @apply h-24 w-24 border rounded shadow-sm;
+    @apply h-24 w-24 border border-primary/20 dark:border-primary/40 rounded-xl shadow-gold;
+  }
+
+  /* Clickable avatar hover effect — subtle scale + gold glow ring on the inner img/icon */
+  .avatar-hover {
+    transition-property: transform, box-shadow, border-color;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Target the actual visual element (img or icon) inside the clickable wrapper */
+  .avatar-hover:hover > img,
+  .avatar-hover:hover > svg {
+    @apply border-primary/60 dark:border-primary/80;
+    box-shadow: 0 0 12px rgba(230, 180, 32, 0.3), 0 2px 8px rgba(230, 180, 32, 0.15);
+    transform: scale(1.1);
+    transition-property: transform, box-shadow, border-color;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
   }
 
   /* ==================== Text Helpers ==================== */
   .plain-address,
   .timestamp {
-    @apply text-left text-gray-500 dark:text-slate-200;
+    @apply text-left text-text-secondary/60 dark:text-dark-text-secondary/60;
   }
 
   .avatar-name,
@@ -136,24 +219,38 @@
 
   /* ==================== Chat ==================== */
   .chat-content-pop {
-    @apply bg-green-500 dark:bg-green-700 text-slate-800 dark:text-slate-200 rounded-3xl px-4 break-words shadow-sm;
+    @apply bg-surface-alt dark:bg-dark-surface-alt border border-primary/20 rounded-2xl px-4 py-2 break-words shadow-gold;
+    @apply text-text-primary dark:text-dark-text-primary;
+    transition-property: box-shadow, border-color, transform;
+    transition-duration: 200ms;
+  }
+
+  .chat-content-pop:hover {
+    @apply border-primary/40 shadow-gold-lg;
+    transform: translateY(-1px);
   }
 
   /* ==================== Tables ==================== */
   .table-container {
-    @apply overflow-x-auto border border-text-secondary rounded-lg bg-gradient-card dark:bg-dark-gradient-card;
+    @apply overflow-x-auto rounded-xl border border-primary/20 dark:border-primary/40 bg-gradient-card dark:bg-dark-gradient-card;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
 
   .table-header-row {
-    @apply p-2 text-center font-bold text-sm tracking-wider text-gray-800 dark:text-gray-300;
+    @apply p-3 text-center font-semibold text-sm tracking-wider uppercase text-primary dark:text-dark-primary;
+    border-bottom: 2px solid rgba(230, 180, 32, 0.3);
   }
 
   .table-cell {
-    @apply p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300;
+    @apply p-3 whitespace-nowrap text-sm text-text-primary dark:text-dark-text-primary;
+  }
+
+  .table-tr {
+    @apply border border-primary/10 dark:border-primary/20 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors;
   }
 
   .table-tbody {
-    @apply divide-y divide-gray-200;
+    @apply divide-y divide-primary/10 dark:divide-primary/20;
   }
 
   /* ==================== Tabs ==================== */
@@ -170,18 +267,30 @@
   }
 
   /* ==================== Forms ==================== */
-  /* .lable -\u003e .label (修复拼写)，保留 .lable 做向后兼容 */
-  .label,
-  .lable {
-    @apply text-xl font-bold text-text-secondary dark:text-dark-text-secondary;
+  /* .label — sentence-case labels, no all-caps */
+  .label {
+    @apply text-sm font-medium text-primary dark:text-dark-primary;
+  }
+
+  .label-error {
+    @apply text-sm font-medium text-status-error dark:text-status-error-dark;
+  }
+
+  /* Hide browser-native password reveal button (Chrome/Edge eye icon) — we use our own toggle */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none !important;
+  }
+  input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
   }
 
   .input-color {
-    @apply bg-gray-200 dark:bg-gray-700 text-text-secondary dark:text-dark-text-secondary;
+    @apply bg-surface-alt/50 dark:bg-dark-surface-alt/50 border border-primary/20 dark:border-primary/30 text-text-primary dark:text-dark-text-primary rounded-lg placeholder:text-text-secondary/60 dark:placeholder:text-dark-text-secondary/40;
   }
 
   .input-hover {
-    @apply hover:bg-green-300 dark:hover:bg-green-700;
+    @apply hover:border-primary/50 dark:hover:border-primary/60 focus:ring-2 focus:ring-primary/30 focus:border-primary;
   }
 
   .input-hover-disabled {
@@ -190,26 +299,72 @@
 
   /* ==================== Buttons ==================== */
   .btn-primary {
-    @apply w-96 mt-4 py-2 text-3xl font-bold rounded;
+    @apply w-96 mt-4 py-2 font-semibold rounded-xl;
+    @apply bg-primary hover:bg-primary-dark text-white shadow-gold hover:shadow-gold-lg;
+    @apply border border-primary-dark/30;
+    @apply transition-all duration-150 active:scale-[0.98];
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50;
   }
 
-  /* 按钮颜色变体 — 共享 color: white + transition */
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Button size variants */
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm font-medium rounded-lg;
+  }
+
+  .btn-md {
+    @apply px-4 py-2 text-base font-medium rounded-lg;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-lg font-semibold rounded-xl;
+  }
+
+  /* Button color variants — shared base */
   .btn-green,
   .btn-yellow,
-  .btn-red {
-    @apply text-white transition-colors duration-200;
+  .btn-red,
+  .btn-gold {
+    @apply transition-all duration-150 font-medium active:scale-[0.98] text-white;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50;
   }
 
   .btn-green {
-    @apply bg-green-500 hover:bg-green-600;
+    @apply bg-status-success hover:bg-status-success-dark shadow-gold hover:shadow-gold-lg;
   }
 
   .btn-yellow {
-    @apply bg-yellow-500 hover:bg-yellow-600;
+    @apply bg-primary hover:bg-primary-dark shadow-gold hover:shadow-gold-lg;
   }
 
   .btn-red {
-    @apply bg-red-500 hover:bg-red-600;
+    @apply bg-status-error hover:bg-status-error-dark shadow-md hover:shadow-lg;
+  }
+
+  /* Gold casino button - primary action style */
+  .btn-gold {
+    @apply bg-primary hover:bg-primary-dark shadow-gold hover:shadow-gold-lg border border-primary-dark/30 active:scale-[0.98];
+    transition-property: background-color, box-shadow, transform;
+    transition-duration: 150ms;
+  }
+
+  /* Primary outline button variant */
+  .btn-primary-outline {
+    @apply bg-primary/10 dark:bg-primary/20 text-primary dark:text-dark-primary
+           hover:bg-primary/20 dark:hover:bg-primary/30
+           border border-primary/30 dark:border-primary/40;
+    @apply transition-all duration-150 font-medium rounded-lg active:scale-[0.98];
+  }
+
+  /* Danger button variant */
+  .btn-danger {
+    @apply bg-status-error/10 dark:bg-status-error-dark/20 text-status-error dark:text-status-error-dark;
+    @apply hover:bg-status-error/20 dark:hover:bg-status-error-dark/40;
+    @apply border border-status-error/30 dark:border-status-error-dark/40;
+    @apply transition-all duration-150 font-medium rounded-lg active:scale-[0.98];
   }
 
   /* ==================== Pagination ==================== */
@@ -219,21 +374,28 @@
   }
 
   .page {
-    @apply rounded-full border border-text-primary dark:border-dark-text-primary;
+    @apply rounded-full border border-primary/30 dark:border-primary/50 px-3 py-1;
   }
 
   .page:hover {
-    @apply bg-gray-100 dark:bg-yellow-100 text-2xl font-bold;
+    @apply bg-primary/10 dark:bg-primary/20 text-primary dark:text-dark-primary font-bold scale-110;
+    transition-property: transform, background-color, color;
+    transition-duration: 200ms;
   }
 
   .current-page {
-    @apply text-2xl font-bold;
+    @apply text-primary dark:text-dark-primary font-bold bg-primary/10 dark:bg-primary/20 rounded-full px-3 py-1;
   }
 
   /* ==================== Bulletin Links ==================== */
   /* bulletin-link / file-link / tag-link 完全相同 -\u003e 共享基类 */
   .link-btn {
-    @apply flex flex-row items-center text-text-secondary dark:text-dark-text-secondary mx-auto rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply cursor-pointer flex flex-row items-center text-text-secondary dark:text-dark-text-secondary mx-auto rounded-full border border-primary/30 dark:border-primary/50 px-2 py-0.5;
+    @apply min-w-0 overflow-hidden break-all;
+  }
+
+  .link-btn:hover {
+    @apply border-primary/60 dark:border-primary/70 bg-primary/5 dark:bg-primary/10;
   }
 
   /* 向后兼容的别名 (使用频率低时可逐步移除) */
@@ -252,7 +414,11 @@
   /* ==================== Bulletin Delete Buttons ==================== */
   /* quote-del / file-del / tag-del 完全相同 -\u003e 共享基类 */
   .del-btn {
-    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500 rounded-full border border-text-primary dark:border-dark-text-primary px-1;
+    @apply text-text-secondary dark:text-dark-text-secondary hover:bg-red-500/80 rounded-full border border-primary/30 dark:border-primary/50 px-2 py-0.5;
+  }
+
+  .del-btn:hover {
+    @apply text-red-600 dark:text-red-400 border-red-400;
   }
 
   /* 向后兼容的别名 */
@@ -268,6 +434,22 @@
     @apply del-btn;
   }
 
+  /* ==================== Icon Action Buttons ==================== */
+  /* Small dismiss/close icon button (used in publish items, etc.) */
+  .close-btn-icon {
+    @apply p-1 rounded-full text-text-secondary/60 dark:text-dark-text-secondary/60
+           hover:text-status-error dark:hover:text-status-error-dark
+           hover:bg-status-error/10 dark:hover:bg-status-error-dark/20
+           transition-colors;
+  }
+
+  /* Success feedback button (e.g., copied state) */
+  .btn-success {
+    @apply bg-status-success/10 dark:bg-status-success-dark/20 text-status-success dark:text-status-success-dark
+           border border-status-success/30 dark:border-status-success-dark/40
+           hover:bg-status-success/20 dark:hover:bg-status-success-dark/40;
+  }
+
   /* ==================== Cropper ==================== */
   .cropper-container {
     @apply h-[800px] w-full;
@@ -275,11 +457,21 @@
 
   /* ==================== Modal System ==================== */
   .modal-overlay {
-    @apply fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/5 backdrop-blur-sm;
+    @apply fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-sm;
+    background: rgba(0, 0, 0, 0.15);
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* Smooth modal content entrance */
+  .modal-overlay > *:first-child {
+    animation: fadeIn 0.3s ease-out 0.1s forwards;
+    opacity: 0;
+    animation-fill-mode: forwards;
   }
 
   .modal-content-wrapper {
-    @apply max-w-7xl overflow-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center;
+    @apply max-w-7xl overflow-auto whitespace-normal break-words p-4 rounded-2xl items-center;
+    @apply bg-gradient-card dark:bg-dark-gradient-card border border-primary/20 dark:border-primary/40 shadow-gold-lg;
   }
 
   .modal-action-row {
@@ -290,19 +482,19 @@
   .modal-btn-yellow,
   .modal-btn-green,
   .modal-btn-gray {
-    @apply flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 transition-colors duration-200;
+    @apply flex flex-col items-center justify-center p-2 rounded-xl font-medium transition-all duration-200;
   }
 
   .modal-btn-yellow {
-    @apply bg-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+    @apply bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/40 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-300 border border-amber-300/30 dark:border-amber-600/30;
   }
 
   .modal-btn-green {
-    @apply bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+    @apply bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-800/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300/30 dark:border-emerald-600/30;
   }
 
   .modal-btn-gray {
-    @apply bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600;
+    @apply bg-surface-alt/80 hover:bg-primary/10 dark:bg-dark-surface-alt/80 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30;
   }
 
   /* ==================== Page Layout ==================== */
@@ -315,15 +507,29 @@
   }
 
   .form-card-container {
-    @apply min-w-full p-2 rounded-lg shadow-xl justify-center;
+    @apply min-w-full p-4 rounded-xl border border-primary/20 dark:border-primary/30 shadow-gold justify-center;
+    @apply bg-gradient-card dark:bg-dark-gradient-card;
   }
 
   .form-card-container-gap {
-    @apply min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center;
+    @apply min-w-full p-4 flex gap-2 rounded-xl border border-primary/20 dark:border-primary/30 shadow-gold justify-center;
+    @apply bg-gradient-card dark:bg-dark-gradient-card;
   }
 
   .empty-state-box {
-    @apply mx-auto rounded-full p-1 px-4 border-2 border-gray-200 dark:border-gray-700;
+    @apply mx-auto rounded-xl p-6 px-8 border border-primary/20 dark:border-primary/30 bg-surface/50 dark:bg-dark-surface/50 text-center animate-fadeIn;
+    transition-property: background-color, border-color, transform;
+    transition-duration: 300ms;
+  }
+
+  .empty-state-box:hover {
+    @apply border-primary/30 dark:border-primary/40;
+    transform: translateY(-1px);
+  }
+
+  /* ==================== Page Layout ==================== */
+  .content-wrapper {
+    @apply mx-auto max-w-6xl mt-16 p-3 rounded-xl;
   }
 
   /* ==================== Login Form ==================== */
@@ -337,7 +543,8 @@
 
   /* ==================== Nav Button ==================== */
   .nav-icon-btn {
-    @apply p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 flex flex-col items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50;
+    @apply p-2 rounded-xl hover:bg-primary/10 dark:hover:bg-primary/20 flex flex-col items-center justify-center;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
   }
 
   /* ==================== Markdown Headings ==================== */

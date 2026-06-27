@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { IoCloseOutline } from "react-icons/io5"
+import { IoCloseOutline, IoWarningOutline } from "react-icons/io5"
 import { setConfirmPopup } from '../store/slices/CommonSlice'
 
 const ConfirmDiv = ({ json }) => {
@@ -12,16 +12,25 @@ const ConfirmDiv = ({ json }) => {
   }
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-      <div className="flex flex-row items-center justify-center">
-        <button onClick={() => dispatch(setConfirmPopup(null))} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-green-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-          <IoCloseOutline /> close
-        </button>
-      </div>
-      <div className="max-w-7xl overflow-x-auto overflow-y-auto whitespace-normal break-words p-2 rounded-xl shadow-2xl items-center">
-        <button onClick={confirm} className="btn-primary btn-red" >
-          Confirm
-        </button>
+    <div className={`modal-overlay`}>
+      <div className="w-full max-w-md mx-auto">
+        <div className="modal-content-wrapper">
+          <div className="flex items-center gap-3 mb-4">
+            <IoWarningOutline className="text-2xl text-status-warning dark:text-status-warning-dark" />
+            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
+          </div>
+          {ConfirmPopup && (
+            <p className="mb-6 text-text-secondary dark:text-dark-text-secondary">{ConfirmPopup.Content || 'Are you sure?'}</p>
+          )}
+          <div className="flex justify-end gap-3">
+            <button onClick={() => dispatch(setConfirmPopup(null))} className="btn-md bg-surface-alt/80 dark:bg-dark-surface-alt/80 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30 hover:bg-primary/10 dark:hover:bg-primary/20">
+              Cancel
+            </button>
+            <button onClick={confirm} className="btn-md btn-red">
+              Confirm
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

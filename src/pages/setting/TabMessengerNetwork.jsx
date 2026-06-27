@@ -82,23 +82,33 @@ export default function TabMessengerNetwork() {
     <div className="tab-page">
       {
         showAddServer &&
-        <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-5 backdrop-blur-sm`}>
-          <div className="flex flex-row items-center justify-center">
-            <button onClick={() => setShowAddServer(false)} className="flex flex-col items-center justify-center p-2 rounded-lg text-gray-500 bg-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <div className="mx-auto flex flex-col mt-4">
-            <div className="card-title">
-              Add Server
+        <div className={`modal-overlay`}>
+          <div className="max-w-md w-full mx-4 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-primary/20 dark:border-primary/30 rounded-t-xl bg-gradient-card dark:bg-dark-gradient-card shadow-lg">
+              <span className={`label text-base`}>Add Server</span>
+              <button onClick={() => setShowAddServer(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
+                <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+              </button>
             </div>
-            <TextInput label={'URL:'} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
-            <button
-              className="btn-primary btn-green"
-              disabled={newURL === ''}
-              onClick={() => addServer()}>
-              Add
-            </button>
+
+            {/* Content */}
+            <div className="flex flex-col overflow-y-auto px-4 py-3 bg-gradient-card dark:bg-dark-gradient-card grow gap-3">
+              <TextInput label={'URL:'} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
+              <button onClick={() => setShowAddServer(false)} className="btn-sm hover:bg-primary/10 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30">
+                Cancel
+              </button>
+              <button
+                className="btn-sm btn-gold"
+                disabled={newURL === ''}
+                onClick={() => addServer()}>
+                Add
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -109,70 +119,66 @@ export default function TabMessengerNetwork() {
           <TbCloudNetwork className="card-icon" onClick={() => setShowAddServer(true)} />
         </div>
 
-        <div className="min-w-full p-2 flex gap-1 rounded-lg shadow-xl justify-center">
-          <div className={`mt-1 flex-1`}>
-            <div className='flex flex-col'>
-              {
-                ServerList.length > 0 &&
-                <div className={`table-container`}>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="">
-                      <tr className="p-2 text-center font-bold text-sm text-gray-800 dark:text-gray-300 tracking-wider">
-                        <th>URL</th>
-                        <th>Connect</th>
-                        <th>Status</th>
-                        <th></th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {
-                        ServerList.map((server, index) => (
-                          <tr key={index} className='border border-gray-200 dark:border-gray-700 hover:bg-gray-500'>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              {server.url}
-                            </td>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              <ToggleSwitch isChecked={server.is_connect} onClick={() => { toggleIsConnect(server.url, !server.is_connect) }} />
-                            </td>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              {
-                                ConnsStatus[server.url] && ConnsStatus[server.url] === WebSocket.OPEN ?
-                                  <HiOutlineStatusOnline className="icon text-green-600 dark:text-green-400" />
-                                  :
-                                  <HiOutlineStatusOffline className="icon text-red-600 dark:text-red-400" />
-                              }
-                            </td>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              <button className="p-2 text-base font-bold bg-green-500 text-white rounded hover:bg-green-600"
-                                onClick={() => setDefaultServer(server.url)}>
-                                Set Default
-                              </button>
-                            </td>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              {
-                                server.is_connect &&
-                                <IoStatsChartOutline onClick={() => goto_server(server.url)} />
-                              }
-                            </td>
-                            <td className="p-2 whitespace-nowrap text-base text-gray-800 dark:text-gray-300">
-                              {
-                                !server.is_connect &&
-                                <button className="p-2 text-base font-bold bg-red-500 text-white rounded hover:bg-red-600"
-                                  onClick={() => confirmDelServer(server.url)}>
-                                  Delete
-                                </button>
-                              }
-                            </td>
-                          </tr>
-                        ))
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
+        <div className="min-w-full rounded-xl card">
+          {ServerList.length > 0 ? (
+            <div className={`table-container`}>
+              <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
+                <thead>
+                  <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
+                    <th>URL</th>
+                    <th>Connect</th>
+                    <th>Status</th>
+                    <th></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
+                  {ServerList.map((server) => (
+                    <tr key={server.url} className='table-tr'>
+                      <td className="table-cell font-mono text-sm">
+                        {server.url}
+                      </td>
+                      <td className="table-cell">
+                        <ToggleSwitch isChecked={server.is_connect} onClick={() => toggleIsConnect(server.url, !server.is_connect)} />
+                      </td>
+                      <td className="table-cell">
+                        {ConnsStatus[server.url] && ConnsStatus[server.url] === WebSocket.OPEN ? (
+                          <HiOutlineStatusOnline className="icon text-status-success dark:text-status-success-dark" />
+                        ) : (
+                          <HiOutlineStatusOffline className="icon text-status-error dark:text-status-error-dark" />
+                        )}
+                      </td>
+                      <td className="table-cell">
+                        <button className="btn-sm btn-primary-outline"
+                          onClick={() => setDefaultServer(server.url)}>
+                          Set Default
+                        </button>
+                      </td>
+                      <td className="table-cell">
+                        {server.is_connect && (
+                          <IoStatsChartOutline onClick={() => goto_server(server.url)} className="cursor-pointer tool-icon" />
+                        )}
+                      </td>
+                      <td className="table-cell">
+                        {!server.is_connect && (
+                          <button className="btn-sm btn-danger"
+                            onClick={() => confirmDelServer(server.url)}>
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          ) : (
+            <div className="empty-state-box py-8">
+              <TbCloudNetwork className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />
+              <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No servers yet</h3>
+              <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Add a server to get started</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

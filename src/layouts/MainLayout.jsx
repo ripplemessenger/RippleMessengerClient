@@ -27,7 +27,7 @@ export default function MainLayout() {
         <Header />
 
         <main className="main flex-grow">
-          <div className="mx-auto mt-16 max-w-6xl h-full p-2 rounded-lg">
+          <div className="content-wrapper h-full animate-fadeIn">
             <Outlet />
           </div>
         </main>

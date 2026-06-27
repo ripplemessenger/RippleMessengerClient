@@ -1,251 +1,256 @@
 # RippleMessengerClient
- 
-## Run
-1. install nodejs
-2. clone the code
-3. run
-```
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+去中心化桌面即时通讯应用 — Tauri + React 19 + Vite + Redux Toolkit + SQLite。
+
+**项目矩阵:** [Client](https://github.com/ripplemessenger/RippleMessengerClient) · [Server](https://github.com/ripplemessenger/RippleMessengerServer) · [Site](https://github.com/ripplemessenger/RippleMessengerSite)
+
+---
+
+## 快速开始
+
+```bash
 npm install
-npm run tauri dev
+npm run tauri dev      # 开发模式
+npm run tauri build    # 生产构建
 ```
 
-## Build
-```
-npm install
-npm run tauri build
-```
+**环境要求:** Node.js, Rust (Tauri), SQLite
 
-## Donate
-rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS
+---
 
 ## 特点
-1. 账号本地生成，无需手机认证、生物识别，我就是我无需向任何人证明，使用得当可以做到对所有人匿名，也可在物理世界对其他个人实名使用；
-2. 数据本地存储，包括公告、私聊消息、群聊消息及文件等等全部数据均本地存储，使用得当可保证自己的数据安全，与其吐槽服务提供方丢数据、删数据，不如自己保存好数据；
-3. 数据交换服务可私有部署，服务源码参见[RippleMessengerServer](https://github.com/ripplemessenger/RippleMessengerServer)，部署简单、成本低廉，无需担心服务不可用，鼓励有实力的玩家部署公开服务或提供计算资源，基于公告数据可搭建[网站](https://ripplemessenger.com)，网站源码参见[RippleMessengerSite](https://github.com/ripplemessenger/RippleMessengerSite)；
-4. 公告功能可以实现推特、微博、博客、论坛帖子等网络产品功能，同时基于1、2、3点，公告数据是跟着个人走；
-5. 聊天功能可以实现端到端数据加密（强度为256位的AES算法），保障聊天内容仅仅在聊天参与方可见，同时基于1、2、3点，聊天数据是跟着个人走；
-6. 公告和聊天功能均支持传输文件，当前设定最大可传64M文件，其中聊天文件的传输也是采用端到端加密传输；
-7. 客户端软件的exe文件只有5M小体积，源码开源绿色安全。
 
-## 欢迎star、fork、贡献代码、推荐、捐赠，谢谢！
+1. **密码学即身份** — XRPL Seed 本地生成，无需手机认证、邮箱验证。谁持有私钥谁就是该地址，使用得当可对所有人匿名；
+2. **数据本地存储** — 公告、私聊、群聊及文件全部存储在本地 SQLite，数据跟着个人走；
+3. **服务可私有部署** — Server 源码开源，部署简单、成本低廉。基于公告数据可搭建只读[网站](https://ripplemessenger.com)；
+4. **公告功能** — 实现推特/微博/博客/论坛功能，基于 hash-linked chain 不可篡改；
+5. **端到端加密聊天** — 256位 AES-CBC 加密，私聊和群聊内容仅在参与方可见；
+6. **文件传输** — 公告和聊天均支持文件传输，最大 64MB，聊天文件同样端到端加密；
+7. **小体积** — 客户端 exe 仅 5MB，源码开源绿色安全。
 
+---
 
-## **公告**（**Bulletin**）功能
-数据格式如下：
+## 架构
+
 ```
-const BulletinSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "Content", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 10,
-  "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.Bulletin },
-    "Sequence": { "type": "number" },
-    "PreHash": { "type": "string" },
-    "Content": { "type": "string" },
-    
-    "Tag": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "type": "string" }
-    },
-
-    "Quote": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["Address", "Sequence", "Hash"],
-        "properties": {
-          "Address": { "type": "string" },
-          "Sequence": { "type": "number" },
-          "Hash": { "type": "string" }
-        }
-      }
-    },
-
-    "File": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["Name", "Ext", "Size", "Hash"],
-        "properties": {
-          "Name": { "type": "string" },
-          "Ext": { "type": "string" },
-          "Size": { "type": "number" },
-          "Hash": { "type": "string" }
-        }
-      }
-    },
-
-    "Timestamp": { "type": "number" },
-    "PublicKey": { "type": "string" },
-    "Signature": { "type": "string" }
-  }
-}
+┌─────────────────────────┐         ┌─────────────────────────┐
+│   RippleMessengerClient │         │   RippleMessengerServer │
+│                         │         │                         │
+│  React 19 + Vite        │◄──WS──►│  Node.js + ws            │
+│  Tauri (Rust)           │         │  Prisma + PostgreSQL     │
+│  Redux Toolkit + Saga   │         │                          │
+│  SQLite (18 tables)     │         │  Store-and-Forward       │
+└─────────────────────────┘         └─────────────────────────┘
 ```
-数据格式说明如下：
-- ObjectType、Sequence、PreHash、Timestamp、PublicKey、Signature等6个属性为基础数据属性，具体作用如下：
-  - **ObjectType**用于指明数据的类型；
-  - **Sequence**用于说明本条数据是该账号（PublicKey）发布的该类型（ObjectType）数据的序号，从1开始记录，多一条数据加1，这样该账号该类型数据逻辑上就是一条数据链；**PreHash**用于说明该条数据前一条数据的Hash，第一条数据的PreHash为固定值44F8764BCACFF5424D4044B784549A1B，这样配合Sequence属性该账号该类型数据就是一条不可篡改的数据链；
-  - **Timestamp**用于说明该条数据的生成时间，且这个生成时间应晚于该条数据所引用的生成时间；
-  - **PublicKey**用于说明该条数据的**发布账号**；**Signature**用于签名该条数据，保证数据的完整性、不可伪造（配合**PublicKey**）、不可抵赖（配合**PublicKey**）。
 
-- Content、Tag、Quote、File等4个属性为公告数据的具体属性，作用如下：
-  - **Content**用于指明公告数据的内容，需要个人来填写；
-  - **Tag**用于指明公告数据的标签，需要个人来填写，后期可供系统来帮助个人进行查询检索；
-  - **Quote**用于指明该公告数据引用（或者回复）的其他**公告信息**（发布账号、序号、hash），从而实现单条数据链与其他数据链的关联，公告数据的跨链互动；
-  - **File**用于指明该公告数据发布的**文件信息**（文件名、大小、hash），公告数据本身不传输文件，但提供了文件hash，可供系统实现文件传输功能。
+### 核心模块
 
-任何个人或系统在存储一条**公告**前，均至少需要做以下**数据链校验**：
-- 校验数据签名，确认数据完整性、发布账号；
-- 校验当前数据链最后一条数据的序号为 **Sequence**-1，确认数据链的下一个序号为 **Sequence**；
-- 校验前一条（ **Sequence**-1）数据的Hash是否为**PreHash**，确认可以将该条数据从尾部插入数据链。
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| 入口 | `src/main.jsx` → `src/App.jsx` | React 挂载 + Redux Provider + 路由 |
+| WebSocket 消息 | `src/store/sagas/MessengerSaga.js` | ~1954行，所有 bulletin/私聊/群聊/文件分发 |
+| 用户流程 | `src/store/sagas/UserSaga.js` | 登录/登出、联系人、关注 |
+| Redux State | `src/store/slices/` | UserSlice / MessengerSlice / CommonSlice |
+| SQLite  schema | `src/db.js` | 18张表：公告链、握手、消息、文件 |
+| Rust 后端 | `src-tauri/src/lib.rs` | 系统托盘、单实例、通知图标闪烁 |
+| 协议常量 | `src/lib/MessengerConst.js` | ActionCode / ObjectType 数值枚举 |
+| 消息签名 | `src/lib/MessageGenerator.js` | EdDSA 签名 + 消息 JSON 构造 |
+| 消息验证 | `src/lib/MessageSchemaVerifier.js` | AJV JSON Schema 校验 |
+| 多WS管理 | `src/lib/WebsocketUtil.js` | 多服务器连接、断线重连 |
+| 密码学工具 | `src/lib/RippleUtil.js`, `AppUtil.js`, `MessengerUtil.js` | XRPL密钥、SHA512、ECDH |
 
+---
 
-## **私聊**（**PrivateChat**）功能
-实现端到到加密聊天，需要两步：
-1. 私聊的双方（两个账号）通过**DH算法（Diffie-Hellman 算法）**安全地共享一个对称加密密钥（256位AES密钥）作为**会话密钥**；
-2. 私聊的双方（两个账号）使用**会话密钥**加密私聊消息。
+## 通讯协议
 
-### 第一步协商**会话密钥**的数据格式如下：
+### 身份系统 — 无注册
+
 ```
-const ECDHHandshakeSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Partition", "Sequence", "Self", "Pair", "To", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 9,
-  "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.ECDH },
-    "Partition": { "type": "number" },
-    "Sequence": { "type": "number" },
-    "Self": { "type": "string" },
-    "Pair": { "type": "string" },
-    "To": { "type": "string" },
-    "Timestamp": { "type": "number" },
-    "PublicKey": { "type": "string" },
-    "Signature": { "type": "string" }
-  }
-}
+XRPL Seed (私钥助记词)
+  ↓ ripple-keypairs.deriveKeypair()
+PublicKey (hex, secp256k1 EdDSA/Ed25519)
+  ↓ ripple-keypairs.deriveAddress()
+Address (rXXXXXXXXXXXXXXXXXXXXX) — 全球唯一，确定性派生
 ```
-数据格式说明如下：
-- ObjectType、Timestamp、PublicKey、Signature等4个属性为基础数据属性，作用同上，不做解释。
-- Partition、Sequence、Self、Pair、To等5个属性为协商**会话密钥**数据的具体属性，作用如下：
-  - **Partition**用于指明会话时间段的长度，固定值为90天（90 * 24 * 3600秒），**Sequence**用于**会话密钥**有效时间段的序号，任意两个账号的会话起始时刻为固定值（2011-11-11 11:11:11）加上这两个账号特有的偏移量，防止大量账户集中协商私聊会话密钥；
-  - **Self**、**Pair**用于指明私聊双方（自己、对方）**会话密钥**的公钥，根据DH算法通过自己的私钥和对方的公钥可以计算出相同的**会话密钥**，具体原理可以通过学习DH算法了解；
-  - **To**用于指明对方账号，同时前面的**PublicKey**已经指明了自己的账号。
 
-### 第二步发送的**私聊消息**的数据格式如下：
+Server 不发放任何凭证。`Declare { Action: 100, PublicKey, Signature }` 是唯一身份宣告，Server 只验证签名有效即注册 WebSocket 连接。
+
+### 签名机制 — Zero Trust
+
+每条消息必须签名：`SHA-512(JSON.stringify(msg))` 取前32 hex char (128 bit)，用 XRPL 私钥 EdDSA 签名。验证方用 `ripple-keypairs.verify(hash, sig, publicKey)` 确认来源。
+
+**双层验证流水线：**
 ```
-const PrivateMessageSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Sequence", "PreHash", "Content", "To", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 9,
-  "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.PrivateMessage },
-    "Sequence": { "type": "number" },
-    "PreHash": { "type": "string" },
-    "Confirm": {
-      "type": "object",
-      "required": ["Sequence", "Hash"],
-      "maxProperties": 2,
-      "properties": {
-        "Sequence": { "type": "number" },
-        "Hash": { "type": "string" }
-      }
-    },
-    "Content": { "type": "string" },
-    "To": { "type": "string" },
-    "Timestamp": { "type": "number" },
-    "PublicKey": { "type": "string" },
-    "Signature": { "type": "string" }
-  }
-}
+收到文本消息 → JSON.parse() → AJV Schema 验证 → EdDSA 签名验证 → 路由到业务逻辑
 ```
-数据格式说明如下：
-- ObjectType、Sequence、PreHash、Timestamp、PublicKey、Signature等6个属性为基础数据属性，作用同上，不做解释。
-- Confirm、Content、To等3个属性为**私聊消息**数据的具体属性，作用如下：
-  - **Confirm**用于确认自己已经收到过对方的序号为Sequence、哈希为Hash的消息；
-  - **Content**用于指明私聊消息数据的内容，需要个人来填写，存储、显示、签名校验时使用未加密的明文，但是发送传输时为使用**会话密钥**加密后的密文，保证私聊消息的保密性，Content可以是：
-    - 字符串
-    - **公告信息**
-    - **文件信息**
-  - **To**用于指明对方账号。
 
-任何个人或系统在存储一条**私聊消息**前，需要先使用**会话密钥**解密还原原始明文消息数据，再进行**数据链校验**。
+### 公告链 — Hash-Linked Per-Address Chain
 
+每个 XRPL 地址维护一条独立的公告链：
 
-## **群聊**（**GroupChat**）功能
-在私聊功能的原理基础上，实现群聊功能，需要两步：
-1. 创建群；
-2. 群成员使用两两间的私聊**会话密钥**发送加密群聊消息。
-
-### 第一步**创建群**的数据格式如下：
 ```
-const GroupCreateSchema = {
-  "type": "object",
-  "required": ["ObjectType", "Hash", "Name", "Member", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 7,
-  "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.GroupCreate },
-    "Hash": { "type": "string" },
-    "Name": { "type": "string" },
-    "Member": {
-      "type": "array",
-      "minItems": 2,
-      "maxItems": 16,
-      "items": { "type": "string" }
-    },
-    "Timestamp": { "type": "number" },
-    "PublicKey": { "type": "string" },
-    "Signature": { "type": "string" }
-  }
-}
+GenesisHash "44F8764BCACFF5424D4044B784549A1B"
+  │
+  ▼
+┌───────────────────────────┐
+│ sequence: 1               │
+│ content: "Hello World!"   │
+│ pre_hash → GenesisHash    │ ◄── 指向创世
+│ hash = QuarterSHA512(...) │ ◄── 内容哈希(签名不含自身)
+│ signature: EdDSA(hash)   │ ◄── 私钥签名
+└──────────┬────────────────┘
+           ▼
+┌───────────────────────────┐
+│ sequence: 2               │
+│ content: "Second post"    │
+│ pre_hash → H1             │ ◄── 指向上一条的hash
+│ tag: ["news"]             │
+│ quote: [{hash: H1}]       │ ◄── 引用其他公告(类似 quote-tweet)
+│ file: [{hash, size}]      │
+└───────────────────────────┘
 ```
-数据格式说明如下：
-- ObjectType、Timestamp、PublicKey、Signature等4个属性为基础数据属性，作用同上，不做解释。
-- Hash、Name、Member等3个属性为**创建群**数据的具体属性，作用如下：
-  - **Hash**用于指明群的唯一标识，通过计算群名称、成员账号及随机数的哈希得到；
-  - **Name**用于指明群名称，考虑群名称未经加密，建议使用群成员能够看懂、非群成员不易看懂的脱敏词汇；
-  - **Member**用于指明群成员的账号，最少两名群成员，同时前面的**PublicKey**已经指明了群主的账号，所以一个群至少三个成员。
 
-### 第二步发送的**群聊消息**的数据格式如下：
-```
-const GroupMessageSchema = {
-  "type": "object",
-  "required": ["ObjectType", "GroupHash", "Sequence", "PreHash", "Content", "To", "Timestamp", "PublicKey", "Signature"],
-  "maxProperties": 10,
-  "properties": {
-    "ObjectType": { "type": "number", "const": ObjectType.GroupMessage },
-    "GroupHash": { "type": "string" },
-    "Sequence": { "type": "number" },
-    "PreHash": { "type": "string" },
-    "Confirm": {
-      "type": "object",
-      "required": ["Address", "Sequence", "Hash"],
-      "maxProperties": 2,
-      "properties": {
-        "Address": { "type": "string" },
-        "Sequence": { "type": "number" },
-        "Hash": { "type": "string" }
-      }
-    },
-    "Content": { "type": "string" },
-    "To": { "type": "string" },
-    "Timestamp": { "type": "number" },
-    "PublicKey": { "type": "string" },
-    "Signature": { "type": "string" }
-  }
-}
-```
-数据格式说明如下：
-- ObjectType、Sequence、PreHash、Timestamp、PublicKey、Signature等6个属性为基础数据属性，作用同上，不做解释。
-- Confirm、Content、To等3个属性为**私聊消息**数据的具体属性，作用如下：
-  - **GroupHash**用于指明群唯一标识；
-  - **Confirm**用于确认自己已经收到过群成员为Address的序号为Sequence、哈希为Hash的群消息；
-  - **Content**用于指明群聊消息数据的内容，需要个人来填写，存储、显示、签名校验时使用未加密的明文，但是发送传输时为使用**会话密钥**加密后的密文，保证私聊消息的保密性，Content可以是：
-    - 字符串
-    - **公告信息**
-    - **文件信息**
-  - **To**用于指明对方账号。
+**"去共识区块链"设计:** 每条链只有一个合法生产者——一个地址只对应一个私钥持有者。无竞争 = 无需 PoW/PoS。保留 hash-linking + signature，去除 consensus + mining + incentive。
 
-任何个人或系统在存储一条**群聊消息**前，需要先使用**会话密钥**解密还原原始明文消息数据，再进行**数据链校验**。
+**存储前校验：**
+1. 验签确认发布者和完整性
+2. 确认数据链最后一条 sequence = N-1，下一个应为 N
+3. 确认第 N-1 条的 hash === PreHash，才能从尾部插入
+
+### DHSequence 分区系统 — 确定性密钥轮换
+
+让两个独立客户端算出相同的 ECDH sequence，无需协商：
+
+```javascript
+Epoch = 1320981071000       // 2011-11-11 11:11:11 UTC
+DefaultPartition = 90天     // 密钥轮换周期
+
+function DHSequence(partition, timestamp, addrA, addrB):
+  addrPair = sort(addrA, addrB).join("")       // 字典序排序，确保对称
+  cursor = HalfSHA512(addrPair)[:6] % partition * 1000  // 确定性偏移
+  seq = (timestamp - Epoch - cursor) / (partition * 1000)
+  return seq
+```
+
+- **确定性:** 双方独立计算，结果相同
+- **90天自动轮换:** 新 sequence → 新 AES key，周期性前向安全
+- **cursor 分散流量:** 每对用户有唯一时间偏移，避免同时握手
+
+### ECDH 握手 — 私聊/群聊端到端加密
+
+**密钥派生链：**
+```
+Seed + sequence → HalfSHA512(Genesis + seed + addr + seq) → ECDH 私钥
+对方的ECDH公钥 + 自己的ECDH私钥 → shared_secret
+HKDF(shared_secret, SHA512(Genesis + addrPair + seq)) → AES-256-CBC key (hex string)
+```
+
+**握手流程：**
+```
+User A                            User B
+  │── ECDH { Self: pubA } ──────▶│
+  │                              │── db 无此握手 → 生成 pubB
+  │◄── ECDH { Self: pubB,       │    shared = ECDH(pubA, privB)
+  │     Pair: pubA } ───────────│    aesKey = HKDF(shared, salt)
+  │── Pair ≠ "" → 握手完成      │── db.initHandshakeFromRemote(...)
+  │── AES-CBC(aesKey) 加密消息
+```
+
+Server 只存储密文 json，不计算也不存储 AES key。
+
+**群聊 Star Topology:**
+```
+            Creator (A)
+           /   |   \
+       AES-K1 AES-K2 AES-K3
+          /     |      \
+         B      C       D
+```
+每个成员与 creator 独立 ECDH 链路，O(n) key 管理。最多 16 人。
+
+### 私聊消息链
+
+私聊消息和公告一样采用 `PreHash + Sequence` 双条件链式验证。检测到链断裂时自动触发 `PrivateMessageSync` 双向增量同步。
+
+**Offline-First:** Client 在发送 WebSocket 之前就将消息存入本地 SQLite，UI 立即显示。
+
+### 文件传输 — Nonce-based 分块
+
+| 参数 | 值 |
+|------|-----|
+| 最大文件大小 | 64 MB |
+| 分块大小 | 1 MB |
+| 传输通道 | WebSocket binary frame |
+
+```
+Binary Frame: [4-byte nonce (big-endian)] [chunk data]
+Text   Frame: JSON 控制消息 (公告、握手、请求)
+```
+
+控制信令和文件数据走不同帧类型，互不阻塞。
+
+### 协议路由矩阵
+
+| Action (动词) | ObjectType (名词) |
+|---|---|
+| 100 Declare | 100 Nothing |
+| 200 AvatarRequest | 101 ECDH |
+| 300 FileRequest | 400 Bulletin |
+| 400 BulletinRequest | 403 ServerAddressList |
+| 401 BulletinSubscribe | 404 ReplyBulletinList |
+| 402 RandomBulletinRequest | 500 PrivateMessage |
+| 403 ServerAddressRequest | 600 GroupCreate |
+| 404 ReplyBulletinRequest | 601 GroupDelete |
+| 405 TagBulletinRequest | 602 GroupList / 603 GroupMessage |
+| 500 FriendRequest | 604 GroupMessageList |
+| 501 PrivateMessageSync | |
+| 600 GroupSync | |
+| 601 GroupMessageSync | |
+
+---
+
+## 数据层
+
+### Client SQLite (18 tables)
+
+| 分类 | 表 | 用途 |
+|------|-----|------|
+| 身份社交 | `servers`, `contacts`, `accounts`, `follows`, `friends` | 多账号、关注/好友关系 |
+| 公告 | `bulletins`, `tags`, `bulletin_tags`, `bulletin_replys`, `bulletin_files` | 公告链副本，含双向链接 |
+| 加密 | `handshakes`, `private_messages`, `group_messages` | ECDH 状态、AES key、解密后明文 |
+| 文件 | `avatar_files`, `files`, `private_chat_files`, `group_chat_files` | 下载进度追踪，E2E加密文件映射 |
+| 群聊 | `groups` | 群元数据，软删除支持 |
+
+### Server PostgreSQL (8 Prisma models)
+
+`Avatar` · `Bulletin` · `Tag` · `File` · `Reply` · `ECDH` · `PrivateMessage` · `Group`
+
+**关键差异：** Client 存解密后的明文 content；Server 只存密文 json，永远不可见明文。群聊消息 Server 不持久化，纯内存转发。
+
+---
+
+## 安全模型
+
+| 防线 | 实现 | 效果 |
+|------|------|------|
+| Layer 1: 身份 | XRPL KeyPairs, 私钥不出 Client | 无注册、不可封禁、抗审查 |
+| Layer 2: 完整性 | EdDSA 签名 + AJV Schema + PreHash 链 | 来源可验证，内容不可篡改 |
+| Layer 3: 保密性 | ECDH secp256k1 → HKDF → AES-CBC | Server 仅存密文转发 |
+
+**设计权衡 (有意识取舍):**
+- QuarterSHA512 展示 hash 仅 40-bit — 可读性优先，但 EdDSA 签名是安全底线
+- AES-CBC 而非 GCM — crypto-js 兼容性好，依赖外层 hash chain 防篡改
+- Seed 存 localStorage (AES 加密) — Tauri WebView 缩小 XSS 攻击面
+
+---
+
+## Donate
+
+XRP: `rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS`
+
+---
+
+欢迎 star、fork、贡献代码、推荐、捐赠，谢谢！
+

@@ -5,14 +5,14 @@ const SubmitResult = ({ result }) => {
     <div className="justify-center items-center">
       {
         result !== null &&
-        <div className="flex justify-center bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-96">
+        <div className="flex justify-center bg-gradient-card dark:bg-dark-gradient-card p-6 rounded-xl shadow-gold-lg w-96 border border-primary/20 dark:border-primary/30">
           {
             result === TxResult.Success ?
-              <span className='text-3xl font-bold text-green-800 dark:text-green-200'>
+              <span className='text-3xl font-bold text-status-success dark:text-status-success-dark'>
                 SUCCESS
               </span>
               :
-              <span className='text-3xl font-bold text-red-800 dark:text-red-200'>
+              <span className='text-3xl font-bold text-status-error dark:text-status-error-dark'>
                 {result}
               </span>
           }

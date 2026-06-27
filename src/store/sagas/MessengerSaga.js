@@ -1,4 +1,4 @@
-import { Buffer } from 'buffer'
+﻿import { Buffer } from 'buffer'
 import Elliptic from 'elliptic'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import * as path from '@tauri-apps/api/path'
@@ -23,7 +23,747 @@ async function notifyNewMessage() {
     invoke('stop_message_flash')
   }, 10000)
 }
-// server
+
+// ==================== Websocket Message Handlers ====================
+// Extracted from WebsocketListener to reduce nesting depth.
+// All generators use redux-saga yield call() pattern; Tauri async APIs wrapped in call().
+
+// ---------- Binary message handlers (file chunk reception) ----------
+
+function* handleBinaryAvatar(request, content) {
+  const content_hash = FileHash(content)
+  if (request.Hash === content_hash) {
+    const base_dir = yield call(() => path.resourceDir())
+    const avatar_dir = yield call(() => path.join(base_dir, AvatarDir))
+    yield call(() => mkdir(avatar_dir, { recursive: true }))
+    const avatar_path = `${avatar_dir}/${request.Address}.png`
+    yield call(() => writeFile(avatar_path, content))
+    yield call(() => dbAPI.updateAvatarIsSaved(request.Address, true, Date.now()))
+  }
+}
+
+function* handleBinaryBulletinFile(request, content) {
+  const base_dir = yield call(() => path.resourceDir())
+  const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
+  yield call(() => mkdir(file_dir, { recursive: true }))
+  const file_path = yield call(() => path.join(file_dir, request.Hash))
+  const file = yield call(() => dbAPI.getFileByHash(request.Hash))
+  if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
+    yield call(() => writeFile(file_path, content, { append: true }))
+    FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
+    const current_chunk_cursor = file.chunk_cursor + 1
+    yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
+    if (current_chunk_cursor < file.chunk_length) {
+      yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
+    } else {
+      const hash = FileHash(yield call(() => readFile(file_path)))
+      if (hash === request.Hash) {
+        yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+      } else {
+        yield call(() => remove(file_path))
+        yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+        yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
+      }
+    }
+  }
+}
+
+function* handleBinaryPrivateFile(request, content) {
+  const base_dir = yield call(() => path.resourceDir())
+  const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
+  yield call(() => mkdir(file_dir, { recursive: true }))
+  const chat_file_path = yield call(() => path.join(file_dir, request.Hash))
+  const chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
+  if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
+    const decrypted_content = AesDecryptBuffer(content, request.aes_key)
+    yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
+    FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
+    const current_chunk_cursor = chat_file.chunk_cursor + 1
+    yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
+    if (current_chunk_cursor < chat_file.chunk_length) {
+      yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
+    } else {
+      const hash = FileHash(yield call(() => readFile(chat_file_path)))
+      if (hash === request.Hash) {
+        yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+      } else {
+        yield call(() => remove(chat_file_path))
+        yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+        yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
+      }
+    }
+  }
+}
+
+function* handleBinaryGroupFile(request, content, action) {
+  let chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
+  if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
+    const index = yield call(() => ArrayBufferToUint32(action.data.slice(4, 8)))
+    const from = getMemberByIndex(request.GroupMember, index)
+    const ecdh_sequence = DHSequence(DefaultPartition, Date.now(), request.SelfAddress, from)
+    const ecdh = yield call(() => dbAPI.getHandshake(request.SelfAddress, from, DefaultPartition, ecdh_sequence))
+    if (ecdh !== null && ecdh.aes_key !== null) {
+      const base_dir = yield call(() => path.resourceDir())
+      const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
+      yield call(() => mkdir(file_dir, { recursive: true }))
+      const chat_file_path = yield call(() => path.join(file_dir, request.Hash))
+      const decrypted_content = AesDecryptBuffer(content, ecdh.aes_key)
+      yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
+      FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
+      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, chat_file.chunk_cursor + 1, Date.now()))
+      const updated_file = yield call(() => dbAPI.getFileByHash(request.Hash))
+      if (updated_file.chunk_cursor < updated_file.chunk_length) {
+        yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
+      } else {
+        const hash = FileHash(yield call(() => readFile(chat_file_path)))
+        if (hash === request.Hash) {
+          yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+        } else {
+          yield call(() => remove(chat_file_path))
+          yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+          yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
+        }
+      }
+    }
+  }
+}
+
+function* handleBinaryMessage(action) {
+  const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
+  FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
+  for (let i = 0; i < FileRequestList.length; i++) {
+    const request = FileRequestList[i]
+    if (request.Nonce === nonce) {
+      switch (request.Type) {
+        case FileRequestType.Avatar:
+          yield call(handleBinaryAvatar, request, new Uint8Array(action.data.slice(4)))
+          break
+        case FileRequestType.File:
+          yield call(handleBinaryBulletinFile, request, new Uint8Array(action.data.slice(4)))
+          break
+        case FileRequestType.PrivateChatFile:
+          yield call(handleBinaryPrivateFile, request, Buffer.from(action.data.slice(4)))
+          break
+        case FileRequestType.GroupChatFile:
+          yield call(handleBinaryGroupFile, request, Buffer.from(action.data.slice(8)), action)
+          break
+      }
+    }
+  }
+}
+
+// ---------- Action message handlers ----------
+// Signature: (json, action, address, seed, ob_address)
+
+function* handleAvatarRequestAction(json, action) {
+  if (checkAvatarRequestSchema(json) && VerifyJsonSignature(json)) {
+    let new_list = []
+    for (let i = 0; i < json.List.length; i++) {
+      const avatar = json.List[i]
+      let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar.Address))
+      if (db_avatar !== null && db_avatar.signed_at > avatar.SignedAt) {
+        new_list.push(db_avatar.json)
+      }
+    }
+    if (new_list.length > 0) {
+      let avatar_response = { ObjectType: ObjectType.AvatarList, List: new_list }
+      yield call(SendMessage, { key: action.key, msg: JSON.stringify(avatar_response) })
+    }
+  }
+}
+
+function* handleBulletinRequestAction(json, action, address, seed) {
+  if (checkBulletinRequestSchema(json) && VerifyJsonSignature(json)) {
+    let bulletin = null
+    if (json.Hash) {
+      bulletin = yield call(() => dbAPI.getBulletinByHash(json.Hash))
+    } else {
+      bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
+    }
+    if (bulletin !== null) {
+      yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
+    } else if (json.Address === address) {
+      const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
+      if (last_bulletin === null) {
+        if (json.Sequence > 1) {
+          let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
+          yield call(SendMessage, { key: action.key, msg: msg })
+        }
+      } else if (last_bulletin.sequence + 1 < json.Sequence) {
+        yield call(RequestNextBulletin, { key: action.key, payload: { address: address } })
+      }
+    }
+  }
+}
+
+function* handleFileRequestAction(json, action, address, ob_address) {
+  if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
+    if (json.FileType === FileRequestType.Avatar) {
+      let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
+      if (avatar !== null) {
+        const base_dir = yield select(state => state.Common.AppBaseDir)
+        const avatar_path = yield call(() => path.join(base_dir, `/${AvatarDir}/${avatar.address}.png`))
+        const content = yield call(() => readFile(avatar_path))
+        const nonce = Uint32ToBuffer(json.Nonce)
+        yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, content]) })
+      }
+    } else if (json.FileType === FileRequestType.File) {
+      let file = yield call(() => dbAPI.getFileByHash(json.Hash))
+      if (file !== null && file.is_saved) {
+        const base_dir = yield select(state => state.Common.AppBaseDir)
+        const file_path = yield call(() => path.join(base_dir, FileDir, json.Hash.substring(0, 3), json.Hash.substring(3, 6), json.Hash))
+        const nonce = Uint32ToBuffer(json.Nonce)
+        if (file.size <= FileChunkSize) {
+          const content = yield call(() => readFile(file_path))
+          yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, content]) })
+        } else {
+          const fileHandle = yield call(() => open(file_path, { read: true }))
+          try {
+            const start = (json.ChunkCursor - 1) * FileChunkSize
+            fileHandle.seek(start, SeekMode.Start)
+            const length = Math.min(FileChunkSize, file.size - start)
+            const buffer = new Uint8Array(length)
+            const bytesRead = yield call(() => fileHandle.read(buffer))
+            if (bytesRead > 0) {
+              const chunk = buffer.slice(0, bytesRead)
+              yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, chunk]) })
+            }
+          } finally {
+            yield call(() => fileHandle.close())
+          }
+        }
+      }
+    } else if (json.FileType === FileRequestType.PrivateChatFile) {
+      let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(json.Hash))
+      if (private_chat_file !== null) {
+        let file = yield call(() => dbAPI.getFileByHash(private_chat_file.hash))
+        if (file !== undefined && file.is_saved) {
+          const base_dir = yield select(state => state.Common.AppBaseDir)
+          const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
+          const nonce = Uint32ToBuffer(json.Nonce)
+          if (file.size <= FileChunkSize) {
+            const content = yield call(() => readFile(file_path))
+            const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+            if (ecdh !== null && ecdh.aes_key !== null) {
+              const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
+              yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_content]) })
+            }
+          } else {
+            const fileHandle = yield call(() => open(file_path, { read: true }))
+            try {
+              const start = (json.ChunkCursor - 1) * FileChunkSize
+              fileHandle.seek(start, SeekMode.Start)
+              const length = Math.min(FileChunkSize, file.size - start)
+              const buffer = new Uint8Array(length)
+              const bytesRead = yield call(() => fileHandle.read(buffer))
+              if (bytesRead > 0) {
+                const chunk = buffer.slice(0, bytesRead)
+                const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+                let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                if (ecdh !== null && ecdh.aes_key !== null) {
+                  const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
+                  yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_chunk]) })
+                }
+              }
+            } finally {
+              yield call(() => fileHandle.close())
+            }
+          }
+        }
+      }
+    } else if (json.FileType === FileRequestType.GroupChatFile) {
+      const group_member_map = yield select(state => state.Messenger.GroupMemberMap)
+      if (group_member_map[json.GroupHash] && group_member_map[json.GroupHash].includes(ob_address)) {
+        let index = getMemberIndex(group_member_map[json.GroupHash], address)
+        const index_u32 = Uint32ToBuffer(index)
+        let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(json.Hash))
+        if (group_chat_file !== null) {
+          let file = yield call(() => dbAPI.getFileByHash(group_chat_file.hash))
+          if (file !== undefined && file.is_saved) {
+            const base_dir = yield select(state => state.Common.AppBaseDir)
+            const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
+            const nonce = Uint32ToBuffer(json.Nonce)
+            const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+            let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+            if (file.size <= FileChunkSize) {
+              const content = yield call(() => readFile(file_path))
+              if (ecdh !== null && ecdh.aes_key !== null) {
+                const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
+                yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_content]) })
+              }
+            } else {
+              const fileHandle = yield call(() => open(file_path, { read: true }))
+              try {
+                const start = (json.ChunkCursor - 1) * FileChunkSize
+                fileHandle.seek(start, SeekMode.Start)
+                const length = Math.min(FileChunkSize, file.size - start)
+                const buffer = new Uint8Array(length)
+                const bytesRead = yield call(() => fileHandle.read(buffer))
+                if (bytesRead > 0) {
+                  const chunk = buffer.slice(0, bytesRead)
+                  if (ecdh !== null && ecdh.aes_key !== null) {
+                    const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
+                    yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_chunk]) })
+                  }
+                }
+              } finally {
+                yield call(() => fileHandle.close())
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function* handlePrivateMessageSyncAction(json, action, address, ob_address) {
+  if (checkPrivateMessageSyncSchema(json) && VerifyJsonSignature(json)) {
+    const friend = yield call(() => dbAPI.getFriend(address, ob_address))
+    if (friend !== null) {
+      let unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
+      for (let i = 0; i < unsyncMessageList.length; i++) {
+        const msg = unsyncMessageList[i]
+        yield call(SendMessage, { key: action.key, msg: msg.json })
+      }
+    }
+  }
+}
+
+function* handleGroupSyncAction(json, action) {
+  if (checkGroupSyncSchema(json) && VerifyJsonSignature(json)) {
+    const group_list = yield select(state => state.Messenger.GroupList)
+    let tmp_list = []
+    for (let i = 0; i < group_list.length; i++) {
+      const group = group_list[i]
+      if (group.delete_json !== null) {
+        tmp_list.push(group.delete_json)
+      } else {
+        tmp_list.push(group.create_json)
+      }
+    }
+    if (tmp_list.length > 0) {
+      let group_response = { ObjectType: ObjectType.GroupList, List: tmp_list }
+      yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_response) })
+    }
+  }
+}
+
+function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) {
+  if (checkGroupMessageSyncSchema(json) && VerifyJsonSignature(json)) {
+    let timestamp = Date.now()
+    let group = yield call(() => dbAPI.getGroupByHash(json.Hash))
+    if (group === null) {
+      yield call(GroupSync, { key: action.key })
+    } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
+      const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
+      let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+      if (ecdh === null && address !== ob_address) {
+        yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
+      } else if (ecdh.aes_key === null) {
+        yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
+      } else {
+        let tmp_msg_list = []
+        if (json.Sequence === 0) {
+          tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
+        } else {
+          let current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
+          if (current_msg !== null) {
+            tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
+          } else {
+            let last_group_member_msg = yield call(() => dbAPI.getLastGroupMemberMessage(json.Hash, json.Address))
+            let group_member_sequence = 0
+            if (last_group_member_msg !== null) {
+              group_member_sequence = last_group_member_msg.sequence
+            }
+            let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.Hash, json.Address, group_member_sequence, json.Address))
+            yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_sync_request) })
+          }
+        }
+        if (tmp_msg_list.length > 0) {
+          let list = []
+          for (let i = 0; i < tmp_msg_list.length; i++) {
+            const tmp_msg = tmp_msg_list[i]
+            let tmp_msg_json = JSON.parse(tmp_msg.json)
+            let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
+            tmp_msg_json.Content = encrypt_content
+            delete tmp_msg_json["ObjectType"]
+            delete tmp_msg_json["GroupHash"]
+            list.push(tmp_msg_json)
+          }
+          let group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, json.Hash, ob_address, list, timestamp))
+          yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_list_json) })
+        }
+      }
+    }
+  }
+}
+
+// ---------- Action message dispatcher ----------
+function* handleActionMessage(json, action, address, seed) {
+  let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+  switch (json.Action) {
+    case ActionCode.AvatarRequest:
+      yield call(handleAvatarRequestAction, json, action)
+      break
+    case ActionCode.BulletinRequest:
+      yield call(handleBulletinRequestAction, json, action, address, seed)
+      break
+    case ActionCode.FileRequest:
+      yield call(handleFileRequestAction, json, action, address, ob_address)
+      break
+    case ActionCode.PrivateMessageSync:
+      yield call(handlePrivateMessageSyncAction, json, action, address, ob_address)
+      break
+    case ActionCode.GroupSync:
+      yield call(handleGroupSyncAction, json, action)
+      break
+    case ActionCode.GroupMessageSync:
+      yield call(handleGroupMessageSyncAction, json, action, address, ob_address, seed)
+      break
+  }
+}
+
+// ---------- Object message handlers ----------
+// Signature: (json, action, address, seed)
+
+function* handleBulletinObject(json) {
+  if (!checkBulletinSchema(json) || !VerifyJsonSignature(json)) return null
+  let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+  let bulletin = yield call(CacheBulletin, json)
+  const address = yield select(state => state.User.Address)
+  const follow_list = yield select(state => state.User.FollowList)
+  if (follow_list.includes(ob_address) || ob_address === address) {
+    yield fork(RequestNextBulletin, { key: null, payload: { address: ob_address } })
+  }
+  return bulletin
+}
+
+function* handleServerAddressListObject(json) {
+  if (checkServerAddressListSchema(json)) {
+    yield put(setServerAddressList(json))
+  }
+}
+
+function* handleReplyBulletinListObject(json) {
+  if (!checkReplyBulletinListSchema(json)) return
+  let replys = []
+  for (let i = 0; i < json.List.length; i++) {
+    const bulletin = json.List[i]
+    if (VerifyJsonSignature(bulletin)) {
+      const b = yield call(CacheBulletin, bulletin)
+      replys.push(b)
+    }
+  }
+  yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
+}
+
+function* handleTagBulletinListObject(json) {
+  if (!checkTagBulletinListSchema(json)) return
+  let tag_bulletin_list = []
+  for (let i = 0; i < json.List.length; i++) {
+    const bulletin = json.List[i]
+    if (VerifyJsonSignature(bulletin)) {
+      const b = yield call(CacheBulletin, bulletin)
+      tag_bulletin_list.push(b)
+    }
+  }
+  yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
+}
+
+function* handleRandomBulletinListObject(json) {
+  if (!checkRandomBulletinListSchema(json)) return
+  let random_bulletin_list = []
+  for (let i = 0; i < json.List.length; i++) {
+    const bulletin = json.List[i]
+    if (VerifyJsonSignature(bulletin)) {
+      const b = yield call(CacheBulletin, bulletin)
+      random_bulletin_list.push(b)
+    }
+  }
+  yield put(setRandomBulletinList(random_bulletin_list))
+}
+
+function* handleAvatarListObject(json) {
+  if (!checkAvatarListSchema(json)) return
+  for (let i = 0; i < json.List.length; i++) {
+    const avatar = json.List[i]
+    if (VerifyJsonSignature(avatar)) {
+      const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
+      let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
+      if (db_avatar !== null) {
+        if (db_avatar.signed_at < avatar.Timestamp) {
+          if (db_avatar.hash === avatar.Hash) {
+            yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, true))
+          } else {
+            yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, false))
+            yield call(RequestAvatarFile, { key: null, address: avatar_address, hash: avatar.Hash })
+          }
+        } else if (db_avatar.signed_at === avatar.Timestamp && db_avatar.is_saved === false) {
+          yield call(RequestAvatarFile, { key: null, address: avatar_address, hash: avatar.Hash })
+        }
+      }
+    }
+  }
+}
+
+function* handleECDHHandshakeObject(json, address, seed) {
+  if (!checkECDHHandshakeSchema(json) || json.To !== address || !VerifyJsonSignature(json)) return
+  let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+  let friend = yield call(() => dbAPI.getFriend(address, ob_address))
+  const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
+  if (friend !== null || total_member_list.includes(ob_address)) {
+    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
+    if (ecdh === null) {
+      const ec = new Elliptic.ec('secp256k1')
+      const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
+      const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
+      const ecdh_pk = self_key_pair.getPublic('hex')
+      const timestamp = Date.now()
+      const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
+      const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+      const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
+      const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
+      yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
+      yield call(SendMessage, { msg: JSON.stringify(self_json) })
+    } else {
+      const ec = new Elliptic.ec('secp256k1')
+      const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
+      const timestamp = Date.now()
+      const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
+      const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+      const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
+      const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
+      yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
+      if (json.Pair === "") {
+        yield call(SendMessage, { msg: JSON.stringify(self_json) })
+      }
+    }
+  }
+}
+
+function* handlePrivateMessageObject(json, address) {
+  if (!checkPrivateMessageSchema(json) || !VerifyJsonSignature(json)) return
+  // Skip if neither sender nor recipient is us
+  let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+  if (json.To !== address && ob_address !== address) return
+
+  yield call(processPrivateMessage, json, address, ob_address)
+}
+
+// Unified private message processor - handles both incoming and self-messages
+function* processPrivateMessage(json, address, ob_address) {
+  const is_self = (ob_address === address)
+  const remote = is_self ? json.To : ob_address
+
+  // Verify friendship
+  const friend = yield call(() => dbAPI.getFriend(address, remote))
+  if (friend === null) return
+
+  // ECDH handshake
+  const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, remote)
+  let ecdh = yield call(() => dbAPI.getHandshake(address, remote, DefaultPartition, ecdh_sequence))
+  if (ecdh === null || ecdh.aes_key === null) {
+    yield call(InitHandshake, { key: null, ecdh_sequence: ecdh_sequence, pair_address: remote })
+    return
+  }
+
+  // Decrypt content
+  let content = AesDecrypt(json.Content, ecdh.aes_key)
+  let content_json = deriveJson(content)
+  if (content_json && checkMessageObjectSchema(content_json)) {
+    content = content_json
+  }
+
+  // Handle file attachment
+  if (typeof content === 'object' && content.ObjectType === MessageObjectType.PrivateChatFile) {
+    yield fork(FetchPrivateChatFile, { payload: { remote: remote, hash: content.Hash, size: content.Size } })
+  }
+
+  // Check if currently viewing this chat
+  const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+  let is_readed = false
+  if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
+    is_readed = true
+  }
+
+  // Validate chain and save message
+  let last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, remote))
+  let add_result = false
+  if (last_msg === null) {
+    if (json.Sequence === 1 && json.PreHash === GenesisHash) {
+      add_result = yield call(() => dbAPI.addPrivateMessage(
+        QuarterSHA512Message(json), address, remote, json.Sequence, json.PreHash,
+        content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
+      ))
+    } else {
+      yield call(SyncPrivateMessage, { payload: { key: null, local: address, remote: remote } })
+    }
+  } else {
+    if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
+      add_result = yield call(() => dbAPI.addPrivateMessage(
+        QuarterSHA512Message(json), address, remote, json.Sequence, json.PreHash,
+        content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
+      ))
+    } else if (last_msg.sequence + 1 < json.Sequence) {
+      yield call(SyncPrivateMessage, { payload: { key: null, local: address, remote: remote } })
+    }
+  }
+
+  // Post-save actions
+  if (add_result) {
+    if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
+      yield call(RefreshPrivateMessageList)
+    }
+    yield call(LoadSessionList)
+    yield call(invoke, 'start_message_flash')
+  }
+}
+
+function* handleGroupListObject(json, address) {
+  if (!checkGroupListSchema(json)) return
+  for (let i = 0; i < json.List.length; i++) {
+    const group_json = json.List[i]
+    let db_g = yield call(() => dbAPI.getGroupByHash(group_json.Hash))
+    if (group_json.ObjectType === ObjectType.GroupCreate && VerifyJsonSignature(group_json)) {
+      if (db_g === null) {
+        const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
+        if (created_by === address) {
+          yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
+          yield call(LoadSessionList)
+          yield call(LoadGroupList)
+        } else if (group_json.Member.includes(address)) {
+          yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
+          yield call(LoadGroupRequestList)
+        }
+      }
+    } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
+      if (db_g !== null) {
+        yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
+      }
+    }
+  }
+}
+
+function* handleGroupMessageListObject(json, address, seed) {
+  if (!checkGroupMessageListSchema(json)) return
+  const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
+  let group = yield call(() => dbAPI.getGroupByHash(json.GroupHash))
+  if (group === null) {
+    yield call(GroupSync, { key: null })
+    return
+  }
+  if (group.is_accepted !== true) return
+
+  const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
+  let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+  if (ecdh === null) {
+    yield call(InitHandshake, { key: null, ecdh_sequence: ecdh_sequence, pair_address: ob_address })
+    return
+  }
+  if (ecdh.aes_key === null) {
+    yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
+    return
+  }
+
+  let unCachedMessageAddress = []
+  for (let i = 0; i < json.List.length; i++) {
+    const group_msg = json.List[i]
+    const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
+    let pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
+    if (pre_message === undefined && !(group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
+      unCachedMessageAddress.push(msg_address)
+      continue
+    }
+
+    let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
+    let content_json = deriveJson(content)
+    if (content_json && checkMessageObjectSchema(content_json)) {
+      content = content_json
+    }
+
+    let verify_json = {
+      ObjectType: ObjectType.GroupMessage,
+      GroupHash: json.GroupHash,
+      Sequence: group_msg.Sequence,
+      PreHash: group_msg.PreHash,
+      Confirm: group_msg.Confirm,
+      Content: content,
+      Timestamp: group_msg.Timestamp,
+      PublicKey: group_msg.PublicKey,
+      Signature: group_msg.Signature
+    }
+    if (verify_json.Confirm === undefined) {
+      delete verify_json["Confirm"]
+    }
+
+    if (!VerifyJsonSignature(verify_json)) continue
+
+    let hash = QuarterSHA512Message(verify_json)
+    if (typeof verify_json.Content === 'object' && verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
+      yield call(FetchGroupChatFile, { payload: { key: null, group_hash: json.GroupHash, hash: verify_json.Content.Hash, size: verify_json.Content.Size } })
+    }
+
+    let is_readed = false
+    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+      is_readed = true
+    }
+
+    const add_result = yield call(() => dbAPI.addGroupMessage(
+      hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash,
+      verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'
+    ))
+    if (add_result) {
+      if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+        yield call(RefreshGroupMessageList)
+      }
+      yield call(LoadSessionList)
+      yield call(invoke, 'start_message_flash')
+    }
+  }
+
+  // Request missing messages
+  unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
+  for (let i = 0; i < unCachedMessageAddress.length; i++) {
+    const msg_address = unCachedMessageAddress[i]
+    let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
+    let sequence = 0
+    if (last_msg !== null) {
+      sequence = last_msg.sequence
+    }
+    let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, sequence, ob_address))
+    yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
+  }
+}
+
+// ---------- Object message dispatcher ----------
+function* handleObjectMessage(json, action, address, seed) {
+  if (json.ObjectType === ObjectType.Bulletin) {
+    yield call(handleBulletinObject, json)
+  } else if (json.ObjectType === ObjectType.ServerAddressList) {
+    yield call(handleServerAddressListObject, json)
+  } else if (json.ObjectType === ObjectType.ReplyBulletinList) {
+    yield call(handleReplyBulletinListObject, json)
+  } else if (json.ObjectType === ObjectType.TagBulletinList) {
+    yield call(handleTagBulletinListObject, json)
+  } else if (json.ObjectType === ObjectType.RandomBulletinList) {
+    yield call(handleRandomBulletinListObject, json)
+  } else if (json.ObjectType === ObjectType.AvatarList) {
+    yield call(handleAvatarListObject, json)
+  } else if (json.ObjectType === ObjectType.ECDH) {
+    yield call(handleECDHHandshakeObject, json, address, seed)
+  } else if (json.ObjectType === ObjectType.PrivateMessage) {
+    yield call(handlePrivateMessageObject, json, address)
+  } else if (json.ObjectType === ObjectType.GroupList) {
+    yield call(handleGroupListObject, json, address)
+  } else if (json.ObjectType === ObjectType.GroupMessageList) {
+      yield call(handleGroupMessageListObject, json, address, seed)
+    }
+}
+
+// ==================== Websocket Listener (slimmed) ====================
 function* WebsocketListener() {
   const channel = globalWsChannel
 
@@ -57,675 +797,25 @@ function* WebsocketListener() {
         }
         const address = yield select(state => state.User.Address)
         if (action.isBinary) {
-          const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
-          FileRequestList = FileRequestList.filter(r => r.Timestamp + 120 * 1000 > Date.now())
-          for (let i = 0; i < FileRequestList.length; i++) {
-            const request = FileRequestList[i]
-            if (request.Nonce === nonce) {
-              const base_dir = yield call(() => path.resourceDir())
-              if (request.Type === FileRequestType.Avatar) {
-                let content = action.data.slice(4)
-                // content = yield call(() => content.arrayBuffer())
-                content = new Uint8Array(content)
-                // content = Buffer.from(content)
-                const content_hash = FileHash(content)
-                if (request.Hash === content_hash) {
-                  const avatar_dir = yield call(() => path.join(base_dir, AvatarDir))
-                  yield call(() => mkdir(avatar_dir, { recursive: true }))
-                  let avatar_path = `${avatar_dir}/${request.Address}.png`
-                  yield call(() => writeFile(avatar_path, content))
-                  yield call(() => dbAPI.updateAvatarIsSaved(request.Address, true, Date.now()))
-                }
-              } else if (request.Type === FileRequestType.File) {
-                let content = action.data.slice(4)
-                // content = yield call(() => content.arrayBuffer())
-                content = new Uint8Array(content)
-                // content = Buffer.from(content)
-                const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
-                yield call(() => mkdir(file_dir, { recursive: true }))
-                let file_path = yield call(() => path.join(file_dir, request.Hash))
-                let file = yield call(() => dbAPI.getFileByHash(request.Hash))
-                if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
-                  yield call(() => writeFile(file_path, content, { append: true }))
-                  FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                  let current_chunk_cursor = file.chunk_cursor + 1
-                  yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
-                  if (current_chunk_cursor < file.chunk_length) {
-                    yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
-                  } else {
-                    let hash = FileHash(yield call(() => readFile(file_path)))
-                    if (hash === request.Hash) {
-                      yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-                    } else {
-                      yield call(() => remove(file_path))
-                      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-                      yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
-                    }
-                  }
-                }
-              } else if (request.Type === FileRequestType.PrivateChatFile) {
-                let content = action.data.slice(4)
-                // content = yield call(() => content.arrayBuffer())
-                content = Buffer.from(content)
-                const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
-                yield call(() => mkdir(file_dir, { recursive: true }))
-                let chat_file_path = yield call(() => path.join(file_dir, request.Hash))
-                let chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-                if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
-                  const decrypted_content = AesDecryptBuffer(content, request.aes_key)
-                  yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
-                  FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                  let current_chunk_cursor = chat_file.chunk_cursor + 1
-                  yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
-                  if (current_chunk_cursor < chat_file.chunk_length) {
-                    yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
-                  } else {
-                    let hash = FileHash(yield call(() => readFile(chat_file_path)))
-                    if (hash === request.Hash) {
-                      yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-                    } else {
-                      yield call(() => remove(chat_file_path))
-                      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-                      yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
-                    }
-                  }
-                }
-              } else if (request.Type === FileRequestType.GroupChatFile) {
-                const index = yield call(() => ArrayBufferToUint32(action.data.slice(4, 8)))
-                const from = getMemberByIndex(request.GroupMember, index)
-                const ecdh_sequence = DHSequence(DefaultPartition, Date.now(), request.SelfAddress, from)
-                let ecdh = yield call(() => dbAPI.getHandshake(request.SelfAddress, from, DefaultPartition, ecdh_sequence))
-                if (ecdh !== null && ecdh.aes_key !== null) {
-                  const file_dir = yield call(() => path.join(base_dir, FileDir, request.Hash.substring(0, 3), request.Hash.substring(3, 6)))
-                  yield call(() => mkdir(file_dir, { recursive: true }))
-                  let chat_file_path = yield call(() => path.join(file_dir, request.Hash))
-                  let chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-                  if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
-                    let content = action.data.slice(8)
-                    // content = yield call(() => content.arrayBuffer())
-                    content = Buffer.from(content)
-                    const decrypted_content = AesDecryptBuffer(content, ecdh.aes_key)
-                    yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
-                    FileRequestList = FileRequestList.filter(r => r.Nonce !== request.Nonce)
-                    yield call(() => dbAPI.updateFileChunkCursor(request.Hash, chat_file.chunk_cursor + 1, Date.now()))
-                  }
-
-                  chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-                  if (chat_file.chunk_cursor < chat_file.chunk_length) {
-                    yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
-                  } else {
-                    let hash = FileHash(yield call(() => readFile(chat_file_path)))
-                    if (hash === request.Hash) {
-                      yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-                    } else {
-                      yield call(() => remove(chat_file_path))
-                      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-                      yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
-                    }
-                  }
-                }
-              }
-            }
-          }
+          yield call(handleBinaryMessage, action)
         } else {
           let json = action.data
           if (json.Action && (json.To === undefined || json.To === address)) {
-            let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-            switch (json.Action) {
-              // request action
-              case ActionCode.AvatarRequest:
-                if (checkAvatarRequestSchema(json) && VerifyJsonSignature(json)) {
-                  let new_list = []
-                  for (let i = 0; i < json.List.length; i++) {
-                    const avatar = json.List[i]
-                    let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar.Address))
-                    if (db_avatar !== null && db_avatar.signed_at > avatar.SignedAt) {
-                      new_list.push(db_avatar.json)
-                    }
-                  }
-                  if (new_list.length > 0) {
-                    let avatar_response = {
-                      ObjectType: ObjectType.AvatarList,
-                      List: new_list
-                    }
-                    yield call(SendMessage, { key: action.key, msg: JSON.stringify(avatar_response) })
-                  }
-                }
-                break
-              case ActionCode.BulletinRequest:
-                if (checkBulletinRequestSchema(json) && VerifyJsonSignature(json)) {
-                  let bulletin = null
-                  if (json.Hash) {
-                    bulletin = yield call(() => dbAPI.getBulletinByHash(json.Hash))
-                  } else {
-                    bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
-                  }
-                  if (bulletin !== null) {
-                    yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
-                  } else if (json.Address === address) {
-                    // pull self bulletin from server
-                    const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
-                    if (last_bulletin === null) {
-                      if (json.Sequence > 1) {
-                        let msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
-                        yield call(SendMessage, { key: action.key, msg: msg })
-                      }
-                    } else if (last_bulletin.sequence + 1 < json.Sequence) {
-                      yield call(RequestNextBulletin, { payload: { key: action.key, address: address } })
-                    }
-                  }
-                }
-                break
-              case ActionCode.FileRequest:
-                if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
-                  if (json.FileType === FileRequestType.Avatar) {
-                    let avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
-                    if (avatar !== null) {
-                      const base_dir = yield select(state => state.Common.AppBaseDir)
-                      const avatar_path = yield call(() => path.join(base_dir, `/${AvatarDir}/${avatar.address}.png`))
-                      const content = yield call(() => readFile(avatar_path))
-                      const nonce = Uint32ToBuffer(json.Nonce)
-                      yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, content]) })
-                    }
-                  } else if (json.FileType === FileRequestType.File) {
-                    let file = yield call(() => dbAPI.getFileByHash(json.Hash))
-                    if (file !== null && file.is_saved) {// && file.chunk_cursor >= json.ChunkCursor) {
-                      const base_dir = yield select(state => state.Common.AppBaseDir)
-                      const file_path = yield call(() => path.join(base_dir, FileDir, json.Hash.substring(0, 3), json.Hash.substring(3, 6), json.Hash))
-                      const nonce = Uint32ToBuffer(json.Nonce)
-                      if (file.size <= FileChunkSize) {
-                        const content = yield call(() => readFile(file_path))
-                        yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, content]) })
-                      } else {
-                        const fileHandle = yield call(() => open(file_path, { read: true }))
-                        try {
-                          const start = (json.ChunkCursor - 1) * FileChunkSize
-                          fileHandle.seek(start, SeekMode.Start)
-                          const length = Math.min(FileChunkSize, file.size - start)
-                          const buffer = new Uint8Array(length)
-                          const bytesRead = yield call(() => fileHandle.read(buffer))
-                          if (bytesRead > 0) {
-                            const chunk = buffer.slice(0, bytesRead)
-                            yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, chunk]) })
-                          }
-                        } finally {
-                          yield call(() => fileHandle.close())
-                        }
-                      }
-                    }
-                  } else if (json.FileType === FileRequestType.PrivateChatFile) {
-                    let private_chat_file = yield call(() => dbAPI.getPrivateFileByEHash(json.Hash))
-                    if (private_chat_file !== null) {
-                      let file = yield call(() => dbAPI.getFileByHash(private_chat_file.hash))
-                      if (file !== undefined && file.is_saved) {// && file.chunk_length >= json.ChunkCursor) {
-                        const base_dir = yield select(state => state.Common.AppBaseDir)
-                        const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
-                        const nonce = Uint32ToBuffer(json.Nonce)
-
-                        if (file.size <= FileChunkSize) {
-                          const content = yield call(() => readFile(file_path))
-                          const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                          if (ecdh !== null && ecdh.aes_key !== null) {
-                            const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
-                            yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_content]) })
-                          }
-                        } else {
-                          const fileHandle = yield call(() => open(file_path, { read: true }))
-                          try {
-                            const start = (json.ChunkCursor - 1) * FileChunkSize
-                            fileHandle.seek(start, SeekMode.Start)
-                            const length = Math.min(FileChunkSize, file.size - start)
-                            const buffer = new Uint8Array(length)
-                            const bytesRead = yield call(() => fileHandle.read(buffer))
-                            if (bytesRead > 0) {
-                              const chunk = buffer.slice(0, bytesRead)
-                              const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                              let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                              if (ecdh !== null && ecdh.aes_key !== null) {
-                                const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
-                                yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_chunk]) })
-                              }
-                            }
-                          } finally {
-                            yield call(() => fileHandle.close())
-                          }
-                        }
-                      }
-                    }
-                  } else if (json.FileType === FileRequestType.GroupChatFile) {
-                    const group_member_map = yield select(state => state.Messenger.GroupMemberMap)
-                    if (group_member_map[json.GroupHash] && group_member_map[json.GroupHash].includes(ob_address)) {
-                      let index = getMemberIndex(group_member_map[json.GroupHash], address)
-                      const index_u32 = Uint32ToBuffer(index)
-                      let group_chat_file = yield call(() => dbAPI.getGroupFileByEHash(json.Hash))
-                      if (group_chat_file !== null) {
-                        let file = yield call(() => dbAPI.getFileByHash(group_chat_file.hash))
-                        if (file !== undefined && file.is_saved) {// && file.chunk_length >= json.ChunkCursor) {
-                          const base_dir = yield select(state => state.Common.AppBaseDir)
-                          const file_path = yield call(() => path.join(base_dir, FileDir, file.hash.substring(0, 3), file.hash.substring(3, 6), file.hash))
-                          const nonce = Uint32ToBuffer(json.Nonce)
-
-                          const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                          let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                          if (file.size <= FileChunkSize) {
-                            const content = yield call(() => readFile(file_path))
-                            if (ecdh !== null && ecdh.aes_key !== null) {
-                              const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
-                              yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_content]) })
-                            }
-                          } else {
-                            const fileHandle = yield call(() => open(file_path, { read: true }))
-                            try {
-                              const start = (json.ChunkCursor - 1) * FileChunkSize
-                              fileHandle.seek(start, SeekMode.Start)
-                              const length = Math.min(FileChunkSize, file.size - start)
-                              const buffer = new Uint8Array(length)
-                              const bytesRead = yield call(() => fileHandle.read(buffer))
-                              if (bytesRead > 0) {
-                                const chunk = buffer.slice(0, bytesRead)
-                                if (ecdh !== null && ecdh.aes_key !== null) {
-                                  const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
-                                  yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_chunk]) })
-                                }
-                              }
-                            } finally {
-                              yield call(() => fileHandle.close())
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                break
-              case ActionCode.PrivateMessageSync:
-                if (checkPrivateMessageSyncSchema(json) && VerifyJsonSignature(json)) {
-                  const friend = yield call(() => dbAPI.getFriend(address, ob_address))
-                  if (friend !== null) {
-                    let unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
-                    for (let i = 0; i < unsyncMessageList.length; i++) {
-                      const msg = unsyncMessageList[i]
-                      yield call(SendMessage, { key: action.key, msg: msg.json })
-                    }
-                  }
-                }
-                break
-              case ActionCode.GroupSync:
-                if (checkGroupSyncSchema(json) && VerifyJsonSignature(json)) {
-                  const group_list = yield select(state => state.Messenger.GroupList)
-                  let tmp_list = []
-                  for (let i = 0; i < group_list.length; i++) {
-                    const group = group_list[i]
-                    if (group.delete_json !== null) {
-                      tmp_list.push(group.delete_json)
-                    } else {
-                      tmp_list.push(group.create_json)
-                    }
-                  }
-                  if (tmp_list.length > 0) {
-                    let group_response = {
-                      ObjectType: ObjectType.GroupList,
-                      List: tmp_list
-                    }
-                    yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_response) })
-                  }
-                }
-                break
-              case ActionCode.GroupMessageSync:
-                if (checkGroupMessageSyncSchema(json) && VerifyJsonSignature(json)) {
-                  let timestamp = Date.now()
-                  let group = yield call(() => dbAPI.getGroupByHash(json.Hash))
-                  if (group === null) {
-                    yield call(GroupSync, { key: action.key })
-                  } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
-                    const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
-                    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                    if (ecdh === null && address !== ob_address) {
-                      yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-                    } else if (ecdh.aes_key === null) {
-                      yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
-                    } else {
-                      let tmp_msg_list = []
-                      if (json.Sequence === 0) {
-                        tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
-                      } else {
-                        let current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
-                        if (current_msg !== null) {
-                          tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
-                        } else {
-                          let last_group_member_msg = yield call(() => dbAPI.getLastGroupMemberMessage(json.Hash, json.Address))
-                          let group_member_sequence = 0
-                          if (last_group_member_msg !== null) {
-                            group_member_sequence = last_group_member_msg.sequence
-                          }
-                          let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.Hash, json.Address, group_member_sequence, json.Address))
-                          yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_sync_request) })
-                        }
-                      }
-                      if (tmp_msg_list.length > 0) {
-                        let list = []
-                        for (let i = 0; i < tmp_msg_list.length; i++) {
-                          const tmp_msg = tmp_msg_list[i]
-                          let tmp_msg_json = JSON.parse(tmp_msg.json)
-                          let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
-                          tmp_msg_json.Content = encrypt_content
-                          delete tmp_msg_json["ObjectType"]
-                          delete tmp_msg_json["GroupHash"]
-                          list.push(tmp_msg_json)
-                        }
-                        let group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, json.Hash, ob_address, list, timestamp))
-                        yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_list_json) })
-                      }
-                    }
-                  }
-                }
-                break
-              default:
-                break
-            }
+            yield call(handleActionMessage, json, action, address, seed)
           } else if (json.ObjectType) {
-            let timestamp = Date.now()
-            if (json.ObjectType === ObjectType.Bulletin && checkBulletinSchema(json) && VerifyJsonSignature(json)) {
-              let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-              let bulletin = yield call(CacheBulletin, json)
-              const follow_list = yield select(state => state.User.FollowList)
-              if (follow_list.includes(ob_address) || ob_address === address) {
-                yield fork(RequestNextBulletin, { key: action.key, payload: { address: ob_address } })
-              }
-            } else if (json.ObjectType === ObjectType.ServerAddressList && checkServerAddressListSchema(json)) {
-              yield put(setServerAddressList(json))
-            } else if (json.ObjectType === ObjectType.ReplyBulletinList && checkReplyBulletinListSchema(json)) {
-              let replys = []
-              for (let i = 0; i < json.List.length; i++) {
-                const bulletin = json.List[i]
-                if (VerifyJsonSignature(bulletin)) {
-                  const b = yield call(CacheBulletin, bulletin)
-                  replys.push(b)
-                }
-              }
-              yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
-            } else if (json.ObjectType === ObjectType.TagBulletinList && checkTagBulletinListSchema(json)) {
-              let tag_bulletin_list = []
-              for (let i = 0; i < json.List.length; i++) {
-                const bulletin = json.List[i]
-                if (VerifyJsonSignature(bulletin)) {
-                  const b = yield call(CacheBulletin, bulletin)
-                  tag_bulletin_list.push(b)
-                }
-              }
-              yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
-            } else if (json.ObjectType === ObjectType.RandomBulletinList && checkRandomBulletinListSchema(json)) {
-              let random_bulletin_list = []
-              for (let i = 0; i < json.List.length; i++) {
-                const bulletin = json.List[i]
-                if (VerifyJsonSignature(bulletin)) {
-                  const b = yield call(CacheBulletin, bulletin)
-                  random_bulletin_list.push(b)
-                }
-              }
-              yield put(setRandomBulletinList(random_bulletin_list))
-            } else if (json.ObjectType === ObjectType.AvatarList && checkAvatarListSchema(json)) {
-              for (let i = 0; i < json.List.length; i++) {
-                const avatar = json.List[i]
-                if (VerifyJsonSignature(avatar)) {
-                  const avatar_address = rippleKeyPairs.deriveAddress(avatar.PublicKey)
-                  let db_avatar = yield call(() => dbAPI.getAvatarByAddress(avatar_address))
-                  if (db_avatar !== null) {
-                    if (db_avatar.signed_at < avatar.Timestamp) {
-                      if (db_avatar.hash === avatar.Hash) {
-                        yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, true))
-                      } else {
-                        yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, false))
-                        yield call(RequestAvatarFile, { key: action.key, address: avatar_address, hash: avatar.Hash })
-                      }
-                    } else if (db_avatar.signed_at === avatar.Timestamp && db_avatar.is_saved === false) {
-                      yield call(RequestAvatarFile, { key: action.key, address: avatar_address, hash: avatar.Hash })
-                    }
-                  }
-                }
-              }
-            } else if (json.ObjectType === ObjectType.ECDH && checkECDHHandshakeSchema(json) && json.To === address && VerifyJsonSignature(json)) {
-              let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-              let friend = yield call(() => dbAPI.getFriend(address, ob_address))
-              const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
-              if (friend !== null || total_member_list.includes(ob_address)) {
-                let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
-                if (ecdh === null) {
-                  const ec = new Elliptic.ec('secp256k1')
-                  const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
-                  const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
-                  const ecdh_pk = self_key_pair.getPublic('hex')
-                  const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
-                  const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-                  const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
-                  const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-                  yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
-                  yield call(SendMessage, { key: action.key, msg: JSON.stringify(self_json) })
-                } else {
-                  const ec = new Elliptic.ec('secp256k1')
-                  const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
-                  const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
-                  const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-                  const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
-                  const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-                  yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
-                  if (json.Pair === "") {
-                    yield call(SendMessage, { key: action.key, msg: JSON.stringify(self_json) })
-                  }
-                }
-              } else {
-                // Strangers do nothing
-              }
-            } else if (json.ObjectType === ObjectType.PrivateMessage && checkPrivateMessageSchema(json) && VerifyJsonSignature(json)) {
-              // private
-              let ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-              if (json.To === address || ob_address === address) {
-                if (ob_address !== address) {
-                  let friend = yield call(() => dbAPI.getFriend(address, ob_address))
-                  if (friend !== null) {
-                    const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                    if (ecdh === null || ecdh.aes_key === null) {
-                      yield call(InitHandshake, { key: action.key, ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-                    } else {
-                      let content = AesDecrypt(json.Content, ecdh.aes_key)
-                      let content_json = deriveJson(content)
-                      if (content_json && checkMessageObjectSchema(content_json)) {
-                        content = content_json
-                      }
-                      let hash = QuarterSHA512Message(json)
-                      if (typeof content === 'object') {
-                        if (content.ObjectType === MessageObjectType.PrivateChatFile) {
-                          yield fork(FetchPrivateChatFile, { payload: { remote: ob_address, hash: content.Hash, size: content.Size } })
-                        }
-                      }
-
-                      let last_msg = yield call(() => dbAPI.getLastPrivateMessage(ob_address, address))
-                      const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-                      let is_readed = false
-                      if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
-                        is_readed = true
-                      }
-                      let add_result = false
-                      if (last_msg === null) {
-                        if (json.Sequence === 1 && json.PreHash === GenesisHash) {
-                          // first msg, save
-                          add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
-                        } else {
-                          // request first msg
-                          yield call(SyncPrivateMessage, { payload: { key: action.key, local: address, remote: ob_address } })
-                        }
-                      } else {
-                        if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
-                          // chained msg, save
-                          add_result = yield call(() => dbAPI.addPrivateMessage(hash, ob_address, address, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'))
-                        } else if (last_msg.sequence + 1 < json.Sequence) {
-                          // unchained msg, request next msg
-                          yield call(SyncPrivateMessage, { payload: { key: action.key, local: address, remote: ob_address } })
-                        }
-                      }
-
-                      if (add_result) {
-                        if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === ob_address) {
-                          yield call(RefreshPrivateMessageList)
-                        }
-                        yield call(LoadSessionList)
-                        yield call(invoke, 'start_message_flash')
-                      }
-                    }
-                  }
-                } else {
-                  // sync self message
-                  let msg_to = yield call(() => dbAPI.getFriend(address, json.To))
-                  if (msg_to !== null) {
-                    const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, json.To)
-                    let ecdh = yield call(() => dbAPI.getHandshake(address, json.To, DefaultPartition, ecdh_sequence))
-                    if (ecdh === null || ecdh.aes_key === null) {
-                      yield call(InitHandshake, { key: action.key, ecdh_sequence: ecdh_sequence, pair_address: json.To })
-                    } else {
-                      let content = AesDecrypt(json.Content, ecdh.aes_key)
-                      let content_json = deriveJson(content)
-                      if (content_json && checkMessageObjectSchema(content_json)) {
-                        content = content_json
-                      }
-                      let hash = QuarterSHA512Message(json)
-                      if (typeof content === 'object') {
-                        if (content.ObjectType === MessageObjectType.PrivateChatFile) {
-                          yield fork(FetchPrivateChatFile, { payload: { remote: json.To, hash: content.Hash, size: content.Size } })
-                        }
-                      }
-
-                      let last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, json.To))
-                      if (last_msg === null) {
-                        if (json.Sequence === 1 && json.PreHash === GenesisHash) {
-                          // first msg, save
-                          yield call(() => dbAPI.addPrivateMessage(hash, address, json.To, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
-                        } else {
-                          // request first msg
-                          yield call(SyncPrivateMessage, { payload: { key: action.key, local: address, remote: json.To } })
-                        }
-                      } else {
-                        // (last_msg !== undefined)
-                        if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
-                          // chained msg, save
-                          yield call(() => dbAPI.addPrivateMessage(hash, address, json.To, json.Sequence, json.PreHash, content, json, json.Timestamp, false, false, false, typeof content === 'object'))
-                        } else if (last_msg.sequence + 1 < json.Sequence) {
-                          // unchained msg, request next msg
-                          yield call(SyncPrivateMessage, { payload: { key: action.key, local: address, remote: json.To } })
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            } else if (json.ObjectType === ObjectType.GroupList && checkGroupListSchema(json)) {
-              for (let i = 0; i < json.List.length; i++) {
-                const group_json = json.List[i]
-                let db_g = yield call(() => dbAPI.getGroupByHash(group_json.Hash))
-                if (group_json.ObjectType === ObjectType.GroupCreate && VerifyJsonSignature(group_json)) {
-                  if (db_g === null) {
-                    const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
-                    if (created_by === address) {
-                      yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
-                      yield call(LoadSessionList)
-                      yield call(LoadGroupList)
-                    } else if (group_json.Member.includes(address)) {
-                      yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
-                      yield call(LoadGroupRequestList)
-                    }
-                  }
-                } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
-                  if (db_g !== null) {
-                    yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
-                  }
-                }
-              }
-            } else if (json.ObjectType === ObjectType.GroupMessageList && checkGroupMessageListSchema(json)) {
-              const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-              let group = yield call(() => dbAPI.getGroupByHash(json.GroupHash))
-              if (group === null) {
-                yield call(GroupSync, { key: action.key })
-              } else if (group.is_accepted === true) {
-                const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
-                if (ecdh === null) {
-                  yield call(InitHandshake, { key: action.key, ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-                } else if (ecdh.aes_key === null) {
-                  yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
-                } else {
-                  let unCachedMessageAddress = []
-                  for (let i = 0; i < json.List.length; i++) {
-                    const group_msg = json.List[i]
-                    const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
-                    let pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
-                    if (pre_message !== undefined
-                      || (pre_message === undefined && group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
-                      let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
-                      let content_json = deriveJson(content)
-                      if (content_json && checkMessageObjectSchema(content_json)) {
-                        content = content_json
-                      }
-                      let verify_json = {
-                        ObjectType: ObjectType.GroupMessage,
-                        GroupHash: json.GroupHash,
-                        Sequence: group_msg.Sequence,
-                        PreHash: group_msg.PreHash,
-                        Confirm: group_msg.Confirm,
-                        Content: content,
-                        Timestamp: group_msg.Timestamp,
-                        PublicKey: group_msg.PublicKey,
-                        Signature: group_msg.Signature
-                      }
-                      if (verify_json.Confirm === undefined) {
-                        delete verify_json["Confirm"]
-                      }
-                      if (VerifyJsonSignature(verify_json)) {
-                        let hash = QuarterSHA512Message(verify_json)
-                        if (typeof verify_json.Content === 'object') {
-                          if (verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
-                            yield call(FetchGroupChatFile, { payload: { key: action.key, group_hash: json.GroupHash, hash: verify_json.Content.Hash, size: verify_json.Content.Size } })
-                          }
-                        }
-                        let is_readed = false
-                        const CurrentSession = yield select(state => state.Messenger.CurrentSession)
-                        if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-                          is_readed = true
-                        }
-                        const add_result = yield call(() => dbAPI.addGroupMessage(hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash, verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'))
-                        if (add_result) {
-                          if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-                            yield call(RefreshGroupMessageList)
-                          }
-                          yield call(LoadSessionList)
-                          yield call(invoke, 'start_message_flash')
-                        }
-                      }
-                    } else {
-                      unCachedMessageAddress.push(msg_address)
-                    }
-                  }
-                  unCachedMessageAddress = [...new Set(unCachedMessageAddress)]
-                  for (let i = 0; i < unCachedMessageAddress.length; i++) {
-                    const msg_address = unCachedMessageAddress[i]
-                    let last_msg = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, msg_address))
-                    if (last_msg === null) {
-                      let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, 0, ob_address))
-                      yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_sync_request) })
-                    } else {
-                      let group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, last_msg.sequence, ob_address))
-                      yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_sync_request) })
-                    }
-                  }
-                }
-              }
-            }
+            yield call(handleObjectMessage, json, action, address, seed)
           }
         }
         break
     }
   }
 }
+
+/* REMOVED DUPLICATE CODE — The following old inline handlers were replaced by extracted functions above:
+- Binary message handling -> handleBinaryMessage()
+- Action message handling -> handleActionMessage() + per-action handlers
+- Object message handling -> handleObjectMessage() + per-object handlers
+*/
 
 function* SendMessage(payload) {
   console.log('!!!send message: ', payload)
@@ -738,7 +828,6 @@ function* SendMessage(payload) {
     yield call(sendToAllConn, payload.msg)
   }
 }
-
 function* ConnectServer() {
   const ServerList = yield select(state => state.Messenger.ServerList)
   const configs = ServerList.filter(s => s.is_connect)
