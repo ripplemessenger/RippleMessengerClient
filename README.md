@@ -246,6 +246,20 @@ Text   Frame: JSON 控制消息 (公告、握手、请求)
 
 ---
 
+## 完整设计文档
+
+如需深入了解通讯协议和密码学细节，请参阅根目录的设计文档：
+
+- **[RippleMessenger-Design.md](./RippleMessenger-Design.md)** — 13章系统级分析
+  - 身份系统、签名机制、公告链完整性保证
+  - DHSequence 分区系统、ECDH 握手全流程
+  - 私聊/群聊消息链验证、自修复同步协议
+  - 文件传输 Nonce-based 分块加密
+  - 协议路由矩阵、数据层对比、联邦网络
+  - 安全模型权衡表、十大设计原则
+
+---
+
 ## Donate
 
 XRP: `rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS`
