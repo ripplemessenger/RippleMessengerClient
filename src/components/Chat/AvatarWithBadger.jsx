@@ -21,7 +21,7 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
         }
          {
           session_type === SessionType.Group &&
-          <GrGroup className="session-icon text-text-primary dark:text-dark-text-primary" />
+          <GrGroup className="session-icon text-text-primary/70 dark:text-dark-text-primary/60" />
         }
       </div>
 

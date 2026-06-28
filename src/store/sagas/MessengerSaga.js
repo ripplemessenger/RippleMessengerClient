@@ -588,22 +588,24 @@ function* processPrivateMessage(json, address, ob_address) {
     is_readed = true
   }
 
-  // Validate chain and save message
-  let last_msg = yield call(() => dbAPI.getLastPrivateMessage(address, remote))
+  // Validate chain and save message — get the message with highest sequence in either direction
+  let session_msgs = yield call(() => dbAPI.getPrivateSession(address, remote))
+  let last_msg = (session_msgs && session_msgs.length > 0) ? session_msgs.reduce((a, b) => a.sequence > b.sequence ? a : b) : null
   let add_result = false
-  if (last_msg === null) {
+  if (last_msg === null || json.Sequence === 1) {
+    // First message in chain or reset to genesis
     if (json.Sequence === 1 && json.PreHash === GenesisHash) {
       add_result = yield call(() => dbAPI.addPrivateMessage(
-        QuarterSHA512Message(json), address, remote, json.Sequence, json.PreHash,
+        QuarterSHA512Message(json), ob_address, json.To, json.Sequence, json.PreHash,
         content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
       ))
-    } else {
+    } else if (last_msg !== null) {
       yield call(SyncPrivateMessage, { payload: { key: null, local: address, remote: remote } })
     }
   } else {
     if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
       add_result = yield call(() => dbAPI.addPrivateMessage(
-        QuarterSHA512Message(json), address, remote, json.Sequence, json.PreHash,
+        QuarterSHA512Message(json), ob_address, json.To, json.Sequence, json.PreHash,
         content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
       ))
     } else if (last_msg.sequence + 1 < json.Sequence) {
@@ -1621,7 +1623,8 @@ function* LoadCurrentSession({ payload }) {
         }
       }
 
-      let current_msg = yield call(() => dbAPI.getLastPrivateMessage(self_address, pair_address))
+      let current_msg = yield call(() => dbAPI.getPrivateSession(self_address, pair_address))
+      current_msg = current_msg && current_msg.length > 0 ? current_msg[current_msg.length - 1] : null
       if (current_msg !== null) {
         session.current_sequence = current_msg.sequence
         session.current_hash = current_msg.hash
