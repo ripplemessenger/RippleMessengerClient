@@ -13,6 +13,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
+import AvatarImage from '../components/AvatarImage'
 
 export default function ChatHomePage() {
   const containerRef = useRef(null)
@@ -63,7 +64,7 @@ export default function ChatHomePage() {
               />
             ) : (
               SessionList.map((session) => (
-                <ListSession key={session.remote} session={session} onClick={() => handleSessionClick(session)} />
+                <ListSession key={session.address || session.hash || session.remote} session={session} onClick={() => handleSessionClick(session)} />
               ))
             )}
           </div>
@@ -76,6 +77,7 @@ export default function ChatHomePage() {
               <div className="flex flex-col h-full">
                 {/* Title bar */}
                 <div className="card-title flex flex-row items-center shrink-0">
+                  <AvatarImage address={CurrentSession.remote} classNames={'avatar-sm'} />
                   <AvatarName address={CurrentSession.remote} />
                 </div>
                 {/* Messages — fills remaining, scrolls when too tall */}
