@@ -1,15 +1,14 @@
 import { useSelector } from 'react-redux'
-import { useTheme } from './ThemeProvider.jsx'
-import useAuth from '../hooks/useAuth.js'
+import { FiLogOut, FiMoon, FiSun } from 'react-icons/fi'
+import { HiOutlineStatusOffline, HiOutlineStatusOnline } from 'react-icons/hi'
+import { IoChatboxEllipsesOutline, IoSettingsOutline } from 'react-icons/io5'
 
-import { IoChatboxEllipsesOutline, IoSettingsOutline } from "react-icons/io5"
-import { FiSun, FiMoon, FiLogOut } from "react-icons/fi"
-import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
-import NavBarIconLink from './NavBarIconLink.jsx'
-import NavBarIconButton from './NavBarIconButton.jsx'
-import InternalLink from './InternalLink.jsx'
-import AvatarImage from './AvatarImage.jsx'
-import BulletinAvatarLink from './Bulletin/BulletinAvatarLink.jsx'
+import BulletinAvatarLink from './Bulletin/BulletinAvatarLink'
+import InternalLink from './InternalLink'
+import NavBarIconButton from './NavBarIconButton'
+import NavBarIconLink from './NavBarIconLink'
+import { useTheme } from './ThemeProvider'
+import useAuth from '../hooks/useAuth'
 
 export default function Header() {
 
@@ -33,7 +32,7 @@ export default function Header() {
                 <HiOutlineStatusOffline className="icon text-status-error dark:text-status-error-dark" />
             }
           </div>
-          <button onClick={toggleTheme} className="nav-icon-btn">
+          <button onClick={toggleTheme} className="nav-icon-btn" aria-label="Toggle theme">
             {theme === 'light' ?
               <FiSun className="icon" />
               :

@@ -1,13 +1,15 @@
-import { open } from '@tauri-apps/plugin-dialog'
-import { readFile } from '@tauri-apps/plugin-fs'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
-import TextInput from '../../components/Form/TextInput'
+import { open } from '@tauri-apps/plugin-dialog'
+import { readFile } from '@tauri-apps/plugin-fs'
+
 import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
-import { setNickname } from '../../store/slices/UserSlice'
+import TextInput from '../../components/Form/TextInput'
+import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
+import { setNickname } from '../../store/slices/UserSlice'
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
@@ -25,7 +27,7 @@ export default function TabMe() {
   }, [activeTabSetting])
 
   useEffect(() => {
-    let account = AccountList.filter(a => a.address === Address)
+    const account = AccountList.filter(a => a.address === Address)
     if (account.length > 0) {
       setShowRemoveButton(true)
     } else {
@@ -62,9 +64,9 @@ export default function TabMe() {
     setImageTimestamp(Date.now())
   }
 
-  const { ConfirmPopup } = useSelector(state => state.Common)
+  const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
-    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.RemoveAccount && ConfirmPopup.Result) {
+    if (ConfirmPopup?.Content === ConfirmContentOptions.RemoveAccount && ConfirmPopup?.Result) {
       dispatch({
         type: 'AccountDel',
         payload: { address: Address }
@@ -79,7 +81,7 @@ export default function TabMe() {
 
   const copySeed = async () => {
     await navigator.clipboard.writeText(Seed)
-    dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: 3000 }))
+    dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: FLASH_DURATION_MS }))
   }
 
   return (

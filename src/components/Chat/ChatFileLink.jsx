@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { IoAttachSharp } from "react-icons/io5"
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
+import { buildFileFullPath } from '../../lib/MessengerUtil'
+import { useUserAddress } from '../../hooks/useUserSelectors'
+import { useAppBaseDir } from '../../hooks/useAppBaseDir'
 
 const ChatFileLink = ({ address, name, ext, size, hash }) => {
 
-  const { Address } = useSelector(state => state.User)
-  const { AppBaseDir } = useSelector(state => state.Common)
+  const Address = useUserAddress()
+  const AppBaseDir = useAppBaseDir()
 
   const [fileImage, setFileImage] = useState(null)
   const dispatch = useDispatch()
@@ -26,13 +29,13 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
   }, [hash, ext])
 
   async function setImage() {
-    const is_file_exist = await exists(`${FileDir}/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`, {
+    const fileRelPath = buildFileFullPath('', FileDir, hash).join('/')
+    const is_file_exist = await exists(fileRelPath, {
       baseDir: BaseDirectory.Resource,
     })
 
     if (is_file_exist) {
-      const fileName = `/${FileDir}/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
-      const filePath = await path.join(AppBaseDir, fileName)
+      const filePath = await path.join(AppBaseDir, fileRelPath)
       const bytes = await readFile(filePath)
       const blob = new Blob([new Uint8Array(bytes)])
       const url = URL.createObjectURL(blob)
@@ -49,10 +52,10 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
       {
         fileImage ?
           <div className={`flex flex-col gap-1 ${isSelf ? 'items-end' : 'items-start'}`}>
-            <div className="file-link" style={{ margin: 0 }} title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+            <button className="file-link m-0" title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
               <IoAttachSharp className="icon-sm" />
               {name}{ext}
-            </div>
+            </button>
             <img
               src={fileImage}
               alt={`${name}.${ext}`}
@@ -60,10 +63,10 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
             />
           </div>
           :
-          <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+          <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
             <IoAttachSharp className="icon-sm" />
             {name}{ext}
-          </div>
+          </button>
       }
     </div>
   )

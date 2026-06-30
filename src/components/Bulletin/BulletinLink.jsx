@@ -1,3 +1,4 @@
+import React from 'react'
 import { createSearchParams, useNavigate } from 'react-router-dom'
 import AvatarName from '../AvatarName'
 import { AiOutlineLink } from "react-icons/ai"
@@ -14,11 +15,11 @@ const BulletinLink = ({ address, sequence, hash, sour_address, timestamp }) => {
   }
 
   return (
-    <div className='flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-md border border-primary/30 dark:border-primary/40 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors' title={hash} onClick={() => { goto_bulletin() }} key={hash}>
+    <button className='flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-md border border-primary/30 dark:border-primary/40 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors focus:outline-none' title={hash} onClick={() => { goto_bulletin() }} aria-label={`View bulletin #${sequence}`} key={hash}>
       <AiOutlineLink className="icon-sm" />
       <AvatarName address={address} short_flag={true} />#{sequence}
-    </div>
+    </button>
   )
 }
 
-export default BulletinLink
+export default React.memo(BulletinLink)

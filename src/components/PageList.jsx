@@ -1,29 +1,32 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 
-// Module-level set to avoid double-dispatch when a page renders multiple PageList
-const handledEvents = new Set()
-
 const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
   const dispatch = useDispatch()
-  // Only the first instance (by mount order) on each page handles keyboard
-  const isPrimary = useRef(!handledEvents.has(dispatch_type))
-  if (!isPrimary.current) handledEvents.add(dispatch_type)
+  const bound = useRef(false)
+  // Use ref for payload to avoid re-binding keyboard listener on every parent re-render
+  // when payload is an inline object literal (new reference each render).
+  const payloadRef = useRef(payload)
+  payloadRef.current = payload
 
   // Keyboard navigation: left/right arrow keys
   useEffect(() => {
-    if (!isPrimary.current) return
+    if (bound.current) return
+    bound.current = true
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       if (e.key === 'ArrowLeft' && current_page > 1) {
-        dispatch({ type: dispatch_type, payload: { ...payload, page: current_page - 1 } })
+        dispatch({ type: dispatch_type, payload: { ...payloadRef.current, page: current_page - 1 } })
       } else if (e.key === 'ArrowRight' && current_page < total_page) {
-        dispatch({ type: dispatch_type, payload: { ...payload, page: current_page + 1 } })
+        dispatch({ type: dispatch_type, payload: { ...payloadRef.current, page: current_page + 1 } })
       }
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPrimary.current, current_page, total_page, dispatch_type, payload, dispatch])
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      bound.current = false
+    }
+  }, [current_page, total_page, dispatch_type, dispatch])
 
   const pages = useMemo(() => {
     if (total_page <= 1) return []
@@ -67,14 +70,14 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
       {pages.map((item, idx) => {
         if (item.type === 'prev') {
           return (
-            <button key={`p-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page - 1)}>
+            <button key={`p-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page - 1)} aria-label="Previous page">
               ‹
             </button>
           )
         }
         if (item.type === 'next') {
           return (
-            <button key={`n-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page + 1)}>
+            <button key={`n-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page + 1)} aria-label="Next page">
               ›
             </button>
           )

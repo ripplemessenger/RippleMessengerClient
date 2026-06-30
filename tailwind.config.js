@@ -55,45 +55,20 @@ export default {
         'dark-gradient-bar':     'linear-gradient(135deg, #0d0d15 0%, #161622 70%, #b38922 100%)',
         'dark-gradient-card':    'linear-gradient(160deg, #161622 0%, #1a1a28 100%)',
       },
-      transitionProperty: {
-        'colors': 'background-color, color, border-color, box-shadow',
-        'transform': 'transform',
-      },
       keyframes: {
-        fadeIn: {
-          'from': { opacity: '0', transform: 'translateY(10px)' },
-          'to':   { opacity: '1', transform: 'translateY(0)' }
-        },
         goldShimmer: {
           '0%':   { backgroundPosition: '-200% center' },
           '100%': { backgroundPosition: '200% center' },
         },
-        slideUp: {
-          '0%':   { opacity: '0', transform: 'translateY(16px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        scaleIn: {
-          '0%':   { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
-        },
       },
       animation: {
-        fadeIn:       'fadeIn 0.5s ease-out forwards',
         goldShimmer:  'goldShimmer 3s linear infinite',
-        slideUp:     'slideUp 0.35s cubic-bezier(0.16,1,0.3,1) forwards',
-        scaleIn:     'scaleIn 0.25s ease-out forwards',
       },
       boxShadow: {
-        'gold':    '0 0 8px rgba(230, 180, 32, 0.20)',
-        'gold-lg': '0 0 16px rgba(230, 180, 32, 0.30)',
-        'sm':      '0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)',
-        'card':    '0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)',
-        'card-hover': '0 4px 12px rgba(230,180,32,0.12), 0 2px 6px rgba(0,0,0,0.06)',
-        'modal':   '0 20px 60px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.10)',
-      },
-      letterSpacing: {
-        'heading': '-0.01em',
-        'tight':   '-0.02em',
+        'gold':         '0 0 8px rgba(230, 180, 32, 0.20)',
+        'gold-lg':      '0 0 16px rgba(230, 180, 32, 0.30)',
+        'sm':           '0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)',
+        'card-hover':   '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06)',
       },
     }
   },

@@ -1,20 +1,28 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { decryptWithPassword, encryptWithPassword, genSalt, getWallet } from '../lib/AppUtil'
-import { useLocalStorage } from '../hooks/useLocalStorage'
-import { loadAccountListStart, loginStart } from '../store/slices/UserSlice'
+import { AiOutlineUserAdd } from 'react-icons/ai'
+import { BsIncognito } from 'react-icons/bs'
+import { CgDice5 } from 'react-icons/cg'
+import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
+import { ECDSA, Wallet } from 'xrpl'
+
+import AvatarSelector from '../components/AvatarSelector'
+import FormButton from '../components/Form/FormButton'
 import SelectInput from '../components/Form/SelectInput'
 import TextInput from '../components/Form/TextInput'
-import FormButton from '../components/Form/FormButton'
-import { AiOutlineUserAdd } from 'react-icons/ai'
-import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
-import { BsIncognito } from "react-icons/bs"
-import { CgDice5 } from "react-icons/cg"
-import { ECDSA, Wallet } from 'xrpl'
-import AvatarSelector from '../components/AvatarSelector'
+import { useLocalStorage } from '../hooks/useLocalStorage'
+import { decryptWithPassword, encryptWithPassword, genSalt, getWallet } from '../lib/AppUtil'
+import Logger from '../lib/Logger'
+import { loadAccountListStart, loginStart } from '../store/slices/UserSlice'
+import { AccountAdd } from '../store/sagas/messenger.actions'
 
 export default function OpenPage() {
+  // --- Hooks first (React rules: all hooks at the top, before any logic) ---
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { IsAuth, AccountList, Seed } = useSelector(state => state.User)
+
   const [seed, setSeed] = useLocalStorage('Seed', '')
   const [address, setAddress] = useLocalStorage('Address', '')
 
@@ -33,10 +41,10 @@ export default function OpenPage() {
 
     if (value !== '') {
       try {
-        let wallet = getWallet(value)
+        const wallet = getWallet(value)
         setSaveAddress(wallet.classicAddress)
       } catch (error) {
-        console.log(error)
+        Logger.debug(error)
         setAddError(error.message)
       }
     }
@@ -44,8 +52,8 @@ export default function OpenPage() {
 
   const addAccount = async () => {
     const salt = genSalt()
-    let cipherData = encryptWithPassword(saveSeed, savePassword, salt)
-    dispatch({ type: 'AccountAdd', payload: { address: saveAddress, salt: salt, cipher_data: cipherData } })
+    const cipherData = encryptWithPassword(saveSeed, savePassword, salt)
+    dispatch(AccountAdd({ address: saveAddress, salt: salt, cipher_data: cipherData }))
     setSavePassword('')
     setSaveSeed('')
     if (addError === null && saveSeed !== '') {
@@ -68,12 +76,12 @@ export default function OpenPage() {
 
     if (value !== '') {
       try {
-        let wallet = getWallet(value)
+        const wallet = getWallet(value)
         setSeed(value)
         setAddress(wallet.classicAddress)
         dispatch(loginStart({ seed: value, address: wallet.classicAddress }))
       } catch (error) {
-        console.log(error)
+        Logger.debug(error)
         setSeed('')
         setTmpError(error.message)
       }
@@ -101,14 +109,21 @@ export default function OpenPage() {
   }
 
   // open save
-  const [addressOptions, setAddressOptions] = useState([])
+  const addressOptions = useMemo(() => {
+    return AccountList.map(a => ({ value: a.address, label: a.address }))
+  }, [AccountList])
   const [addressSelectd, setAddressSelectd] = useState('')
   const [openPassword, setOpenPassword] = useState('')
   const [avatarIndex, setAvatarIndex] = useState(0)
   const [loginError, setLoginError] = useState(null)
 
+  // Refs for focusing inputs — replaces document.getElementById
+  const passwordRef = useRef(null)
+  const addSeedRef = useRef(null)
+  const tmpSeedRef = useRef(null)
+
   const focusPasswordInput = () => {
-    setTimeout(() => document.getElementById('input-password:')?.focus(), 0)
+    setTimeout(() => passwordRef.current?.focus(), 0)
   }
 
   const [copiedField, setCopiedField] = useState(null)
@@ -152,22 +167,17 @@ export default function OpenPage() {
 
   // Auto-focus first input when modals open
   useEffect(() => {
-    if (showAdd) document.getElementById('input-your-seed:')?.focus()
+    if (showAdd) addSeedRef.current?.focus()
   }, [showAdd])
 
   useEffect(() => {
-    if (showTmp) document.getElementById('input-your-seed:')?.focus()
+    if (showTmp) tmpSeedRef.current?.focus()
   }, [showTmp])
 
-  const { IsAuth, AccountList, Seed } = useSelector(state => state.User)
-
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-
   const login = async () => {
-    let account = AccountList?.find(a => a.address === addressSelectd)
+    const account = AccountList?.find(a => a.address === addressSelectd)
     try {
-      let tmpSeed = decryptWithPassword(openPassword, account.salt, account.cipher_data)
+      const tmpSeed = decryptWithPassword(openPassword, account.salt, account.cipher_data)
       if (tmpSeed !== '') {
         setLoginError(null)
         setSeed(tmpSeed)
@@ -177,26 +187,20 @@ export default function OpenPage() {
         setLoginError('wrong password')
       }
     } catch (e) {
-      console.log(e)
+      Logger.debug(e)
       setLoginError(typeof e === 'string' ? e : String(e))
     }
   }
 
   useEffect(() => {
-    let options = []
-    for (let i = 0; i < AccountList.length; i++) {
-      const account = AccountList[i];
-      options.push({ value: account.address, label: account.address })
-    }
-    setAddressOptions(options)
-    if (options.length > 0) {
-      setAddressSelectd(options[0].value)
+    if (addressOptions.length > 0) {
+      setAddressSelectd(addressOptions[0].value)
       focusPasswordInput()
     }
-  }, [AccountList])
+  }, [addressOptions])
 
   useEffect(() => {
-    dispatch({ type: loadAccountListStart.type })
+    dispatch(loadAccountListStart())
   }, [])
 
   useEffect(() => {
@@ -275,7 +279,7 @@ export default function OpenPage() {
               <div className="form-card-container mb-6">
                 <div className="space-y-4 flex flex-col justify-center">
                   <div className={`mt-1`}>
-                    <TextInput label={'Your Seed:'} type='password' value={diplaySeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => tmpUpdateSeed(e.target.value)} />
+                    <TextInput ref={tmpSeedRef} label={'Your Seed:'} type='password' value={diplaySeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => tmpUpdateSeed(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -302,14 +306,14 @@ export default function OpenPage() {
               Add Account
             </div>
             <div className={`mt-1`}>
-              <TextInput label={'Your Seed:'} type='password' value={saveSeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => updateSeed(e.target.value)} />
+              <TextInput ref={addSeedRef} label={'Your Seed:'} type='password' value={saveSeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => updateSeed(e.target.value)} />
             </div>
             <div className={`mt-1 ${saveSeed === '' ? 'hidden' : ''}`}>
               <TextInput label={'Address:'} value={saveAddress} disabled={true} autoComplete={"off"} placeholder={"r.................................."} />
             </div>
             {addError !== null && (
               <div className="p-3 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20">
-                <span className='text-sm font-medium text-status-error dark:text-status-error-dark break-all'>{addError}</span>
+                <span className='label-error break-all'>{addError}</span>
               </div>
             )}
             <div className={`mt-1`}>
@@ -325,9 +329,15 @@ export default function OpenPage() {
         <div className="tab-page">
           <div className="card-title flex flex-row items-center">
             Open Account
-            <AiOutlineUserAdd className="card-icon" onClick={() => setShowAdd(true)} />
-            <BsIncognito className="card-icon" onClick={() => setShowTmp(true)} />
-            <CgDice5 className="card-icon" onClick={() => setShowGen(true)} />
+            <button className="icon-action-btn" onClick={() => setShowAdd(true)} aria-label="Import account">
+              <AiOutlineUserAdd className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => setShowTmp(true)} aria-label="Temporary login">
+              <BsIncognito className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => setShowGen(true)} aria-label="Generate new account">
+              <CgDice5 className="card-icon" />
+            </button>
           </div>
           {
             addressSelectd !== '' ?
@@ -335,7 +345,7 @@ export default function OpenPage() {
                 <div className="form-card-container">
                 <div className="flex flex-col justify-center p-6 space-y-4">
                   <AvatarSelector avatars={addressOptions} defaultIndex={avatarIndex} disableKeyboard={true} onSelect={(address) => {
-                    let index = addressOptions.map(a => a.value).indexOf(address)
+                    const index = addressOptions.map(a => a.value).indexOf(address)
                     setAvatarIndex(index)
                     setAddressSelectd(address)
                     focusPasswordInput()
@@ -343,14 +353,14 @@ export default function OpenPage() {
                   <div className={`mt-1`}>
                     <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => {
                       setAddressSelectd(e.target.value)
-                      let index = addressOptions.map(a => a.value).indexOf(e.target.value)
+                      const index = addressOptions.map(a => a.value).indexOf(e.target.value)
                       setAvatarIndex(index)
                       focusPasswordInput()
                     }} />
                   </div>
                   <form onSubmit={(e) => { e.preventDefault(); login() }} className="flex flex-col">
                     <div className={`mt-1`}>
-                      <TextInput label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
+                      <TextInput ref={passwordRef} label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
                     </div>
                     <FormButton title="Open Account" />
                   </form>
@@ -364,7 +374,7 @@ export default function OpenPage() {
           }
           {loginError !== null && (
             <div className="p-4 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20 mb-4 max-w-md mx-auto">
-              <span className='text-sm font-medium text-status-error dark:text-status-error-dark break-all'>{loginError}</span>
+              <span className='label-error break-all'>{loginError}</span>
             </div>
           )}
         </div>

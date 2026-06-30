@@ -45,6 +45,9 @@ const ConfirmContentOptions = {
   DelServer: 'DelServer',
 }
 
+const FLASH_DURATION_MS = 3000
+const FILE_REQUEST_TTL_MS = 120 * 1000
+
 export {
   Minute,
   Hour,
@@ -68,5 +71,8 @@ export {
   BulletinContentPreviewSize,
   MessagePageSize,
 
-  ConfirmContentOptions
+  ConfirmContentOptions,
+
+  FLASH_DURATION_MS,
+  FILE_REQUEST_TTL_MS
 }

@@ -1,16 +1,18 @@
 ﻿import { useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { exists, readFile, writeFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { IoCopyOutline, IoCloseOutline } from "react-icons/io5"
 import Cropper from "react-cropper"
 import "cropperjs/dist/cropper.css"
+import Logger from '../lib/Logger'
 import { FileHash } from '../lib/MessengerUtil'
 import { AvatarDir } from '../lib/AppConst'
+import { useAppBaseDir } from '../hooks/useAppBaseDir'
 
 const AvatarCropper = ({ address, imageSrc, onClose }) => {
 
-  const { AppBaseDir } = useSelector(state => state.Common)
+  const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
   const cropperRef = useRef(null)
 
@@ -52,7 +54,7 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
           onClose()
           // alert(`save to: ${savePath}`)
         } catch (error) {
-          console.error('save fail:', error)
+          Logger.error('avatar save', error)
           // alert('save fail')
         }
       }, 'image/png')

@@ -1,3 +1,4 @@
+import React from 'react'
 import AvatarName from '../AvatarName'
 import TextTimestamp from '../TextTimestamp'
 import SessionName from './SessionName'
@@ -10,7 +11,7 @@ const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
   return (
     <div className={`${textSize}`}>
       {session.type === SessionType.Private && (
-        <div className={rowClass} onClick={onClick}>
+        <div className={rowClass} onClick={onClick} role="button" tabIndex={0} aria-label={`Open chat with ${session.address}`}>
           <AvatarWithBadger session_type={session.type} address={session.address} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">
             <AvatarName address={session.address} />
@@ -19,7 +20,7 @@ const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
         </div>
       )}
       {session.type === SessionType.Group && (
-        <div className={rowClass} onClick={onClick}>
+        <div className={rowClass} onClick={onClick} role="button" tabIndex={0} aria-label={`Open group chat ${session.name}`}>
           <AvatarWithBadger session_type={session.type} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">
             <SessionName name={session.name} />
@@ -31,4 +32,4 @@ const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
   )
 }
 
-export default ListSession
+export default React.memo(ListSession)

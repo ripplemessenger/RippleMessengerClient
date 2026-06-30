@@ -1,21 +1,25 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { HashRouter as Router } from 'react-router-dom'
-import App from './App.jsx'
-import './index.css'
-
 import { Provider } from 'react-redux'
+import { HashRouter as Router } from 'react-router-dom'
+
+import App from './App'
+import ErrorBoundary from './components/ErrorBoundary'
+import { AuthProvider } from './contexts/AuthProvider'
 import { store } from './store'
-import { AuthProvider } from './contexts/AuthProvider.jsx'
+
+import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <Router>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </Router>
-    </Provider>
+    <ErrorBoundary fallbackTitle="Application Error">
+      <Provider store={store}>
+        <Router>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </Router>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>
 )

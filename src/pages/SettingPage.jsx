@@ -1,22 +1,22 @@
-import { useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { SettingPageTab } from '../lib/AppConst'
-import TabMe from './setting/TabMe'
+
 import TabContact from './setting/TabContact'
-import TabMessengerNetwork from './setting/TabMessengerNetwork'
-import { setActiveTabSetting } from '../store/slices/UserSlice'
 import TabGroup from './setting/TabGroup'
+import TabMe from './setting/TabMe'
+import TabMessengerNetwork from './setting/TabMessengerNetwork'
+import { SettingPageTab } from '../lib/AppConst'
+import { setActiveTabSetting } from '../store/slices/UserSlice'
 
 export default function SettingPage() {
-  const tabItems = [
+  const tabItems = useMemo(() => [
     { name: SettingPageTab.Me, content: <TabMe /> },
     { name: SettingPageTab.Contact, content: <TabContact /> },
     { name: SettingPageTab.Group, content: <TabGroup /> },
     { name: SettingPageTab.MessengerNetwork, content: <TabMessengerNetwork /> },
-  ]
+  ], [])
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { activeTabSetting } = useSelector(state => state.User)
 
   return (

@@ -1,11 +1,12 @@
-import { useDispatch, useSelector } from 'react-redux'
-import { IoCloseOutline, IoWarningOutline } from "react-icons/io5"
+import { useDispatch } from 'react-redux'
+import { IoWarningOutline } from "react-icons/io5"
 import { setConfirmPopup } from '../store/slices/CommonSlice'
+import { useConfirmPopup } from '../hooks/useConfirmPopup'
 
 const ConfirmDiv = ({ json }) => {
 
   const dispatch = useDispatch()
-  const { ConfirmPopup } = useSelector(state => state.Common)
+  const ConfirmPopup = useConfirmPopup()
 
   const confirm = async () => {
     dispatch(setConfirmPopup({ ...ConfirmPopup, Result: true }))

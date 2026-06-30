@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { IoAttachSharp } from "react-icons/io5"
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
+import { buildFileFullPath } from '../../lib/MessengerUtil'
+import { useAppBaseDir } from '../../hooks/useAppBaseDir'
 
 const BulletinFileViewer = ({ name, ext, size, hash }) => {
 
-  const { AppBaseDir } = useSelector(state => state.Common)
+  const AppBaseDir = useAppBaseDir()
   const [fileImage, setFileImage] = useState(null)
 
   const dispatch = useDispatch()
-  const FilePath = `${FileDir}/${hash.substring(0, 3)}/${hash.substring(3, 6)}/${hash}`
+  const FilePath = buildFileFullPath('', FileDir, hash).join('/')
 
   useEffect(() => {
     if (!FileImageExtRegex.test(ext)) return
@@ -43,10 +45,10 @@ const BulletinFileViewer = ({ name, ext, size, hash }) => {
   return (
     <div>
       <div className='flex flex-row justify-start'>
-        <div className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveBulletinFile', payload: { hash: hash, size: size, name: name, ext: ext } })}>
+        <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveBulletinFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
           <IoAttachSharp className="icon-sm" />
           ↓{name}{ext}
-        </div>
+        </button>
       </div>
       {
         fileImage &&

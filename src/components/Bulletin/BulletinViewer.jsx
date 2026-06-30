@@ -1,19 +1,16 @@
-import { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-
-import BulletinLink from './BulletinLink'
-import BulletinContent from './BulletinContent'
-import TextTimestamp from '../../components/TextTimestamp'
-import BulletinTools from './BulletinTools'
-
+import React, { useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { BsMarkdown, BsFiletypeTxt } from "react-icons/bs"
-import TagLink from './TagLink'
-import BulletinFileViewer from './BulletinFileViewer'
+import { BsFiletypeTxt, BsMarkdown } from 'react-icons/bs'
+
 import BulletinAvatarLink from './BulletinAvatarLink'
+import BulletinContent from './BulletinContent'
+import BulletinFileViewer from './BulletinFileViewer'
+import BulletinLink from './BulletinLink'
+import BulletinTools from './BulletinTools'
+import TagLink from './TagLink'
 import markdownListComponents from '../../components/MarkdownListCustom'
+import TextTimestamp from '../../components/TextTimestamp'
 
 const markdownComponents = {
   h1: ({ node, ...props }) => <h1 className="text-4xl font-bold my-4" {...props} />,
@@ -22,7 +19,7 @@ const markdownComponents = {
   ...markdownListComponents
 }
 
-const BulletinViewer = ({ bulletin }) => {
+const BulletinViewer = React.memo(({ bulletin }) => {
 
   const [isMarkdown, setIsMarkdown] = useState(false)
 
@@ -35,6 +32,7 @@ const BulletinViewer = ({ bulletin }) => {
           className="p-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
           onClick={() => setIsMarkdown(!isMarkdown)}
           title={isMarkdown ? "Show raw text" : "Show markdown"}
+          aria-label={isMarkdown ? "Show raw text" : "Show markdown"}
         >
           {isMarkdown ? <BsFiletypeTxt className="icon-sm" /> : <BsMarkdown className="icon-sm" />}
         </button>
@@ -56,7 +54,7 @@ const BulletinViewer = ({ bulletin }) => {
           />
         </div>
         {/* Tags — compact, only if any */}
-        {bulletin.tag !== undefined && bulletin.tag.length !== 0 && (
+        {bulletin.tag?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {bulletin.tag.map((tag) => (
               <TagLink key={tag} tag={tag} />
@@ -78,7 +76,7 @@ const BulletinViewer = ({ bulletin }) => {
         )}
 
         {/* Quotes — after content */}
-        {bulletin.quote !== undefined && bulletin.quote.length !== 0 && (
+        {bulletin.quote?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {bulletin.quote.map((quote) => (
               <BulletinLink key={quote.Hash} address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.address} />
@@ -87,7 +85,7 @@ const BulletinViewer = ({ bulletin }) => {
         )}
 
         {/* Files — at bottom */}
-        {bulletin.file !== undefined && bulletin.file.length !== 0 && (
+        {bulletin.file?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {bulletin.file.map((file) => (
               <BulletinFileViewer key={file.Hash} name={file.Name} ext={file.Ext} size={file.Size} hash={file.Hash} />
@@ -97,6 +95,6 @@ const BulletinViewer = ({ bulletin }) => {
       </div>
     </div>
   )
-}
+});
 
 export default BulletinViewer

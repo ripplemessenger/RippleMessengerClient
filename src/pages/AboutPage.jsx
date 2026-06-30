@@ -1,7 +1,8 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { MasterAddress } from '../lib/MessengerConst';
-import markdownListComponents from '../components/MarkdownListCustom';
+
+import markdownListComponents from '../components/MarkdownListCustom'
+import { MasterAddress } from '../lib/MessengerConst'
 
 export default function AboutPage() {
   const content = `

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Logger from '../lib/Logger'
 
 export const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {
@@ -15,7 +16,7 @@ export const useLocalStorage = (key, initialValue) => {
       setStoredValue(value)
       localStorage.setItem(key, value)
     } catch (error) {
-      console.error('write LocalStorage :', error)
+      Logger.error('write LocalStorage failed', error)
     }
   }
 

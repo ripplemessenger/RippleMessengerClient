@@ -1,14 +1,16 @@
 import * as path from '@tauri-apps/api/path'
 import { call, fork, put } from 'redux-saga/effects'
+
+import { getDB } from '../../db'
+import Logger from '../../lib/Logger'
 import { setAppBaseDir } from '../slices/CommonSlice'
-import { getDB } from '../../db';
 
 function* GetDB() {
   yield call(LoadAppBaseDir)
   try {
     yield call(getDB)
   } catch (e) {
-    console.error(e)
+    Logger.error(e)
   }
 }
 

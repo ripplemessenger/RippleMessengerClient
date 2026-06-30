@@ -1,3 +1,4 @@
+import React from 'react'
 import { timestamp_format } from "../lib/AppUtil"
 
 const TextTimestamp = ({ timestamp, textSize = 'text-xs' }) => {
@@ -10,4 +11,4 @@ const TextTimestamp = ({ timestamp, textSize = 'text-xs' }) => {
   )
 }
 
-export default TextTimestamp
+export default React.memo(TextTimestamp)

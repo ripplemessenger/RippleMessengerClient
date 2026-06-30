@@ -1,3 +1,4 @@
+import React from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { setSearchTagList } from '../../store/slices/MessengerSlice'
@@ -23,4 +24,4 @@ const TagLink = ({ tag }) => {
   )
 }
 
-export default TagLink
+export default React.memo(TagLink)

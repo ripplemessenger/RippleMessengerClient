@@ -1,25 +1,27 @@
+import React, { useCallback } from 'react'
 import { createSearchParams, useNavigate } from 'react-router-dom'
+import { AiOutlineLink } from 'react-icons/ai'
+import { HiHashtag } from 'react-icons/hi2'
+import { IoAttachSharp } from 'react-icons/io5'
+
+import BulletinAvatarLink from './BulletinAvatarLink'
+import BulletinContentForList from './BulletinContentForList'
 import BulletinLink from './BulletinLink'
 import BulletinTools from './BulletinTools'
 import TextTimestamp from '../TextTimestamp'
-import { AiOutlineLink } from "react-icons/ai"
 import { BulletinContentPreviewSize } from '../../lib/AppConst'
-import { IoAttachSharp } from 'react-icons/io5'
-import { HiHashtag } from 'react-icons/hi2'
-import BulletinAvatarLink from './BulletinAvatarLink'
-import BulletinContentForList from './BulletinContentForList'
 
 const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
   const navigate = useNavigate()
 
-  const goto_bulletin = () => {
+  const goto_bulletin = useCallback(() => {
     const params = { hash: bulletin.hash, address: bulletin.address, sequence: bulletin.sequence }
     navigate({
       pathname: '/bulletin_view',
       search: `?${createSearchParams(params)}`
     })
-  }
+  }, [bulletin.hash, bulletin.address, bulletin.sequence, navigate])
 
   const previewContent = bulletin.content.length > BulletinContentPreviewSize
     ? bulletin.content.slice(0, BulletinContentPreviewSize)
@@ -68,11 +70,11 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
       <div className="w-full border-b border-primary/10 dark:border-primary/20" />
 
       {/* Content section — clickable to navigate to bulletin detail */}
-      <div className="px-3 py-2 w-full min-w-0 overflow-hidden" onClick={goto_bulletin}>
+      <div className="px-3 py-2 w-full min-w-0 overflow-hidden cursor-pointer" role="button" tabIndex={0} onClick={goto_bulletin} aria-label={`View bulletin #${bulletin.sequence}`}>
         <BulletinContentForList content={previewContent} />
       </div>
     </div>
   )
 }
 
-export default ListBulletin
+export default React.memo(ListBulletin)

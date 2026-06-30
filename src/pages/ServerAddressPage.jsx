@@ -1,25 +1,19 @@
-import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import AvatarName from '../components/AvatarName'
 import PageList from '../components/PageList'
 import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
+import EmptyState from '../components/EmptyState'
 import { BsGlobe2 } from 'react-icons/bs'
+import { useBulletinLoad } from '../hooks/useBulletinLoad'
 
 export default function ServerAddressPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const searchParams = useSearchParams()
   const url = searchParams.get('url')
 
-  const { Address } = useSelector(state => state.User)
+  useBulletinLoad('RequestServerAddress')
+
   const { ServerAddressPage, ServerAddressTotalPage, ServerAddressList } = useSelector(state => state.Messenger)
-
-  const dispatch = useDispatch()
-
-  useEffect(() => {
-    if (Address !== null) {
-      dispatch({ type: 'RequestServerAddress', payload: { page: 1 } })
-    }
-  }, [dispatch, Address])
 
   return (
     <div className="flex justify-center items-center">
@@ -60,11 +54,11 @@ export default function ServerAddressPage() {
                 </table>
               </div>
             ) : (
-              <div className="empty-state-box mx-auto max-w-sm py-12">
-                <BsGlobe2 className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
-                <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No addresses yet</h3>
-                <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-2">Server-discovered bulletin authors will appear here</p>
-              </div>
+              <EmptyState
+                icon={<BsGlobe2 className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+                title="No addresses yet"
+                description="Server-discovered bulletin authors will appear here"
+              />
             )}
           </div>
         </div>

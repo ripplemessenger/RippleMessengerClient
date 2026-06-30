@@ -31,12 +31,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(230, 180, 32, 0.2);
+  @apply bg-primary/20;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(230, 180, 32, 0.4);
+  @apply bg-primary/40;
 }
 
 /* ====================================================================
@@ -126,12 +126,12 @@
     @apply border border-primary/20 dark:border-primary/30;
     @apply text-text-secondary dark:text-dark-text-secondary;
     @apply transition-all duration-300 ease-in-out;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    @apply shadow-sm;
   }
 
   .card-hover:hover {
     @apply border-primary/50 dark:border-primary/60;
-    box-shadow: 0 4px 12px rgba(230, 180, 32, 0.15), 0 2px 4px rgba(0,0,0,0.08);
+    @apply shadow-card-hover;
   }
 
   .card-square {
@@ -199,7 +199,7 @@
   .avatar-hover:hover > img,
   .avatar-hover:hover > svg {
     @apply border-primary/60 dark:border-primary/80;
-    box-shadow: 0 0 12px rgba(230, 180, 32, 0.3), 0 2px 8px rgba(230, 180, 32, 0.15);
+    @apply shadow-gold-lg;
     transform: scale(1.1);
     transition-property: transform, box-shadow, border-color;
     transition-duration: 200ms;
@@ -233,12 +233,12 @@
   /* ==================== Tables ==================== */
   .table-container {
     @apply overflow-x-auto rounded-xl border border-primary/20 dark:border-primary/40 bg-gradient-card dark:bg-dark-gradient-card;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    @apply shadow-sm;
   }
 
   .table-header-row {
     @apply p-3 text-center font-semibold text-sm tracking-wider uppercase text-primary dark:text-dark-primary;
-    border-bottom: 2px solid rgba(230, 180, 32, 0.3);
+    @apply border-b-2 border-b-primary/30;
   }
 
   .table-cell {
@@ -434,6 +434,44 @@
     @apply del-btn;
   }
 
+  /* ==================== Icon Action Button ==================== */
+  /* Small icon button used in bulletin tools, card-title bars, tables, etc. */
+  .icon-action-btn {
+    @apply p-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none;
+  }
+
+  /* ==================== Bulletin Page Layout ==================== */
+  /* Outer wrapper for bulletin list pages (portal, follow, bookmark, tag, random, address) */
+  .bulletin-page-wrapper {
+    @apply flex justify-center items-center w-full max-w-full overflow-hidden;
+  }
+
+  /* Inner column container inside tab-page */
+  .bulletin-page-inner {
+    @apply mx-auto w-full max-w-full min-w-0 flex flex-col mt-4;
+  }
+
+  /* Scrollable content area holding the bulletin list */
+  .bulletin-list-content {
+    @apply mt-2 flex-1 justify-center min-w-0 overflow-hidden;
+  }
+
+  /* Card container for bulletin list with padding and overflow hidden */
+  .bulletin-card-list {
+    @apply max-w-full min-w-0 p-4 rounded-xl card overflow-hidden;
+  }
+
+  /* ==================== Modal Header / Content ==================== */
+  /* Modal header bar (close button on right, title on left) */
+  .modal-header-bar {
+    @apply flex items-center justify-between px-4 py-3 border-b border-primary/20 dark:border-primary/30 rounded-t-xl bg-gradient-card dark:bg-dark-gradient-card shadow-lg;
+  }
+
+  /* Modal scrollable content area */
+  .modal-content-area {
+    @apply flex flex-col overflow-y-auto px-4 py-3 bg-gradient-card dark:bg-dark-gradient-card grow;
+  }
+
   /* ==================== Icon Action Buttons ==================== */
   /* Small dismiss/close icon button (used in publish items, etc.) */
   .close-btn-icon {
@@ -458,7 +496,7 @@
   /* ==================== Modal System ==================== */
   .modal-overlay {
     @apply fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-sm;
-    background: rgba(0, 0, 0, 0.15);
+    @apply bg-black/15;
     animation: fadeIn 0.3s ease-out forwards;
   }
 

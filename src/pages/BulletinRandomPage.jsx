@@ -1,23 +1,24 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { IoMdRefresh } from "react-icons/io"
+import { IoMdRefresh } from 'react-icons/io'
+
+import BulletinForward from '../components/Bulletin/BulletinForward'
+import BulletinPublish from '../components/Bulletin/BulletinPublish'
+import EmptyState from '../components/EmptyState'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 
 export default function BulletinRandomPage() {
-  const { Address } = useSelector(state => state.User)
   const { MessengerConnStatus, RandomBulletinList, ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()
-  const navigate = useNavigate()
 
   useEffect(() => {
     dispatch({ type: 'RequestRandomBulletin' })
-  }, [dispatch, Address, MessengerConnStatus])
+  }, [dispatch, MessengerConnStatus])
 
 
   return (
-    <div className="flex justify-center items-center w-full max-w-full overflow-hidden">
+    <div className="bulletin-page-wrapper">
       {
         ShowPublishFlag &&
         <BulletinPublish />
@@ -27,20 +28,22 @@ export default function BulletinRandomPage() {
         <BulletinForward />
       }
       <div className="tab-page">
-        <div className="mx-auto w-full max-w-full min-w-0 flex flex-col mt-4">
+        <div className="bulletin-page-inner">
           <div className="card-title flex flex-row items-center">
             Random
-            <IoMdRefresh className="card-icon" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} />
+            <button className="icon-action-btn" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} aria-label="Refresh">
+              <IoMdRefresh className="card-icon" />
+            </button>
           </div>
 
-          <div className="max-w-full min-w-0 p-4 rounded-xl card overflow-hidden">
-            <div className={`mt-2 flex-1 justify-center min-w-0 overflow-hidden`}>
+          <div className="bulletin-card-list">
+            <div className={`bulletin-list-content`}>
               {RandomBulletinList.length === 0 ? (
-                <div className="empty-state-box mx-auto max-w-sm py-12">
-                  <IoMdRefresh className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
-                  <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No random bulletins</h3>
-                  <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-2">Refresh to discover random posts</p>
-                </div>
+                <EmptyState
+                  icon={<IoMdRefresh className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+                  title="No random bulletins"
+                  description="Refresh to discover random posts"
+                />
               ) : (
                 RandomBulletinList.map((bulletin) => (
                   <ListBulletin key={bulletin.hash} bulletin={bulletin} />

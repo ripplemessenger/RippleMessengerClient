@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
-import TextInput from '../../components/Form/TextInput'
-import useEscClose from '../../hooks/useEscClose'
-import TextTimestamp from '../../components/TextTimestamp'
-import { IoCloseOutline } from "react-icons/io5"
-import AvatarName from '../../components/AvatarName'
-import { MdOutlineVerifiedUser } from "react-icons/md"
-import { GrGroup } from "react-icons/gr"
+import { GrGroup } from 'react-icons/gr'
+import { IoCloseOutline } from 'react-icons/io5'
+import { MdOutlineVerifiedUser } from 'react-icons/md'
+
 import AvatarImage from '../../components/AvatarImage'
+import AvatarName from '../../components/AvatarName'
+import EmptyState from '../../components/EmptyState'
+import TextInput from '../../components/Form/TextInput'
+import TextTimestamp from '../../components/TextTimestamp'
+import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabGroup() {
@@ -18,13 +20,8 @@ export default function TabGroup() {
   const [groupName, setGroupName] = useState('')
 
   const dispatch = useDispatch()
-  const { Address, ContactList, activeTabSetting } = useSelector(state => state.User)
+  const { Address, ContactList } = useSelector(state => state.User)
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(state => state.Messenger)
-
-  useEffect(() => {
-    if (activeTabSetting === SettingPageTab.Group) {
-    }
-  }, [dispatch, activeTabSetting])
 
   const addComposeMember = async (address) => {
     dispatch({
@@ -57,13 +54,13 @@ export default function TabGroup() {
     }
   }
 
-  const { ConfirmPopup } = useSelector(state => state.Common)
+  const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
-    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.DelGroup && ConfirmPopup.Result) {
+    if (ConfirmPopup?.Content === ConfirmContentOptions.DelGroup && ConfirmPopup?.Result) {
       dispatch({
         type: 'DeleteGroup',
         payload: {
-          hash: ConfirmPopup.Params.Hash
+          hash: ConfirmPopup?.Params?.Hash
         }
       })
       dispatch(setConfirmPopup(null))
@@ -103,10 +100,10 @@ export default function TabGroup() {
                   <div className='flex flex-wrap'>
                     {
                       ComposeMemberList.map((member, index) => (
-                        <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeMember(member)}>
+                        <button key={member} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeMember(member)} aria-label={`Remove ${member}`}>
                           <AvatarImage address={member} classNames={'avatar'} />
                           <AvatarName address={member} />
-                        </div>
+                        </button>
                       ))
                     }
                   </div>
@@ -172,8 +169,8 @@ export default function TabGroup() {
                   </thead>
                   <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
                     {
-                      GroupRequestList.map((request, index) => (
-                        <tr key={index} className='table-tr'>
+                      GroupRequestList.map((request) => (
+                        <tr key={request.hash} className='table-tr'>
                           <td className="table-cell">
                             {request.name}
                           </td>
@@ -211,13 +208,12 @@ export default function TabGroup() {
                 </table>
               </div>
               :
-              <div className="empty-state-box mx-auto max-w-sm mt-8">
-                <MdOutlineVerifiedUser className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />
-                <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>
-                  No group requests
-                </h3>
-                <p className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Pending group invitations will appear here</p>
-              </div>
+              <EmptyState
+                icon={<MdOutlineVerifiedUser className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />}
+                title="No group requests"
+                description="Pending group invitations will appear here"
+                className="mx-auto max-w-sm mt-8"
+              />
           }
         </div>
       }
@@ -225,8 +221,12 @@ export default function TabGroup() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
           {SettingPageTab.Group}
-          <GrGroup className="card-icon" onClick={() => setShowCreateGroup(true)} />
-          <MdOutlineVerifiedUser className="card-icon" onClick={() => setShowRequest(true)} />
+          <button className="icon-action-btn" onClick={() => setShowCreateGroup(true)} aria-label="Create group">
+            <GrGroup className="card-icon" />
+          </button>
+          <button className="icon-action-btn" onClick={() => setShowRequest(true)} aria-label="View group requests">
+            <MdOutlineVerifiedUser className="card-icon" />
+          </button>
         </div>
 
         <div className={`mt-1 flex-1`}>
@@ -248,8 +248,8 @@ export default function TabGroup() {
                       </thead>
                       <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
                         {
-                          GroupList.map((group, index) => (
-                            <tr key={index} className='table-tr'>
+                          GroupList.map((group) => (
+                            <tr key={group.hash} className='table-tr'>
                               <td className="table-cell">
                                 {group.name}
                               </td>
@@ -298,13 +298,12 @@ export default function TabGroup() {
                     </table>
                 </div>
                 :
-                <div className="empty-state-box mx-auto max-w-sm mt-8">
-                  <GrGroup className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />
-                  <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>
-                    No groups yet
-                  </h3>
-                  <p className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Groups you create or join will appear here</p>
-                </div>
+                <EmptyState
+                  icon={<GrGroup className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />}
+                  title="No groups yet"
+                  description="Groups you create or join will appear here"
+                  className="mx-auto max-w-sm mt-8"
+                />
             }
           </div>
         </div>

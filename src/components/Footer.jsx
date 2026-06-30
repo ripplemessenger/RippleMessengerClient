@@ -1,6 +1,7 @@
-import { IoArrowBackSharp, IoArrowForwardSharp, IoReloadSharp } from "react-icons/io5";
-import ExternalLink from "./ExternalLink";
-import InternalLink from "./InternalLink";
+import { IoArrowBackSharp, IoArrowForwardSharp, IoReloadSharp } from 'react-icons/io5'
+
+import ExternalLink from './ExternalLink'
+import InternalLink from './InternalLink'
 
 export default function Footer() {
   return (
@@ -12,6 +13,7 @@ export default function Footer() {
             onClick={() => window.history.back()}
             className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             title="Back"
+            aria-label="Back"
           >
             <IoArrowBackSharp className="icon" />
           </button>
@@ -19,6 +21,7 @@ export default function Footer() {
             onClick={() => window.location.reload()}
             className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             title="Reload"
+            aria-label="Reload"
           >
             <IoReloadSharp className="icon" />
           </button>
@@ -26,6 +29,7 @@ export default function Footer() {
             onClick={() => window.history.forward()}
             className="p-2 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             title="Forward"
+            aria-label="Forward"
           >
             <IoArrowForwardSharp className="icon" />
           </button>

@@ -1,3 +1,4 @@
+import React from 'react'
 import { GrGroup } from 'react-icons/gr'
 import { SessionType } from '../../lib/AppConst'
 import AvatarImage from '../AvatarImage'
@@ -6,11 +7,14 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
   const showBadge = new_msg_count > 0
   const badgeText = new_msg_count > 9999 ? "9999+" : String(new_msg_count)
 
-  const badgeWidthClass =
-    badgeText.length === 1 ? "min-w-5" :
-      badgeText.length === 2 ? "min-w-6" :
-        badgeText.length === 3 ? "min-w-7" :
-          "min-w-8"
+  function getBadgeWidth(length) {
+    if (length === 1) return 'min-w-5'
+    if (length === 2) return 'min-w-6'
+    if (length === 3) return 'min-w-7'
+    return 'min-w-8'
+  }
+
+  const badgeWidth = getBadgeWidth(badgeText.length)
 
   return (
     <div className="relative inline-block">
@@ -33,7 +37,7 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
             bg-primary hover:bg-primary-dark text-white text-xs font-bold
             rounded-full border-2 border-surface dark:border-dark-surface
             shadow-gold
-            ${badgeWidthClass}
+            ${badgeWidth}
             h-5 px-1.5
             leading-none
           `}
@@ -45,4 +49,4 @@ const AvatarWithBadge = ({ new_msg_count = 0, session_type, address, size = "w-1
   )
 }
 
-export default AvatarWithBadge
+export default React.memo(AvatarWithBadge)

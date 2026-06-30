@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
-import { MdPublish } from "react-icons/md"
-import { IoAttachSharp, IoCloseOutline } from "react-icons/io5"
-import { setPublishFlag } from '../../store/slices/MessengerSlice'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
-import PublishQuoteItem from './PublishQuoteItem'
+import { IoAttachSharp, IoCloseOutline } from 'react-icons/io5'
+import { MdPublish } from 'react-icons/md'
+
 import PublishFileItem from './PublishFileItem'
+import PublishQuoteItem from './PublishQuoteItem'
 import PublishTagItem from './PublishTagItem'
+import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
+import { setPublishFlag } from '../../store/slices/MessengerSlice'
 
 const BulletinPublish = ({ }) => {
   const [tag, setTag] = useState('')
@@ -67,7 +69,7 @@ const BulletinPublish = ({ }) => {
       setTmpBulletin('')
       dispatch(setPublishFlag(false))
     } else {
-      dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: 3000 }))
+      dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: FLASH_DURATION_MS }))
     }
   }
 
@@ -100,17 +102,17 @@ const BulletinPublish = ({ }) => {
     <div className={`modal-overlay`}>
       <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-primary/20 dark:border-primary/30 rounded-t-xl bg-gradient-card dark:bg-dark-gradient-card shadow-lg">
+        <div className="modal-header-bar">
           <span className={`label text-base`}>
             {`Bulletin #${CurrentBulletinSequence + 1}`}
           </span>
-          <button onClick={() => dispatch(setPublishFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
+          <button onClick={() => dispatch(setPublishFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex flex-col overflow-y-auto px-4 py-3 bg-gradient-card dark:bg-dark-gradient-card grow">
+        <div className="modal-content-area">
 
           {/* Textarea with file button */}
           <div className="relative">

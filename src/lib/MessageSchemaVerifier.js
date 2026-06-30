@@ -1,303 +1,199 @@
 import Ajv from 'ajv'
-import { AvatarListSchema, AvatarRequestSchema, ReplyBulletinListSchema, BulletinRequestSchema, BulletinSchema, TagBulletinListSchema, DeclareSchema, ECDHHandshakeSchema, FileRequestSchema, GroupSyncSchema, GroupListSchema, GroupMessageListSchema, GroupMessageSchema, GroupMessageSyncSchema, MessageObjectBulletinSchema, MessageObjectPrivateChatFileSchema, MessageObjectGroupChatFileSchema, PrivateMessageSchema, PrivateMessageSyncSchema, RandomBulletinListSchema, ServerAddressListSchema } from './MessageSchema'
+import Logger from './Logger'
+import {
+  AvatarListSchema,
+  AvatarRequestSchema,
+  ReplyBulletinListSchema,
+  BulletinRequestSchema,
+  BulletinSchema,
+  TagBulletinListSchema,
+  DeclareSchema,
+  ECDHHandshakeSchema,
+  FileRequestSchema,
+  GroupSyncSchema,
+  GroupListSchema,
+  GroupMessageListSchema,
+  GroupMessageSchema,
+  GroupMessageSyncSchema,
+  MessageObjectBulletinSchema,
+  MessageObjectGroupChatFileSchema,
+  MessageObjectPrivateChatFileSchema,
+  PrivateMessageSchema,
+  PrivateMessageSyncSchema,
+  RandomBulletinListSchema,
+  ServerAddressListSchema
+} from './MessageSchema'
+
 const ajv = new Ajv({ allErrors: true })
 
+/**
+ * Parse a JSON string, returning the parsed object or false on failure.
+ * @param {string} str - JSON string to parse
+ * @returns {object|false} Parsed object, or false if parsing failed
+ */
 function deriveJson(str) {
   try {
-    let json = JSON.parse(str)
-    return json
-  } catch (e) {
-    console.log(`not a json`)
+    return JSON.parse(str)
+  } catch {
+    Logger.debug('not a json')
     return false
   }
 }
 
-const vDeclareSchema = ajv.compile(DeclareSchema)
+const schemaMap = {
+  DeclareSchema,
+  AvatarRequestSchema,
+  AvatarListSchema,
+  FileRequestSchema,
+  BulletinSchema,
+  BulletinRequestSchema,
+  ServerAddressListSchema,
+  ReplyBulletinListSchema,
+  TagBulletinListSchema,
+  RandomBulletinListSchema,
+  ECDHHandshakeSchema,
+  PrivateMessageSchema,
+  PrivateMessageSyncSchema,
+  GroupSyncSchema,
+  GroupMessageSyncSchema,
+  GroupListSchema,
+  GroupMessageSchema,
+  GroupMessageListSchema
+}
+
+const compiled = Object.fromEntries(
+  Object.entries(schemaMap).map(([name, schema]) => [name, ajv.compile(schema)])
+)
+
+/**
+ * Internal validator delegate. Compiles and runs the named AJV schema against a JSON object.
+ * @param {string} name - Schema name key in compiled map
+ * @param {object} json - Object to validate
+ * @returns {boolean} True if valid
+ */
+function validate(name, json) {
+  try {
+    if (compiled[name](json)) return true
+    Logger.warn(`${name} invalid`)
+    return false
+  } catch {
+    return false
+  }
+}
+
+/** @param {object} json @returns {boolean} */
 function checkDeclareSchema(json) {
-  try {
-    if (vDeclareSchema(json)) {
-      console.log(`DeclareSchema ok`)
-      return true
-    } else {
-      console.log(`DeclareSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('DeclareSchema', json)
 }
 
-const vAvatarRequestSchema = ajv.compile(AvatarRequestSchema)
+/** @param {object} json @returns {boolean} */
 function checkAvatarRequestSchema(json) {
-  try {
-    if (vAvatarRequestSchema(json)) {
-      console.log(`AvatarRequestSchema ok`)
-      return true
-    } else {
-      console.log(`AvatarRequestSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('AvatarRequestSchema', json)
 }
 
-const vAvatarListSchema = ajv.compile(AvatarListSchema)
+/** @param {object} json @returns {boolean} */
 function checkAvatarListSchema(json) {
-  try {
-    if (vAvatarListSchema(json)) {
-      console.log(`AvatarListSchema ok`)
-      return true
-    } else {
-      console.log(`AvatarListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('AvatarListSchema', json)
 }
 
-const vFileRequestSchema = ajv.compile(FileRequestSchema)
+/** @param {object} json @returns {boolean} */
 function checkFileRequestSchema(json) {
-  try {
-    if (vFileRequestSchema(json)) {
-      console.log(`FileRequestSchema ok`)
-      return true
-    } else {
-      console.log(`FileRequestSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('FileRequestSchema', json)
 }
 
-const vBulletinSchema = ajv.compile(BulletinSchema)
+/** @param {object} json @returns {boolean} */
 function checkBulletinSchema(json) {
-  try {
-    if (vBulletinSchema(json)) {
-      console.log(`BulletinSchema ok`)
-      return true
-    } else {
-      console.log(`BulletinSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('BulletinSchema', json)
 }
 
-const vBulletinRequestSchema = ajv.compile(BulletinRequestSchema)
+/** @param {object} json @returns {boolean} */
 function checkBulletinRequestSchema(json) {
-  try {
-    if (vBulletinRequestSchema(json)) {
-      console.log(`BulletinRequestSchema ok`)
-      return true
-    } else {
-      console.log(`BulletinRequestSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('BulletinRequestSchema', json)
 }
 
-const vServerAddressListSchema = ajv.compile(ServerAddressListSchema)
+/** @param {object} json @returns {boolean} */
 function checkServerAddressListSchema(json) {
-  try {
-    if (vServerAddressListSchema(json)) {
-      console.log(`ServerAddressListSchema ok`)
-      return true
-    } else {
-      console.log(`ServerAddressListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('ServerAddressListSchema', json)
 }
 
-const vReplyBulletinListSchema = ajv.compile(ReplyBulletinListSchema)
+/** @param {object} json @returns {boolean} */
 function checkReplyBulletinListSchema(json) {
-  try {
-    if (vReplyBulletinListSchema(json)) {
-      console.log(`ReplyBulletinListSchema ok`)
-      return true
-    } else {
-      console.log(`ReplyBulletinListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('ReplyBulletinListSchema', json)
 }
 
-const vTagBulletinListSchema = ajv.compile(TagBulletinListSchema)
+/** @param {object} json @returns {boolean} */
 function checkTagBulletinListSchema(json) {
-  try {
-    if (vTagBulletinListSchema(json)) {
-      console.log(`TagBulletinListSchema ok`)
-      return true
-    } else {
-      console.log(`TagBulletinListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('TagBulletinListSchema', json)
 }
 
-const vRandomBulletinListSchema = ajv.compile(RandomBulletinListSchema)
+/** @param {object} json @returns {boolean} */
 function checkRandomBulletinListSchema(json) {
-  try {
-    if (vRandomBulletinListSchema(json)) {
-      console.log(`RandomBulletinListSchema ok`)
-      return true
-    } else {
-      console.log(`RandomBulletinListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('RandomBulletinListSchema', json)
 }
 
-// Chat Handshake 
-const vECDHHandshakeSchema = ajv.compile(ECDHHandshakeSchema)
+// Chat Handshake
+/** @param {object} json @returns {boolean} */
 function checkECDHHandshakeSchema(json) {
-  try {
-    if (vECDHHandshakeSchema(json)) {
-      console.log(`ECDHHandshakeSchema ok`)
-      return true
-    } else {
-      console.log(`ECDHHandshakeSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('ECDHHandshakeSchema', json)
 }
 
 // Private
-const vPrivateMessageSchema = ajv.compile(PrivateMessageSchema)
+/** @param {object} json @returns {boolean} */
 function checkPrivateMessageSchema(json) {
-  try {
-    if (vPrivateMessageSchema(json)) {
-      console.log(`PrivateMessageSchema ok`)
-      return true
-    } else {
-      console.log(`PrivateMessageSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('PrivateMessageSchema', json)
 }
 
-const vPrivateMessageSyncSchema = ajv.compile(PrivateMessageSyncSchema)
+/** @param {object} json @returns {boolean} */
 function checkPrivateMessageSyncSchema(json) {
-  try {
-    if (vPrivateMessageSyncSchema(json)) {
-      console.log(`PrivateMessageSyncSchema ok`)
-      return true
-    } else {
-      console.log(`PrivateMessageSyncSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('PrivateMessageSyncSchema', json)
 }
 
 // Group
-const vGroupSyncSchema = ajv.compile(GroupSyncSchema)
+/** @param {object} json @returns {boolean} */
 function checkGroupSyncSchema(json) {
-  try {
-    if (vGroupSyncSchema(json)) {
-      console.log(`GroupSyncSchema ok`)
-      return true
-    } else {
-      console.log(`GroupSyncSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('GroupSyncSchema', json)
 }
 
-const vGroupMessageSyncSchema = ajv.compile(GroupMessageSyncSchema)
+/** @param {object} json @returns {boolean} */
 function checkGroupMessageSyncSchema(json) {
-  try {
-    if (vGroupMessageSyncSchema(json)) {
-      console.log(`GroupMessageSyncSchema ok`)
-      return true
-    } else {
-      console.log(`GroupMessageSyncSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('GroupMessageSyncSchema', json)
 }
 
-const vGroupListSchema = ajv.compile(GroupListSchema)
+/** @param {object} json @returns {boolean} */
 function checkGroupListSchema(json) {
-  try {
-    if (vGroupListSchema(json)) {
-      console.log(`GroupListSchema ok`)
-      return true
-    } else {
-      console.log(`GroupListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
-}
-const vGroupMessageSchema = ajv.compile(GroupMessageSchema)
-function checkGroupMessageSchema(json) {
-  try {
-    if (vGroupMessageSchema(json)) {
-      console.log(`GroupMessageSchema ok`)
-      return true
-    } else {
-      console.log(`GroupMessageSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('GroupListSchema', json)
 }
 
-const vGroupMessageListSchema = ajv.compile(GroupMessageListSchema)
+/** @param {object} json @returns {boolean} */
+function checkGroupMessageSchema(json) {
+  return validate('GroupMessageSchema', json)
+}
+
+/** @param {object} json @returns {boolean} */
 function checkGroupMessageListSchema(json) {
-  try {
-    if (vGroupMessageListSchema(json)) {
-      console.log(`GroupMessageListSchema ok`)
-      return true
-    } else {
-      console.log(`GroupMessageListSchema invalid`)
-      return false
-    }
-  } catch (e) {
-    return false
-  }
+  return validate('GroupMessageListSchema', json)
 }
 
 const vMessageObjectBulletinSchema = ajv.compile(MessageObjectBulletinSchema)
 const vMessageObjectPrivateChatFileSchema = ajv.compile(MessageObjectPrivateChatFileSchema)
 const vMessageObjectGroupChatFileSchema = ajv.compile(MessageObjectGroupChatFileSchema)
 
+/**
+ * Validate an incoming message object against the union of Bulletin, PrivateChatFile, and GroupChatFile schemas.
+ * Returns true if the object matches any one of them.
+ * @param {object} json - Message object to validate
+ * @returns {boolean} True if valid
+ */
 function checkMessageObjectSchema(json) {
   try {
     if (vMessageObjectBulletinSchema(json) || vMessageObjectPrivateChatFileSchema(json) || vMessageObjectGroupChatFileSchema(json)) {
-      console.log(`MessageObject schema ok`)
+      Logger.debug('MessageObject schema ok')
       return true
     } else {
-      console.log(`MessageObject schema invalid`)
+      Logger.warn('MessageObject schema invalid')
       return false
     }
-  } catch (e) {
+  } catch {
     return false
   }
 }

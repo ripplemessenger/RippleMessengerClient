@@ -1,4 +1,6 @@
 import { fork, select, cancelled, delay } from 'redux-saga/effects'
+
+import Logger from '../../lib/Logger'
 import { AvatarRequest, FetchFollowBulletin, LoadMineBulletinSequence } from './MessengerSaga'
 
 export function* taskInstant() {
@@ -12,7 +14,7 @@ export function* taskInstant() {
     }
   } finally {
     if (yield cancelled()) {
-      console.log('Scheduled taskInstant cancelled...')
+      Logger.debug('Scheduled taskInstant cancelled...')
     }
   }
 }
@@ -28,7 +30,7 @@ export function* taskFast() {
     }
   } finally {
     if (yield cancelled()) {
-      console.log('Scheduled taskFast cancelled...')
+      Logger.debug('Scheduled taskFast cancelled...')
     }
   }
 }
@@ -50,7 +52,7 @@ export function* taskSlow() {
     }
   } finally {
     if (yield cancelled()) {
-      console.log('Scheduled taskSlow cancelled...')
+      Logger.debug('Scheduled taskSlow cancelled...')
     }
   }
 }
@@ -64,7 +66,7 @@ export function* taskCreep() {
     }
   } finally {
     if (yield cancelled()) {
-      console.log('Scheduled taskCreep cancelled...')
+      Logger.debug('Scheduled taskCreep cancelled...')
     }
   }
 }

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import Logger from '../lib/Logger'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
 import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5"
 import { setDisplayJson, setFlashNoticeMessage } from '../store/slices/CommonSlice'
+import { FLASH_DURATION_MS } from '../lib/AppConst'
 
 const JsonDiv = ({ json }) => {
   const [theme, setTheme] = useState(localStorage.getItem('theme'))
@@ -27,10 +29,10 @@ const JsonDiv = ({ json }) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      setTimeout(() => setCopied(false), 3000)
+      setTimeout(() => setCopied(false), FLASH_DURATION_MS)
     } catch (err) {
-      console.error('copy fail...', err)
-      dispatch(setFlashNoticeMessage({ message: 'Copy failed', duration: 3000 }))
+      Logger.error('copy failed', err)
+      dispatch(setFlashNoticeMessage({ message: 'Copy failed', duration: FLASH_DURATION_MS }))
     }
   }
 

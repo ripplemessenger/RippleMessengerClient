@@ -1,17 +1,19 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import ListBulletin from '../components/Bulletin/ListBulletin'
-import PageList from '../components/PageList'
-import BulletinPublish from '../components/Bulletin/BulletinPublish'
-import BulletinForward from '../components/Bulletin/BulletinForward'
-import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
+import { BiSolidFileJson } from 'react-icons/bi'
+import { GiPerspectiveDiceSixFacesRandom } from 'react-icons/gi'
+import { HiHashtag } from 'react-icons/hi2'
+import { IoStar } from 'react-icons/io5'
 import { MdPostAdd } from 'react-icons/md'
-import { IoStar } from "react-icons/io5"
-import { HiHashtag } from "react-icons/hi2"
-import { BiSolidFileJson } from "react-icons/bi"
-import { SlUserFollowing } from "react-icons/sl"
-import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi"
+import { SlUserFollowing } from 'react-icons/sl'
+
+import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPaste from '../components/Bulletin/BulletinPaste'
+import BulletinPublish from '../components/Bulletin/BulletinPublish'
+import ListBulletin from '../components/Bulletin/ListBulletin'
+import EmptyState from '../components/EmptyState'
+import PageList from '../components/PageList'
+import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
 
 export default function PortalPage() {
   const { PortalBulletinList, PortalBulletinTotalPage, PortalBulletinPage } = useSelector(state => state.Messenger)
@@ -26,7 +28,7 @@ export default function PortalPage() {
   }
 
   return (
-    <div className="flex justify-center items-center w-full max-w-full overflow-hidden">
+    <div className="bulletin-page-wrapper">
       {
         ShowPublishFlag &&
         <BulletinPublish />
@@ -40,32 +42,38 @@ export default function PortalPage() {
         <BulletinPaste />
       }
       <div className="tab-page">
-        <div className="mx-auto w-full max-w-full min-w-0 flex flex-col mt-4">
+        <div className="bulletin-page-inner">
           <div className="card-title flex flex-row items-center">
             Portal
-            <MdPostAdd className="card-icon" onClick={() => dispatch(setPublishFlag(true))} />
-            <SlUserFollowing className="card-icon" onClick={() => navigate('/bulletin_follow')} />
-            <HiHashtag className="card-icon" onClick={() => goto_tag()} />
-            <IoStar className="card-icon" onClick={() => navigate('/bulletin_bookmark')} />
-            <GiPerspectiveDiceSixFacesRandom className="card-icon" onClick={() => navigate('/bulletin_random')} />
-            <BiSolidFileJson className="card-icon" onClick={() => dispatch(setPasteFlag(true))} />
+            <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label="Publish bulletin">
+              <MdPostAdd className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => navigate('/bulletin_follow')} aria-label="Followed bulletins">
+              <SlUserFollowing className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => goto_tag()} aria-label="Search tags">
+              <HiHashtag className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => navigate('/bulletin_bookmark')} aria-label="Bookmarks">
+              <IoStar className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => navigate('/bulletin_random')} aria-label="Random bulletin">
+              <GiPerspectiveDiceSixFacesRandom className="card-icon" />
+            </button>
+            <button className="icon-action-btn" onClick={() => dispatch(setPasteFlag(true))} aria-label="Paste bulletin">
+              <BiSolidFileJson className="card-icon" />
+            </button>
           </div>
 
-          <div className="max-w-full min-w-0 p-4 rounded-xl card overflow-hidden">
-            {
-              PortalBulletinTotalPage > 1 &&
-              <PageList current_page={PortalBulletinPage} total_page={PortalBulletinTotalPage} dispatch_type={'LoadPortalBulletin'} payload={{}} />
-            }
-            <div className={`mt-2 flex-1 justify-center min-w-0 overflow-hidden`}>
+          <div className="bulletin-card-list">
+            <div className={`bulletin-list-content`}>
               {
                 PortalBulletinList.length === 0 ?
-                  <div className="empty-state-box mx-auto max-w-sm py-12">
-                    <MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
-                    <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>
-                      No bulletin yet
-                    </h3>
-                    <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-2">Publish your first post to get started</p>
-                  </div>
+                  <EmptyState
+                    icon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+                    title="No bulletin yet"
+                    description="Publish your first post to get started"
+                  />
                   :
                   PortalBulletinList.map((bulletin) => (
                     <ListBulletin key={bulletin.hash} bulletin={bulletin} />

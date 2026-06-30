@@ -1,8 +1,10 @@
-import { path } from '@tauri-apps/api'
+﻿import { path } from '@tauri-apps/api'
 import Database from '@tauri-apps/plugin-sql'
-import { Bool2Int, Int2Bool } from './lib/AppUtil'
-import { Epoch, MessageObjectType } from './lib/MessengerConst'
+
 import { BulletinPageSize } from './lib/AppConst'
+import { Bool2Int, Int2Bool } from './lib/AppUtil'
+import Logger from './lib/Logger'
+import { Epoch, MessageObjectType } from './lib/MessengerConst'
 import { bulletin2Display, groupMessage2Display, privateMessage2Display } from './lib/MessengerUtil'
 
 let dbInstance = null
@@ -217,7 +219,7 @@ export async function initDB() {
 
     await dbInstance.execute("PRAGMA foreign_keys = ON;");
   } catch (error) {
-    console.error("init db failed:", error);
+    Logger.error('db.initDB', error)
   }
 }
 
@@ -229,6 +231,16 @@ export async function getDB() {
     await initDB()
   }
   return dbInstance
+}
+
+async function withDb(fn) {
+  try {
+    const db = await getDB()
+    return await fn(db)
+  } catch (error) {
+    Logger.error('db', error)
+    return null
+  }
 }
 
 export const dbAPI = {
@@ -265,75 +277,55 @@ export const dbAPI = {
   },
 
   async addServer(url, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO servers (url, updated_at, is_connect, priority) VALUES ($1, $2, $3, $4)',
         [url, updated_at, Bool2Int(false), 64]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async toggleServerConnect(url, is_connect) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE servers SET is_connect = $1 WHERE url = $2',
         [Bool2Int(is_connect), url]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async deleteServer(url) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute('DELETE FROM servers WHERE url = $1', [url])
+    return (await withDb(async (db) => {
+      await db.execute('DELETE FROM servers WHERE url = $1', [url])
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateServerDefault(url) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE servers SET priority = $1 WHERE url = $2',
         [64, url]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateServerPriority() {
-    try {
-      const dbInstance = await getDB()
-      const server_list = await dbInstance.select('SELECT * FROM servers ORDER BY priority DESC, updated_at DESC')
+    return (await withDb(async (db) => {
+      const server_list = await db.select('SELECT * FROM servers ORDER BY priority DESC, updated_at DESC')
       const server_count = server_list.length
       for (let i = 0; i < server_list.length; i++) {
         const server = server_list[i]
-        await dbInstance.execute(
+        await db.execute(
           'UPDATE servers SET priority = $1 WHERE url = $2',
           [server_count - i, server.url]
         )
       }
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // contact
@@ -352,42 +344,30 @@ export const dbAPI = {
   },
 
   async addContact(address, nickname, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO contacts (address, nickname, updated_at) VALUES ($1, $2, $3)',
         [address, nickname, timestamp]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateContactNickname(address, nickname, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE contacts SET nickname = $1, updated_at = $2 WHERE address = $3',
         [nickname, timestamp, address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async deleteContactByAddress(address) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute('DELETE FROM contacts WHERE address = $1', [address])
+    return (await withDb(async (db) => {
+      await db.execute('DELETE FROM contacts WHERE address = $1', [address])
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // account
@@ -406,58 +386,42 @@ export const dbAPI = {
   },
 
   async addAccount(address, salt, cipher_data, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO accounts (address, salt, cipher_data, updated_at) VALUES ($1, $2, $3, $4)',
         [address, salt, cipher_data, timestamp]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateAccount(address, salt, cipher_data, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE accounts SET salt = $1, cipher_data = $2, updated_at = $3 WHERE address = $4',
         [salt, cipher_data, timestamp, address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async deleteAccountByAddress(address) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'DELETE FROM accounts WHERE address = $1',
         [address])
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateAccountUpdatedAt(address, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE accounts SET updated_at = $1 WHERE address = $2',
         [timestamp, address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // follow
@@ -479,30 +443,22 @@ export const dbAPI = {
   },
 
   async addFollow(local, remote, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO follows (local, remote, updated_at) VALUES ($1, $2, $3)',
         [local, remote, timestamp]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async deleteFollow(local, remote) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'DELETE FROM follows WHERE local = $1 AND remote = $2',
         [local, remote])
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // friend
@@ -524,30 +480,22 @@ export const dbAPI = {
   },
 
   async addFriend(local, remote, timestamp) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO friends (local, remote, updated_at) VALUES ($1, $2, $3)',
         [local, remote, timestamp]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async deleteFriend(local, remote) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'DELETE FROM friends WHERE local = $1 AND remote = $2',
         [local, remote])
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // avatar
@@ -601,62 +549,46 @@ export const dbAPI = {
   },
 
   async addAvatar(address, hash, size, signed_at, updated_at, json, is_saved) {
-    try {
-      const dbInstance = await getDB()
+    return (await withDb(async (db) => {
       let sql = 'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, NULL)'
       let value = [address, hash, size, signed_at, updated_at, Bool2Int(is_saved)]
       if (json !== null) {
         sql = 'INSERT INTO avatar_files (address, hash, size, signed_at, updated_at, is_saved, json) VALUES ($1, $2, $3, $4, $5, $6, $7)'
         value = [address, hash, size, signed_at, updated_at, Bool2Int(is_saved), JSON.stringify(json)]
       }
-      await dbInstance.execute(sql, value)
+      await db.execute(sql, value)
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateAvatar(address, hash, size, signed_at, updated_at, json, is_saved) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE avatar_files SET hash = $1, size = $2, signed_at = $3, updated_at = $4, json = $5, is_saved = $6 WHERE address = $7',
         [hash, size, signed_at, updated_at, JSON.stringify(json), Bool2Int(is_saved), address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateAvatarUpdatedAt(address, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE avatar_files SET updated_at = $1 WHERE address = $2',
         [updated_at, address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateAvatarIsSaved(address, is_saved, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE avatar_files SET is_saved = $1, updated_at = $2 WHERE address = $3',
         [Bool2Int(is_saved), updated_at, address]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // bulletin
@@ -709,7 +641,7 @@ export const dbAPI = {
 
     const sortDirection = (order && order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
     const dbInstance = await getDB()
-    const placeholders = addresses.map(() => '?').join(', ');
+    const placeholders = addresses.map((_, i) => `$${i + 1}`).join(', ');
     const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at ${sortDirection} LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     let bulletins = await dbInstance.select(query, addresses)
     for (let i = 0; i < bulletins.length; i++) {
@@ -725,7 +657,7 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = addresses.map(() => '?').join(', ')
+    const placeholders = addresses.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT COUNT(hash) as count FROM bulletins WHERE address IN (${placeholders})`
     let [result] = await dbInstance.select(query, addresses)
     return result ? result.count : 0
@@ -759,7 +691,7 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = hashes.map(() => '?').join(', ')
+    const placeholders = hashes.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT * FROM bulletins WHERE hash IN (${placeholders}) ORDER BY signed_at`
     let bulletins = await dbInstance.select(query, hashes)
     for (let i = 0; i < bulletins.length; i++) {
@@ -819,31 +751,23 @@ export const dbAPI = {
   },
 
   async addBulletin(hash, address, sequence, pre_hash, content, json, signed_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO bulletins (hash, address, sequence, pre_hash, content, json, signed_at, is_marked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [hash, address, sequence, pre_hash, content, JSON.stringify(json), signed_at, Bool2Int(false)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async toggleBulletinMark(hash, is_marked) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE bulletins SET is_marked = $1 WHERE hash = $2',
         [Bool2Int(is_marked), hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // bulletin file
@@ -851,19 +775,15 @@ export const dbAPI = {
     if (!Array.isArray(files) || files.length === 0)
       return true
 
-    const dbInstance = await getDB()
-    try {
+    return (await withDb(async (db) => {
       for (const file of files) {
-        await dbInstance.execute(
+        await db.execute(
           `INSERT OR IGNORE INTO bulletin_files (bulletin_hash, file_hash, file_size, file_name, file_ext) VALUES ($1, $2, $3, $4, $5)`,
           [bulletin_hash, file.Hash, file.Size, file.Name, file.Ext]
         )
       }
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // bulletin reply
@@ -890,19 +810,15 @@ export const dbAPI = {
     if (!Array.isArray(bulletins) || bulletins.length === 0)
       return true
 
-    const dbInstance = await getDB()
-    try {
+    return (await withDb(async (db) => {
       for (const bulletin of bulletins) {
-        await dbInstance.execute(
+        await db.execute(
           `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ($1, $2, $3)`,
           [bulletin.Hash, reply_hash, reply_signed_at]
         )
       }
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // bulletin tag
@@ -912,7 +828,7 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = ids.map(() => '?').join(', ')
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT DISTINCT bulletin_hash FROM bulletin_tags WHERE tag_id IN(${placeholders}) ORDER BY bulletin_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     const bulletins = await dbInstance.select(query, ids)
     const hashes = bulletins.map(bulletin => bulletin.bulletin_hash)
@@ -925,7 +841,7 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = ids.map(() => '?').join(', ')
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT COUNT(DISTINCT bulletin_hash) as count FROM bulletin_tags WHERE tag_id IN(${placeholders})`
     const [result] = await dbInstance.select(query, ids)
     return result ? result.count : 0
@@ -935,33 +851,29 @@ export const dbAPI = {
     if (!Array.isArray(tagNames) || tagNames.length === 0)
       return true
 
-    const dbInstance = await getDB()
-    try {
+    return (await withDb(async (db) => {
       for (const rawName of tagNames) {
         const name = rawName.trim()
         if (!name) continue
 
-        await dbInstance.execute(
+        await db.execute(
           `INSERT OR IGNORE INTO tags (name) VALUES ($1)`,
           [name]
         )
 
-        const [row] = await dbInstance.select("SELECT id FROM tags WHERE name = $1", [name])
+        const [row] = await db.select("SELECT id FROM tags WHERE name = $1", [name])
         const tagId = row?.id
 
         if (!tagId) continue
 
-        await dbInstance.execute(
+        await db.execute(
           `INSERT OR IGNORE INTO bulletin_tags (bulletin_hash, bulletin_signed_at, tag_id) VALUES ($1, $2, $3)`,
           [bulletin_hash, bulletin_signed_at, tagId]
         )
 
       }
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // tag
@@ -971,7 +883,7 @@ export const dbAPI = {
     }
 
     const dbInstance = await getDB()
-    const placeholders = names.map(() => '?').join(', ');
+    const placeholders = names.map((_, i) => `$${i + 1}`).join(', ');
     const query = `SELECT id FROM tags WHERE name IN(${placeholders})`
     const tags = await dbInstance.select(query, names)
     const ids = tags.map(tag => tag.id)
@@ -979,17 +891,13 @@ export const dbAPI = {
   },
 
   async addTag(name) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         "INSERT OR IGNORE INTO tags (name) VALUES ($1)",
         [name]
       );
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   //  file
@@ -1009,76 +917,56 @@ export const dbAPI = {
   },
 
   async addFile(hash, size, updated_at, chunk_length, chunk_cursor, is_saved) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO files (hash, size, updated_at, chunk_length, chunk_cursor, is_saved) VALUES ($1, $2, $3, $4, $5, $6)',
         [hash, size, updated_at, chunk_length, chunk_cursor, Bool2Int(is_saved)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateFileChunkCursor(hash, chunk_cursor, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE files SET chunk_cursor = $1, updated_at = $2 WHERE hash = $3',
         [chunk_cursor, updated_at, hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async localFileSaved(hash, chunk_cursor, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE files SET chunk_cursor = $1, updated_at = $2, is_saved = $3 WHERE hash = $4',
         [chunk_cursor, updated_at, 1, hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async remoteFileSaved(hash, updated_at) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE files SET updated_at = $1, is_saved = $2 WHERE hash = $3',
         [updated_at, 1, hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // private_chat_file
   async addPrivateFile(ehash, tmp1, tmp2, hash, size) {
     const address1 = tmp1 > tmp2 ? tmp1 : tmp2
     const address2 = tmp1 > tmp2 ? tmp2 : tmp1
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO private_chat_files (ehash, address1, address2, hash, size) VALUES ($1, $2, $3, $4, $5)',
         [ehash, address1, address2, hash, size]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getPrivateFileByEHash(ehash) {
@@ -1092,17 +980,13 @@ export const dbAPI = {
 
   // group_chat_file
   async addGroupFile(ehash, group_hash, hash, size) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO group_chat_files (ehash, group_hash, hash, size) VALUES ($1, $2, $3, $4)',
         [ehash, group_hash, hash, size]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getGroupFileByEHash(ehash) {
@@ -1116,45 +1000,33 @@ export const dbAPI = {
 
   // handshake
   async initHandshakeFromLocal(self_address, pair_address, partition, sequence, private_key, public_key, self_json) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO handshakes (self_address, pair_address, partition, sequence, private_key, public_key, self_json) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [self_address, pair_address, partition, sequence, private_key, public_key, JSON.stringify(self_json)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async initHandshakeFromRemote(self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json, pair_json) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO handshakes (self_address, pair_address, partition, sequence, aes_key, private_key, public_key, self_json, pair_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
         [self_address, pair_address, partition, sequence, aes_key, private_key, public_key, JSON.stringify(self_json), JSON.stringify(pair_json)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateHandshake(self_address, pair_address, partition, sequence, aes_key, self_json, pair_json) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE handshakes SET aes_key = $1, self_json = $2, pair_json = $3 WHERE self_address = $4 AND pair_address = $5 AND partition = $6 AND sequence = $7',
         [aes_key, JSON.stringify(self_json), JSON.stringify(pair_json), self_address, pair_address, partition, sequence]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getHandshake(self_address, pair_address, partition, sequence) {
@@ -1198,17 +1070,13 @@ export const dbAPI = {
   },
 
   async readPrivateSession(sour, dest) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE private_messages SET is_readed = $3 WHERE (sour = $1 AND dest = $2) OR (sour = $2 AND dest = $1)',
         [sour, dest, Bool2Int(true)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getLastPrivateMessageSignedAt(sour, dest) {
@@ -1276,31 +1144,23 @@ export const dbAPI = {
   },
 
   async addPrivateMessage(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO private_messages (hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
         [hash, sour, dest, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async confirmPrivateMessage(hash) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE private_messages SET is_confirmed = $1 WHERE hash = $2',
         [Bool2Int(true), hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // group
@@ -1340,45 +1200,33 @@ export const dbAPI = {
   },
 
   async createGroup(hash, name, created_by, member, created_at, create_json, is_accepted) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO groups (hash, name, created_by, member, created_at, create_json, is_accepted) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [hash, name, created_by, JSON.stringify(member), created_at, JSON.stringify(create_json), Bool2Int(is_accepted)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async updateGroupDelete(hash, delete_json) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE groups SET delete_json = $1, deleted_at = $2 WHERE hash = $3',
         [JSON.stringify(delete_json), delete_json.Timestamp, hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async acceptGroupRequest(hash) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE groups SET is_accepted = $1 WHERE hash = $2',
         [1, hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   // group message
@@ -1404,17 +1252,13 @@ export const dbAPI = {
   },
 
   async readGroupSession(group_hash) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE group_messages SET is_readed = $2 WHERE group_hash = $1',
         [group_hash, Bool2Int(true)]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getUnsyncGroupSession(group_hash, signed_at) {
@@ -1509,31 +1353,23 @@ export const dbAPI = {
   },
 
   async addGroupMessage(hash, group_hash, address, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'INSERT INTO group_messages (hash, group_hash, address, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
         [hash, group_hash, address, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async confirmGroupMessage(hash) {
-    try {
-      const dbInstance = await getDB()
-      await dbInstance.execute(
+    return (await withDb(async (db) => {
+      await db.execute(
         'UPDATE group_messages SET is_confirmed = $1 WHERE hash = $2',
         [Bool2Int(true), hash]
       )
       return true
-    } catch (error) {
-      console.log(error)
-      return false
-    }
+    })) || false
   },
 
   async getGroupMessageBySequence(group_hash, address, sequence) {

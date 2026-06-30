@@ -1,3 +1,4 @@
+import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setSearchTagList, setTagBulletinList } from '../../store/slices/MessengerSlice'
 import { HiHashtag } from 'react-icons/hi2'
@@ -24,11 +25,11 @@ const SearchTagItem = ({ tag }) => {
       <div className='flex flex-row justify-start bulletin-link' title={tag}>
         <HiHashtag className="icon-sm" />{tag}
       </div>
-      <div className='quote-del' onClick={() => delTag()}>
+      <button className='quote-del' onClick={() => delTag()} aria-label={`Remove tag ${tag}`}>
         X
-      </div>
+      </button>
     </div>
   )
 }
 
-export default SearchTagItem
+export default React.memo(SearchTagItem)

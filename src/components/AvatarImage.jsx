@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { RxAvatar } from "react-icons/rx"
 import { readFile, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import { AvatarDir } from '../lib/AppConst'
+import { useAppBaseDir } from '../hooks/useAppBaseDir'
 
 const AvatarImage = ({ address, onClick, classNames }) => {
-  const { AppBaseDir } = useSelector(state => state.Common)
+  const AppBaseDir = useAppBaseDir()
   const [avatarImage, setAvatarImage] = useState(null)
 
   const dispatch = useDispatch()

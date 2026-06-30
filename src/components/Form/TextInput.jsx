@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { forwardRef, useState } from 'react'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 
-const TextInput = ({ label, type = "text", placeholder, autoComplete = "on", value, onChange, onKeyDown, onBlur, disabled = false, error }) => {
+const TextInput = forwardRef(({ label, type = "text", placeholder, autoComplete = "on", value, onChange, onKeyDown, onBlur, disabled = false, error }, ref) => {
   const id = `input-${label.replace(/\s+/g, '-').toLowerCase()}`
 
   // Password visibility toggle — replaces browser's native eye icon for consistent behavior
@@ -15,7 +15,7 @@ const TextInput = ({ label, type = "text", placeholder, autoComplete = "on", val
         {label}
       </label>
       <div className="relative">
-        <input type={inputType}
+        <input ref={ref} type={inputType}
           id={id}
           name={label}
           placeholder={placeholder}
@@ -42,6 +42,6 @@ const TextInput = ({ label, type = "text", placeholder, autoComplete = "on", val
       {error && <span className="text-xs mt-1 text-status-error dark:text-status-error-dark">{error}</span>}
     </div>
   )
-}
+})
 
 export default TextInput

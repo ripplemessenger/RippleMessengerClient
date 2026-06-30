@@ -1,14 +1,18 @@
-import { Outlet } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import Header from '../components/Header.jsx'
-import Footer from '../components/Footer.jsx'
-import { ThemeProvider } from '../components/ThemeProvider.jsx'
-import ConfirmDiv from '../components/ConfirmDiv.jsx'
-import FlashNotice from '../components/FlashNotice.jsx'
-import JsonDiv from '../components/JsonDiv.jsx'
+import { Outlet } from 'react-router-dom'
+
+import ConfirmDiv from '../components/ConfirmDiv'
+import ConnectionStatusBanner from '../components/ConnectionStatusBanner'
+import FlashNotice from '../components/FlashNotice'
+import Footer from '../components/Footer'
+import Header from '../components/Header'
+import JsonDiv from '../components/JsonDiv'
+import { ThemeProvider } from '../components/ThemeProvider'
+import { useConfirmPopup } from '../hooks/useConfirmPopup'
 
 export default function MainLayout() {
-  const { ConfirmPopup, FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
+  const ConfirmPopup = useConfirmPopup()
+  const { FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col">
@@ -25,6 +29,7 @@ export default function MainLayout() {
           <JsonDiv json={DisplayJson} />
         }
         <Header />
+        <ConnectionStatusBanner />
 
         <main className="main flex-grow">
           <div className="content-wrapper h-full animate-fadeIn">

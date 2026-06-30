@@ -1,12 +1,16 @@
-const ToggleSwitch = ({ title, isChecked, onClick }) => {
+const ToggleSwitch = ({ title, isChecked, onClick, ariaLabel }) => {
   return (
     <div className="max-w-md w-full rounded-2xl flex flex-col items-center">
       <div className="w-full max-w-sm">
-        <div
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isChecked}
+          aria-label={ariaLabel || title}
           onClick={onClick}
           className={`relative inline-flex items-center
               w-14 h-8 rounded-full p-1 transition-all duration-300 ease-in-out
-              cursor-pointer select-none border
+              cursor-pointer select-none border appearance-none outline-none
               ${isChecked
                 ? 'bg-primary dark:bg-primary/80 border-primary-dark/30 shadow-gold'
                 : 'bg-surface-alt dark:bg-dark-surface-alt border-primary/20 dark:border-primary/30'
@@ -21,7 +25,7 @@ const ToggleSwitch = ({ title, isChecked, onClick }) => {
                 }
               `}
           />
-        </div>
+        </button>
 
         {
           title &&

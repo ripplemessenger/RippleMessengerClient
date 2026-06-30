@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createSearchParams, useNavigate } from 'react-router-dom'
-import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
+import { HiOutlineStatusOffline, HiOutlineStatusOnline } from 'react-icons/hi'
+import { IoCloseOutline, IoStatsChartOutline } from 'react-icons/io5'
+import { TbCloudNetwork } from 'react-icons/tb'
+
 import TextInput from '../../components/Form/TextInput'
-import { IoCloseOutline } from "react-icons/io5"
-import { TbCloudNetwork } from "react-icons/tb"
 import ToggleSwitch from '../../components/ToggleSwitch'
-import { HiOutlineStatusOnline, HiOutlineStatusOffline } from "react-icons/hi"
-import { IoStatsChartOutline } from "react-icons/io5"
+import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabMessengerNetwork() {
@@ -17,13 +18,7 @@ export default function TabMessengerNetwork() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const { activeTabSetting } = useSelector(state => state.User)
   const { ServerList, ConnsStatus } = useSelector(state => state.Messenger)
-
-  useEffect(() => {
-    if (activeTabSetting === SettingPageTab.MessengerNetwork) {
-    }
-  }, [dispatch, activeTabSetting])
 
   const addServer = async () => {
     dispatch({
@@ -46,12 +41,12 @@ export default function TabMessengerNetwork() {
     })
   }
 
-  const { ConfirmPopup } = useSelector(state => state.Common)
+  const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
-    if (ConfirmPopup !== null && ConfirmPopup.Content === ConfirmContentOptions.DelServer && ConfirmPopup.Result) {
+    if (ConfirmPopup?.Content === ConfirmContentOptions.DelServer && ConfirmPopup?.Result) {
       dispatch({
         type: 'ServerDel',
-        payload: { url: ConfirmPopup.Params.URL }
+        payload: { url: ConfirmPopup?.Params?.URL }
       })
       dispatch(setConfirmPopup(null))
     }
@@ -85,15 +80,15 @@ export default function TabMessengerNetwork() {
         <div className={`modal-overlay`}>
           <div className="max-w-md w-full mx-4 flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-primary/20 dark:border-primary/30 rounded-t-xl bg-gradient-card dark:bg-dark-gradient-card shadow-lg">
+            <div className="modal-header-bar">
               <span className={`label text-base`}>Add Server</span>
-              <button onClick={() => setShowAddServer(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
+              <button onClick={() => setShowAddServer(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="flex flex-col overflow-y-auto px-4 py-3 bg-gradient-card dark:bg-dark-gradient-card grow gap-3">
+            <div className="modal-content-area gap-3">
               <TextInput label={'URL:'} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
             </div>
 
@@ -116,7 +111,9 @@ export default function TabMessengerNetwork() {
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
           {SettingPageTab.MessengerNetwork}
-          <TbCloudNetwork className="card-icon" onClick={() => setShowAddServer(true)} />
+          <button className="icon-action-btn" onClick={() => setShowAddServer(true)} aria-label="Add server">
+            <TbCloudNetwork className="card-icon" />
+          </button>
         </div>
 
         <div className="min-w-full rounded-xl card">
@@ -139,7 +136,7 @@ export default function TabMessengerNetwork() {
                         {server.url}
                       </td>
                       <td className="table-cell">
-                        <ToggleSwitch isChecked={server.is_connect} onClick={() => toggleIsConnect(server.url, !server.is_connect)} />
+                        <ToggleSwitch isChecked={server.is_connect} onClick={() => toggleIsConnect(server.url, !server.is_connect)} ariaLabel={`Connect ${server.url}`} />
                       </td>
                       <td className="table-cell">
                         {ConnsStatus[server.url] && ConnsStatus[server.url] === WebSocket.OPEN ? (
@@ -156,7 +153,9 @@ export default function TabMessengerNetwork() {
                       </td>
                       <td className="table-cell">
                         {server.is_connect && (
-                          <IoStatsChartOutline onClick={() => goto_server(server.url)} className="cursor-pointer tool-icon" />
+                          <button className="icon-action-btn" onClick={() => goto_server(server.url)} aria-label="View server statistics">
+                            <IoStatsChartOutline className="icon-sm" />
+                          </button>
                         )}
                       </td>
                       <td className="table-cell">

@@ -1,10 +1,13 @@
-import { useDispatch, useSelector } from 'react-redux'
-import TextTimestamp from '../TextTimestamp'
-import { setDisplayJson } from '../../store/slices/CommonSlice'
+import React from 'react'
+import { useDispatch } from 'react-redux'
+
+import { useUserAddress } from '../../hooks/useUserSelectors'
 import { MessageObjectType } from '../../lib/MessengerConst'
-import BulletinLink from '../Bulletin/BulletinLink'
-import ChatFileLink from './ChatFileLink'
+import { setDisplayJson } from '../../store/slices/CommonSlice'
 import AvatarImage from '../AvatarImage'
+import BulletinLink from '../Bulletin/BulletinLink'
+import TextTimestamp from '../TextTimestamp'
+import ChatFileLink from './ChatFileLink'
 
 /**
  * Unified message card for both private and group chat messages.
@@ -15,7 +18,7 @@ import AvatarImage from '../AvatarImage'
 const MessageCard = ({ message, mode = 'private' }) => {
 
   const dispatch = useDispatch()
-  const { Address } = useSelector(state => state.User)
+  const Address = useUserAddress()
 
   // Field names differ between private and group messages
   const senderField = mode === 'group' ? 'address' : 'sour'
@@ -30,11 +33,11 @@ const MessageCard = ({ message, mode = 'private' }) => {
 
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[75%]`}>
         <div className={`flex flex-row justify-between`}>
-          <div className={`rounded-full px-2 py-0.5 border border-primary/30 dark:border-primary/40 shrink-0 cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors`} onClick={() => { dispatch(setDisplayJson({ json: message.json, isExpand: true })) }}>
+          <button className={`rounded-full px-2 py-0.5 border border-primary/30 dark:border-primary/40 shrink-0 cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors focus:outline-none`} onClick={() => { dispatch(setDisplayJson({ json: message.json, isExpand: true })) }} aria-label={`View message #${message.sequence} details`}>
             <span className={`text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 text-left`}>
               #{message.sequence}
             </span>
-          </div>
+          </button>
           <TextTimestamp timestamp={message.signed_at} textSize={'text-xs'} />
         </div>
 
@@ -59,4 +62,4 @@ const MessageCard = ({ message, mode = 'private' }) => {
   )
 }
 
-export default MessageCard
+export default React.memo(MessageCard)
