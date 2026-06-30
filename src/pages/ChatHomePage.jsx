@@ -13,6 +13,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
+import { LoadCurrentSession, LoadSessionList, SendContent, SendFile } from '../store/sagas/messenger.actions'
 import AvatarImage from '../components/AvatarImage'
 
 export default function ChatHomePage() {
@@ -21,7 +22,7 @@ export default function ChatHomePage() {
   const { SessionList, CurrentSession, CurrentSessionMessageList } = useSelector(state => state.Messenger)
 
   useEffect(() => {
-    dispatch({ type: 'LoadSessionList' })
+    dispatch(LoadSessionList())
   }, [dispatch])
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function ChatHomePage() {
 
   const send = useCallback((content) => {
     if (content !== '') {
-      dispatch({ type: 'SendContent', payload: { content } })
+      dispatch(SendContent({ content }))
     } else {
       dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: FLASH_DURATION_MS }))
     }
@@ -41,12 +42,12 @@ export default function ChatHomePage() {
   const browseFile = useCallback(async () => {
     const file_path = await open({ multiple: false, directory: false })
     if (file_path) {
-      dispatch({ type: 'SendFile', payload: { file_path } })
+      dispatch(SendFile({ file_path }))
     }
   }, [dispatch])
 
   const handleSessionClick = useCallback((session) => {
-    dispatch({ type: 'LoadCurrentSession', payload: session })
+    dispatch(LoadCurrentSession(session))
   }, [dispatch])
 
   return (

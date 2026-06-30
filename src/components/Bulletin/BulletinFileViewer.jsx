@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
+import { SaveBulletinFile } from '../../store/sagas/messenger.actions'
 import { IoAttachSharp } from "react-icons/io5"
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
 import { buildFileFullPath } from '../../lib/MessengerUtil'
@@ -45,7 +46,7 @@ const BulletinFileViewer = ({ name, ext, size, hash }) => {
   return (
     <div>
       <div className='flex flex-row justify-start'>
-        <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveBulletinFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
+        <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch(SaveBulletinFile({ hash, size, name, ext }))} aria-label={`Download ${name}${ext}`}>
           <IoAttachSharp className="icon-sm" />
           ↓{name}{ext}
         </button>

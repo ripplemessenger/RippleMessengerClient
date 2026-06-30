@@ -9,9 +9,10 @@ import BulletinViewer from '../components/Bulletin/BulletinViewer'
 import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
 import PageList from '../components/PageList'
+import { LoadBulletin, RequestReplyBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinViewPage() {
-  const searchParams = useSearchParams()
+  const [searchParams] = useSearchParams()
 
   const bulletin_hash = searchParams.get('hash')
   const bulletin_address = searchParams.get('address')
@@ -25,20 +26,17 @@ export default function BulletinViewPage() {
 
   useEffect(() => {
     if (DisplayBulletin?.hash === bulletin_hash) {
-      dispatch({ type: 'RequestReplyBulletin', payload: { hash: DisplayBulletin.hash, page: 1 } })
+      dispatch(RequestReplyBulletin({ hash: DisplayBulletin.hash, page: 1 }))
     }
   }, [dispatch, DisplayBulletin, bulletin_hash])
 
   useEffect(() => {
-    dispatch({
-      type: 'LoadBulletin',
-      payload: {
-        hash: bulletin_hash,
-        address: bulletin_address,
-        sequence: parseInt(bulletin_sequence),
-        to: sour_address
-      }
-    })
+    dispatch(LoadBulletin({
+      hash: bulletin_hash,
+      address: bulletin_address,
+      sequence: parseInt(bulletin_sequence),
+      to: sour_address
+    }))
   }, [bulletin_hash, bulletin_address, bulletin_sequence, sour_address])
 
   return (

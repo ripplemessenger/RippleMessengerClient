@@ -3,7 +3,6 @@ import { createSlice } from '@reduxjs/toolkit'
 const MessengerSlice = createSlice({
   name: 'Messenger',
   initialState: {
-    message_generator: null,
     MessengerConnStatus: false,
     ConnsStatus: {},
 

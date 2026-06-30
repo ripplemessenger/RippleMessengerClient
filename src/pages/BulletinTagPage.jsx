@@ -9,6 +9,7 @@ import SearchTagItem from '../components/Bulletin/SearchTagItem'
 import { useUserAddress } from '../hooks/useUserSelectors'
 import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
 import { setSearchTagList } from '../store/slices/MessengerSlice'
+import { RequestTagBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinTagPage() {
   const [tag, setTag] = useState('')
@@ -21,7 +22,7 @@ export default function BulletinTagPage() {
   useEffect(() => {
     if (Address !== null) {
       if (SearchTagList.length > 0) {
-        dispatch({ type: 'RequestTagBulletin', payload: { tag: SearchTagList, page: 1 } })
+        dispatch(RequestTagBulletin({ tag: SearchTagList, page: 1 }))
       }
     }
   }, [dispatch, Address, MessengerConnStatus])
@@ -34,7 +35,7 @@ export default function BulletinTagPage() {
       tmp = [...new Set(tmp)]
       dispatch(setSearchTagList(tmp))
       if (tmp.length > 0) {
-        dispatch({ type: 'RequestTagBulletin', payload: { tag: tmp, page: 1 } })
+        dispatch(RequestTagBulletin({ tag: tmp, page: 1 }))
       }
       setTag('')
     } else {

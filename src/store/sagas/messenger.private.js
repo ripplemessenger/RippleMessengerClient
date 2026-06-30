@@ -1,6 +1,9 @@
 import Elliptic from 'elliptic'
 import { call, fork, put, select } from 'redux-saga/effects'
 
+// Module-level EC curve singleton — avoids re-initializing on every ECDH handshake.
+const ec = new Elliptic.ec('secp256k1')
+
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
 import { dbAPI } from '../../db'
@@ -52,7 +55,6 @@ export function* InitHandshake(payload) {
       return
     }
     let timestamp = Date.now()
-    const ec = new Elliptic.ec('secp256k1')
     const ecdh_sk = HalfSHA512(GenesisHash + seed + self_address + payload.ecdh_sequence)
     const key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
     const ecdh_pk = key_pair.getPublic('hex')

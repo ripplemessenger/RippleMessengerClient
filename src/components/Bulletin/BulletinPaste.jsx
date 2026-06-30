@@ -4,6 +4,7 @@ import { IoCloseOutline } from "react-icons/io5"
 import { setPasteFlag } from '../../store/slices/MessengerSlice'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
+import { UploadBulletin } from '../../store/sagas/messenger.actions'
 import { checkBulletinSchema } from '../../lib/MessageSchemaVerifier'
 import { VerifyJsonSignature } from '../../lib/MessengerUtil'
 
@@ -39,7 +40,7 @@ const BulletinPaste = () => {
       if (!checkBulletinSchema(json)) { setValidation('schema'); return }
       if (!VerifyJsonSignature(json)) { setValidation('signature'); return }
       // Valid — save immediately
-      dispatch({ type: 'UploadBulletin', payload: { json } })
+      dispatch(UploadBulletin({ json }))
       dispatch(setFlashNoticeMessage({ message: 'bulletin saved success', duration: FLASH_DURATION_MS }))
       dispatch(setPasteFlag(false))
       setValidation(null)

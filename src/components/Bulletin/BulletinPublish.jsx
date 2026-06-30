@@ -11,6 +11,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setPublishFlag } from '../../store/slices/MessengerSlice'
+import { BulletinFileAdd, BulletinTagAdd, PublishBulletin } from '../../store/sagas/messenger.actions'
 
 const BulletinPublish = ({ }) => {
   const [tag, setTag] = useState('')
@@ -50,11 +51,7 @@ const BulletinPublish = ({ }) => {
       directory: false,
     })
     if (file_path) {
-      dispatch({
-        type: 'BulletinFileAdd', payload: {
-          file_path: file_path
-        }
-      })
+      dispatch(BulletinFileAdd({ file_path }))
     }
   }
 
@@ -63,7 +60,7 @@ const BulletinPublish = ({ }) => {
       let payload = {
         content: tmpBulletin
       }
-      dispatch({ type: 'PublishBulletin', payload: payload })
+      dispatch(PublishBulletin(payload))
 
       // reset
       setTmpBulletin('')
@@ -77,7 +74,7 @@ const BulletinPublish = ({ }) => {
     // Split by commas, trim each, filter empties
     const tag_list = text.split(',').map(t => t.trim()).filter(t => t !== '')
     if (tag_list.length > 0) {
-      dispatch({ type: 'BulletinTagAdd', payload: { tag_list } })
+      dispatch(BulletinTagAdd({ tag_list }))
       setTag('')
     }
   }

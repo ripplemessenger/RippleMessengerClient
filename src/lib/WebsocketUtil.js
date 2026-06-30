@@ -33,6 +33,9 @@ export function cleanupRemovedConnections(configs) {
   currentKeys.forEach(key => {
     if (!keepKeys.has(key)) {
       const entry = manager.channels.get(key)
+      if (entry && entry.retryTimer) {
+        clearTimeout(entry.retryTimer)
+      }
       if (entry && entry.ws) {
         Logger.info(`[WS] Closing removed connection: ${key}`)
         entry.ws.close(1000, 'Removed from new config')
@@ -47,6 +50,9 @@ export function cleanupRemovedConnections(configs) {
  */
 export function disconnectAllWebsockets() {
   manager.channels.forEach((entry) => {
+    if (entry.retryTimer) {
+      clearTimeout(entry.retryTimer)
+    }
     if (entry.ws) {
       entry.ws.close(1000, 'Intentional disconnect all')
     }
@@ -79,7 +85,12 @@ export function createMultiWsChannel(configs) {
       ws.binaryType = 'arraybuffer'
 
       ws.onopen = () => {
-        manager.channels.set(key, { ws, config: cfg, retryCount: 0 })
+        const entry = manager.channels.get(key)
+        if (entry && entry.retryTimer) {
+          clearTimeout(entry.retryTimer)
+          entry.retryTimer = null
+        }
+        manager.channels.set(key, { ws, config: cfg, retryCount: 0, retryTimer: null })
         Logger.info(`[WS] Connected: ${key} → ${url}`)
         emitToGlobal({ type: 'status', key, status: WebSocket.OPEN })
       }
@@ -91,8 +102,9 @@ export function createMultiWsChannel(configs) {
 
         if ((!ev.wasClean || (ev.code !== 1000 && ev.code !== 1001)) && retryCount < manager.MAX_RETRIES) {
           retryCount++
+          const timerId = setTimeout(connect, manager.RETRY_DELAY)
+          manager.channels.set(key, { ws: null, config: cfg, retryCount, retryTimer: timerId })
           Logger.info(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
-          setTimeout(connect, manager.RETRY_DELAY)
         }
       }
 
@@ -111,7 +123,7 @@ export function createMultiWsChannel(configs) {
           try {
             data = JSON.parse(data)
           } catch {
-
+            Logger.debug('WebSocket: failed to parse message:', data)
           }
         } else if (data instanceof Blob) {
           isBinary = true

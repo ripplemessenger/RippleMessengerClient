@@ -6,7 +6,7 @@ import CommonReducer from './slices/CommonSlice'
 import MessengerReducer from './slices/MessengerSlice'
 import UserReducer from './slices/UserSlice'
 import { watchCommon } from './sagas/CommonSaga'
-import { taskCreep, taskFast, taskInstant, taskSlow } from './sagas/TaskSaga'
+import { taskCreep, taskSlow } from './sagas/TaskSaga'
 import { watchMessenger } from './sagas/MessengerSaga'
 import { watchUser } from './sagas/UserSaga'
 
@@ -16,8 +16,6 @@ export default function* rootSaga() {
     watchUser(),
     watchMessenger(),
 
-    taskInstant(),
-    taskFast(),
     taskSlow(),
     taskCreep(),
   ])

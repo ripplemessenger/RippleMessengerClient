@@ -157,10 +157,10 @@ export function* watchMessenger() {
   // Session
   yield takeLatest(LoadSessionListAction.type, LoadSessionList)
   yield takeLatest(LoadCurrentSession.type, LoadCurrentSessionHandler)
-  yield takeLatest(SendFile.type, SendFileHandler)
+  yield takeEvery(SendFile.type, SendFileHandler)
 
   // Chat
-  yield takeLatest(SendContent.type, SendContentHandler)
+  yield takeEvery(SendContent.type, SendContentHandler)
   yield takeLatest(ShowForwardBulletin.type, ShowForwardBulletinHandler)
   yield takeLatest(ForwardBulletin.type, ForwardBulletinHandler)
 

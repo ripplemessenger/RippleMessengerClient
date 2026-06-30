@@ -7,6 +7,17 @@ import { ConsoleWarn, HalfSHA512, Int2Bool, QuarterSHA512Message, QuarterSHA512W
 import { NonceMax } from './AppConst'
 
 /**
+ * Return two addresses in lexicographically sorted order.
+ * Ensures both parties produce the same concatenation regardless of argument order.
+ * @param {string} a - First XRPL address
+ * @param {string} b - Second XRPL address
+ * @returns {[string, string]} Sorted pair [smaller, larger]
+ */
+function sortedAddressPair(a, b) {
+  return a < b ? [a, b] : [b, a];
+}
+
+/**
  * Look up a display name for an address from the map.
  * Falls back to a truncated address if no name is registered.
  * @param {Object.<string, string>} address_map - Map of addresses to names
@@ -44,13 +55,8 @@ function FileHash(buffer) {
  * @returns {string} 32-character uppercase hex encrypted hash
  */
 function PrivateFileEHash(address1, address2, hash) {
-  let tmpStr = ''
-  if (address1 > address2) {
-    tmpStr = address1 + address2 + hash
-  } else {
-    tmpStr = address2 + address1 + hash
-  }
-  const ehash = QuarterSHA512Message(tmpStr)
+  const [a, b] = sortedAddressPair(address1, address2)
+  const ehash = QuarterSHA512Message(a + b + hash)
   return ehash
 }
 
@@ -75,13 +81,8 @@ function GroupFileEHash(group_hash, file_hash) {
  * @returns {number} Sequence number for the time partition
  */
 function DHSequence(partition, timestamp, address1, address2) {
-  let tmpStr = ''
-  if (address1 > address2) {
-    tmpStr = address1 + address2
-  } else {
-    tmpStr = address2 + address1
-  }
-  let tmpInt = parseInt(HalfSHA512(tmpStr).substring(0, 6), 16)
+  const [a, b] = sortedAddressPair(address1, address2)
+  let tmpInt = parseInt(HalfSHA512(a + b).substring(0, 6), 16)
   let cursor = (tmpInt % partition) * 1000
   let seq = parseInt((timestamp - (Epoch + cursor)) / (partition * 1000))
   return seq
@@ -100,17 +101,17 @@ function Sign(msg, sk) {
 
 /**
  * Verify the digital signature of a JSON message object.
- * Temporarily removes the Signature field, hashes the remaining JSON, and verifies against the PublicKey.
- * Mutates the input by restoring/deleting the Signature field.
+ * Creates a shallow copy, removes Signature, hashes, and verifies against PublicKey.
+ * Does not mutate the input object.
  * @param {object} json - Message object with Signature and PublicKey fields
  * @returns {boolean} True if the signature is valid
  */
 function VerifyJsonSignature(json) {
   const sig = json["Signature"]
-  delete json["Signature"]
-  const json_hash = QuarterSHA512Message(json)
+  const copy = Object.assign({}, json)
+  delete copy["Signature"]
+  const json_hash = QuarterSHA512Message(copy)
   if (rippleKeyPairs.verify(json_hash, sig, json.PublicKey)) {
-    json["Signature"] = sig
     return true
   } else {
     ConsoleWarn('signature invalid...')

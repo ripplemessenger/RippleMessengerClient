@@ -6,6 +6,7 @@ import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import EmptyState from '../components/EmptyState'
 import ListBulletin from '../components/Bulletin/ListBulletin'
+import { RequestRandomBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinRandomPage() {
   const { MessengerConnStatus, RandomBulletinList, ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
@@ -13,7 +14,7 @@ export default function BulletinRandomPage() {
   const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch({ type: 'RequestRandomBulletin' })
+    dispatch(RequestRandomBulletin())
   }, [dispatch, MessengerConnStatus])
 
 
@@ -31,7 +32,7 @@ export default function BulletinRandomPage() {
         <div className="bulletin-page-inner">
           <div className="card-title flex flex-row items-center">
             Random
-            <button className="icon-action-btn" onClick={() => dispatch({ type: 'RequestRandomBulletin' })} aria-label="Refresh">
+            <button className="icon-action-btn" onClick={() => dispatch(RequestRandomBulletin())} aria-label="Refresh">
               <IoMdRefresh className="card-icon" />
             </button>
           </div>

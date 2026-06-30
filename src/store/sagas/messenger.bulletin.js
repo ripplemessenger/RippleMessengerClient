@@ -184,6 +184,30 @@ export function* LoadMineBulletinSequence() {
   const address = yield select(state => state.User.Address)
   const bulletin_count = yield call(() => dbAPI.getAddressBulletinCount(address))
   yield put(setCurrentBulletinSequence(bulletin_count))
+  // Also request own bulletins from server (for first login on new device or after DB clear)
+  yield call(FetchMineBulletin)
+}
+
+/**
+ * Fetch the current user's own bulletins from the server.
+ * Requests the next sequence number that is missing from local DB,
+ * so the server can push any bulletins not yet cached locally.
+ */
+export function* FetchMineBulletin() {
+  try {
+    const seed = yield select(state => state.User.Seed)
+    const address = yield select(state => state.User.Address)
+    if (!seed || !address) return
+
+    const local_last = yield call(() => dbAPI.getLastBulletin(address))
+    const request_sequence = local_last === null ? 1 : local_last.sequence + 1
+
+    // Request from server starting at the next missing sequence
+    const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, address, request_sequence, address))
+    yield call(SendMessage, { msg: bulletin_request })
+  } catch (e) {
+    Logger.error('[FetchMineBulletin] failed:', e.message)
+  }
 }
 
 export function* LoadAddressBulletin({ payload }) {

@@ -32,6 +32,7 @@ export default function OpenPage() {
   const [saveSeed, setSaveSeed] = useState('')
   const [saveAddress, setSaveAddress] = useState('')
   const [addError, setAddError] = useState(null)
+  const [addLoading, setAddLoading] = useState(false)
 
   const updateSeed = (value) => {
     value = value.trim()
@@ -50,17 +51,29 @@ export default function OpenPage() {
     }
   }
 
-  const addAccount = async () => {
-    const salt = genSalt()
-    const cipherData = encryptWithPassword(saveSeed, savePassword, salt)
-    dispatch(AccountAdd({ address: saveAddress, salt: salt, cipher_data: cipherData }))
-    setSavePassword('')
-    setSaveSeed('')
-    if (addError === null && saveSeed !== '') {
-      setSeed(saveSeed)
-      setAddress(saveAddress)
-      dispatch(loginStart({ seed: saveSeed, address: saveAddress }))
-    }
+  const addAccount = () => {
+    if (saveSeed === '' || savePassword.trim() === '') return
+    setAddLoading(true)
+    // Yield to UI so loading spinner renders before blocking crypto
+    setTimeout(() => {
+      try {
+        const salt = genSalt()
+        const cipherData = encryptWithPassword(saveSeed, savePassword, salt)
+        dispatch(AccountAdd({ address: saveAddress, salt: salt, cipher_data: cipherData }))
+        setSavePassword('')
+        setSaveSeed('')
+        if (addError === null && saveSeed !== '') {
+          setSeed(saveSeed)
+          setAddress(saveAddress)
+          dispatch(loginStart({ seed: saveSeed, address: saveAddress }))
+        }
+      } catch (e) {
+        Logger.error('[addAccount] encryption failed:', e.message)
+        setAddError(e.message)
+      } finally {
+        setAddLoading(false)
+      }
+    }, 50)
   }
 
   // tmp
@@ -116,6 +129,7 @@ export default function OpenPage() {
   const [openPassword, setOpenPassword] = useState('')
   const [avatarIndex, setAvatarIndex] = useState(0)
   const [loginError, setLoginError] = useState(null)
+  const [loginLoading, setLoginLoading] = useState(false)
 
   // Refs for focusing inputs — replaces document.getElementById
   const passwordRef = useRef(null)
@@ -174,22 +188,29 @@ export default function OpenPage() {
     if (showTmp) tmpSeedRef.current?.focus()
   }, [showTmp])
 
-  const login = async () => {
+  const login = () => {
     const account = AccountList?.find(a => a.address === addressSelectd)
-    try {
-      const tmpSeed = decryptWithPassword(openPassword, account.salt, account.cipher_data)
-      if (tmpSeed !== '') {
-        setLoginError(null)
-        setSeed(tmpSeed)
-        setAddress(addressSelectd)
-        dispatch(loginStart({ seed: tmpSeed, address: addressSelectd }))
-      } else {
-        setLoginError('wrong password')
+    if (!account) return
+    setLoginLoading(true)
+    // Yield to UI so loading spinner renders before blocking crypto
+    setTimeout(() => {
+      try {
+        const tmpSeed = decryptWithPassword(openPassword, account.salt, account.cipher_data)
+        if (tmpSeed !== '') {
+          setLoginError(null)
+          setSeed(tmpSeed)
+          setAddress(addressSelectd)
+          dispatch(loginStart({ seed: tmpSeed, address: addressSelectd }))
+        } else {
+          setLoginError('wrong password')
+        }
+      } catch (e) {
+        Logger.debug(e)
+        setLoginError(typeof e === 'string' ? e : String(e))
+      } finally {
+        setLoginLoading(false)
       }
-    } catch (e) {
-      Logger.debug(e)
-      setLoginError(typeof e === 'string' ? e : String(e))
-    }
+    }, 50)
   }
 
   useEffect(() => {
@@ -301,7 +322,7 @@ export default function OpenPage() {
               <IoCloseOutline className='icon' /> cancel
             </button>
           </div>
-          <div className="space-y-4 flex flex-col justify-center mt-1">
+          <form onSubmit={(e) => { e.preventDefault(); addAccount() }} className="space-y-4 flex flex-col justify-center mt-1">
             <div className="card-title flex flex-row items-center">
               Add Account
             </div>
@@ -319,8 +340,12 @@ export default function OpenPage() {
             <div className={`mt-1`}>
               <TextInput label={'Password:'} type='password' value={savePassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setSavePassword(e.target.value)} />
             </div>
-            <FormButton title="Add Account" onClick={addAccount} disabled={saveSeed === '' || savePassword.trim() === ''} />
-          </div>
+            <FormButton title={addLoading ? 'Encrypting...' : 'Add Account'} disabled={saveSeed === '' || savePassword.trim() === '' || addLoading} >
+              {addLoading && (
+                <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle"/>
+              )}
+            </FormButton>
+          </form>
         </div>
       }
 
@@ -358,11 +383,15 @@ export default function OpenPage() {
                       focusPasswordInput()
                     }} />
                   </div>
-                  <form onSubmit={(e) => { e.preventDefault(); login() }} className="flex flex-col">
+                  <form onSubmit={(e) => { e.preventDefault(); if (!loginLoading) login() }} className="flex flex-col">
                     <div className={`mt-1`}>
                       <TextInput ref={passwordRef} label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
                     </div>
-                    <FormButton title="Open Account" />
+                    <FormButton title={loginLoading ? 'Decrypting...' : 'Open Account'} disabled={loginLoading}>
+                      {loginLoading && (
+                        <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle"/>
+                      )}
+                    </FormButton>
                   </form>
                 </div>
               </div>

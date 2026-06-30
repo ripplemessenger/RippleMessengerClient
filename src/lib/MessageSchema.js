@@ -709,7 +709,7 @@ const GroupMessageSchema = {
     "Confirm": {
       "type": "object",
       "required": ["Address", "Sequence", "Hash"],
-      "maxProperties": 2,
+      "maxProperties": 3,
       "properties": {
         "Address": { "type": "string" },
         "Sequence": { "type": "number" },

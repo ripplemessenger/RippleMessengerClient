@@ -1,6 +1,9 @@
 import { Buffer } from 'buffer'
 import Elliptic from 'elliptic'
 import * as rippleKeyPairs from 'ripple-keypairs'
+
+// Module-level EC curve singleton — avoids re-initializing on every ECDH handshake.
+const ec = new Elliptic.ec('secp256k1')
 import { invoke } from '@tauri-apps/api/core'
 import * as path from '@tauri-apps/api/path'
 import { open, readFile, writeFile, remove, mkdir, SeekMode } from '@tauri-apps/plugin-fs'
@@ -77,6 +80,38 @@ function* handleBinaryAvatar(request, content) {
   }
 }
 
+/**
+ * Shared helper: write a file chunk to disk, update tracking state, and either
+ * fetch the next chunk or verify the completed file.
+ *
+ * @param {object} opts.filePath - absolute path for the file being received
+ * @param {object} opts.content - content bytes (already decrypted if needed)
+ * @param {object} opts.request - the matching FileRequest entry (provides Nonce, Hash, ChunkCursor)
+ * @param {object} opts.file - DB file record (chunk_cursor, chunk_length)
+ * @param {function} opts.fetchNext - saga to call when more chunks are needed
+ * @param {object} opts.fetchNextPayload - payload to pass to fetchNext
+ */
+function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchNextPayload }) {
+  if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
+    yield call(() => writeFile(filePath, content, { append: true }))
+    setFileRequestList(getFileRequestList().filter(r => r.Nonce !== request.Nonce))
+    const current_chunk_cursor = file.chunk_cursor + 1
+    yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
+    if (current_chunk_cursor < file.chunk_length) {
+      yield call(fetchNext, { payload: fetchNextPayload })
+    } else {
+      const hash = FileHash(yield call(() => readFile(filePath)))
+      if (hash === request.Hash) {
+        yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+      } else {
+        yield call(() => remove(filePath))
+        yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+        yield call(fetchNext, { payload: fetchNextPayload })
+      }
+    }
+  }
+}
+
 function* handleBinaryBulletinFile(request, content) {
   try {
     const base_dir = yield call(() => path.resourceDir())
@@ -85,24 +120,14 @@ function* handleBinaryBulletinFile(request, content) {
     yield call(() => mkdir(file_dir, { recursive: true }))
     const file_path = yield call(() => path.join(file_dir, request.Hash))
     const file = yield call(() => dbAPI.getFileByHash(request.Hash))
-    if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
-      yield call(() => writeFile(file_path, content, { append: true }))
-      setFileRequestList(getFileRequestList().filter(r => r.Nonce !== request.Nonce))
-      const current_chunk_cursor = file.chunk_cursor + 1
-      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
-      if (current_chunk_cursor < file.chunk_length) {
-        yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
-      } else {
-        const hash = FileHash(yield call(() => readFile(file_path)))
-        if (hash === request.Hash) {
-          yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-        } else {
-          yield call(() => remove(file_path))
-          yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-          yield call(FetchBulletinFile, { payload: { hash: request.Hash } })
-        }
-      }
-    }
+    yield call(receiveFileChunk, {
+      filePath: file_path,
+      content,
+      request,
+      file,
+      fetchNext: FetchBulletinFile,
+      fetchNextPayload: { hash: request.Hash }
+    })
   } catch (e) {
     Logger.error('[handleBinaryBulletinFile] failed for', request.Hash, e.message)
   }
@@ -114,27 +139,17 @@ function* handleBinaryPrivateFile(request, content) {
     const hash_subpath = buildFileSubPath(request.Hash)
     const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
     yield call(() => mkdir(file_dir, { recursive: true }))
-    const chat_file_path = yield call(() => path.join(file_dir, request.Hash))
-    const chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-    if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
-      const decrypted_content = AesDecryptBuffer(content, request.aes_key)
-      yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
-      setFileRequestList(getFileRequestList().filter(r => r.Nonce !== request.Nonce))
-      const current_chunk_cursor = chat_file.chunk_cursor + 1
-      yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
-      if (current_chunk_cursor < chat_file.chunk_length) {
-        yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
-      } else {
-        const hash = FileHash(yield call(() => readFile(chat_file_path)))
-        if (hash === request.Hash) {
-          yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-        } else {
-          yield call(() => remove(chat_file_path))
-          yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-          yield call(FetchPrivateChatFile, { payload: { hash: request.Hash, size: request.Size, remote: request.Address } })
-        }
-      }
-    }
+    const file_path = yield call(() => path.join(file_dir, request.Hash))
+    const file = yield call(() => dbAPI.getFileByHash(request.Hash))
+    const decrypted_content = AesDecryptBuffer(content, request.aes_key)
+    yield call(receiveFileChunk, {
+      filePath: file_path,
+      content: decrypted_content,
+      request,
+      file,
+      fetchNext: FetchPrivateChatFile,
+      fetchNextPayload: { hash: request.Hash, size: request.Size, remote: request.Address }
+    })
   } catch (e) {
     Logger.error('[handleBinaryPrivateFile] failed for', request.Hash, e.message)
   }
@@ -142,8 +157,8 @@ function* handleBinaryPrivateFile(request, content) {
 
 function* handleBinaryGroupFile(request, content, action) {
   try {
-    const chat_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-    if (chat_file.chunk_cursor < chat_file.chunk_length && chat_file.chunk_cursor + 1 === request.ChunkCursor) {
+    const file = yield call(() => dbAPI.getFileByHash(request.Hash))
+    if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
       const index = yield call(() => ArrayBufferToUint32(action.data.slice(4, 8)))
       const from = getMemberByIndex(request.GroupMember, index)
       const ecdh_sequence = DHSequence(DefaultPartition, Date.now(), request.SelfAddress, from)
@@ -153,24 +168,16 @@ function* handleBinaryGroupFile(request, content, action) {
         const hash_subpath = buildFileSubPath(request.Hash)
         const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
         yield call(() => mkdir(file_dir, { recursive: true }))
-        const chat_file_path = yield call(() => path.join(file_dir, request.Hash))
+        const file_path = yield call(() => path.join(file_dir, request.Hash))
         const decrypted_content = AesDecryptBuffer(content, ecdh.aes_key)
-        yield call(() => writeFile(chat_file_path, decrypted_content, { append: true }))
-        setFileRequestList(getFileRequestList().filter(r => r.Nonce !== request.Nonce))
-        yield call(() => dbAPI.updateFileChunkCursor(request.Hash, chat_file.chunk_cursor + 1, Date.now()))
-        const updated_file = yield call(() => dbAPI.getFileByHash(request.Hash))
-        if (updated_file.chunk_cursor < updated_file.chunk_length) {
-          yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
-        } else {
-          const hash = FileHash(yield call(() => readFile(chat_file_path)))
-          if (hash === request.Hash) {
-            yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
-          } else {
-            yield call(() => remove(chat_file_path))
-            yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
-            yield call(FetchGroupChatFile, { payload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash } })
-          }
-        }
+        yield call(receiveFileChunk, {
+          filePath: file_path,
+          content: decrypted_content,
+          request,
+          file,
+          fetchNext: FetchGroupChatFile,
+          fetchNextPayload: { hash: request.Hash, size: request.Size, group_hash: request.GroupHash }
+        })
       }
     }
   } catch (e) {
@@ -618,7 +625,6 @@ function* handleECDHHandshakeObject(json, address, seed) {
     if (friend !== null || total_member_list.includes(ob_address)) {
       const ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
       if (ecdh === null) {
-        const ec = new Elliptic.ec('secp256k1')
         const ecdh_sk = HalfSHA512(GenesisHash + seed + address + json.Sequence)
         const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
         const ecdh_pk = self_key_pair.getPublic('hex')
@@ -630,7 +636,6 @@ function* handleECDHHandshakeObject(json, address, seed) {
         yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
         yield call(SendMessage, { msg: JSON.stringify(self_json) })
       } else {
-        const ec = new Elliptic.ec('secp256k1')
         const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
         const timestamp = Date.now()
         const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
@@ -893,7 +898,7 @@ export function* WebsocketListener() {
             yield call(UpdateConnStatus, action)
             const seed = yield select(state => state.User.Seed)
             if (!seed) {
-              return
+              continue
             }
             const msg = yield call(() => mgAPI.genDeclare(seed))
             yield call(SendMessage, { key: action.key, msg: msg })
@@ -910,7 +915,7 @@ export function* WebsocketListener() {
           Logger.debug('!!!received message: ', action)
           const seed = yield select(state => state.User.Seed)
           if (!seed) {
-            return
+            continue
           }
           const address = yield select(state => state.User.Address)
           if (action.isBinary) {

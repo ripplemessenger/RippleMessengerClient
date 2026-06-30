@@ -10,6 +10,7 @@ import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setNickname } from '../../store/slices/UserSlice'
+import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
@@ -54,7 +55,7 @@ export default function TabMe() {
     setDisplayNickname(value)
 
     if (value !== '') {
-      dispatch({ type: 'ContactAdd', payload: { address: Address, nickname: value } })
+      dispatch(ContactAdd({ address: Address, nickname: value }))
       dispatch(setNickname(value))
     }
   }
@@ -67,10 +68,7 @@ export default function TabMe() {
   const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
     if (ConfirmPopup?.Content === ConfirmContentOptions.RemoveAccount && ConfirmPopup?.Result) {
-      dispatch({
-        type: 'AccountDel',
-        payload: { address: Address }
-      })
+      dispatch(AccountDel({ address: Address }))
       dispatch(setConfirmPopup(null))
     }
   }, [ConfirmPopup])

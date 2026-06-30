@@ -105,33 +105,22 @@ function* loadContactList() {
     let follow_list = []
     let friend_list = []
 
+    const followSet = new Set(tmp_follow_list.map(f => f.remote))
+    const friendSet = new Set(tmp_friend_list.map(f => f.remote))
+
     for (let i = 0; i < tmp_contact_list.length; i++) {
       let contact = tmp_contact_list[i]
       if (address !== contact.address) {
         contact_map[contact.address] = contact.nickname
-        for (let j = 0; j < tmp_follow_list.length; j++) {
-          const follow = tmp_follow_list[j]
-          if (follow.remote === contact.address) {
-            contact.is_follow = true
-            follow_list.push(follow.remote)
-            break
-          }
+        const isFollow = followSet.has(contact.address)
+        const isFriend = friendSet.has(contact.address)
+        if (isFollow) {
+          follow_list.push(contact.address)
         }
-        for (let j = 0; j < tmp_friend_list.length; j++) {
-          const friend = tmp_friend_list[j]
-          if (friend.remote === contact.address) {
-            contact.is_friend = true
-            friend_list.push(friend.remote)
-            break
-          }
+        if (isFriend) {
+          friend_list.push(contact.address)
         }
-        if (contact.is_follow === undefined) {
-          contact.is_follow = false
-        }
-        if (contact.is_friend === undefined) {
-          contact.is_friend = false
-        }
-        contact_list.push(contact)
+        contact_list.push({ ...contact, is_follow: isFollow, is_friend: isFriend })
       }
     }
     yield put(setContactList({ contact_list: contact_list, contact_map: contact_map }))

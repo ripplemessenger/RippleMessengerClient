@@ -3,6 +3,7 @@ import Logger from '../../lib/Logger'
 import { dbAPI } from '../../db'
 import { createMultiWsChannel, sendToAllConn, sendToFirstConn, sendToSingleConn } from '../../lib/WebsocketUtil'
 import { genNonce } from '../../lib/MessengerUtil'
+import { FILE_REQUEST_TTL_MS } from '../../lib/AppConst'
 
 /** Module-level mutable state for tracking active file transfer requests. */
 let _FileRequestList = []
@@ -16,6 +17,8 @@ export function setFileRequestList(value) {
 }
 
 export function pushFileRequest(item) {
+  const now = Date.now()
+  _FileRequestList = _FileRequestList.filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > now)
   _FileRequestList.push(item)
 }
 

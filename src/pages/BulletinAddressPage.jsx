@@ -10,6 +10,7 @@ import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
 import { useUserAddress } from '../hooks/useUserSelectors'
 import { setPublishFlag } from '../store/slices/MessengerSlice'
+import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinAddressPage() {
   const Address = useUserAddress()
@@ -19,7 +20,7 @@ export default function BulletinAddressPage() {
 
   useEffect(() => {
     if (BulletinAddress !== null) {
-      dispatch({ type: 'LoadAddressBulletin', payload: { address: BulletinAddress, page: 1 } })
+      dispatch(LoadAddressBulletin({ address: BulletinAddress, page: 1 }))
     }
   }, [dispatch, BulletinAddress, MessengerConnStatus])
 

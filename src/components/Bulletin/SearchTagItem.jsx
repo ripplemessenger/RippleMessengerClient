@@ -1,6 +1,7 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setSearchTagList, setTagBulletinList } from '../../store/slices/MessengerSlice'
+import { RequestTagBulletin } from '../../store/sagas/messenger.actions'
 import { HiHashtag } from 'react-icons/hi2'
 
 const SearchTagItem = ({ tag }) => {
@@ -14,7 +15,7 @@ const SearchTagItem = ({ tag }) => {
     tmp = tmp.filter(t => t !== tag)
     dispatch(setSearchTagList(tmp))
     if (tmp.length > 0) {
-      dispatch({ type: 'RequestTagBulletin', payload: { tag: tmp, page: 1 } })
+      dispatch(RequestTagBulletin({ tag: tmp, page: 1 }))
     } else {
       dispatch(setTagBulletinList({ List: [], Page: 1, TotalPage: 1 }))
     }

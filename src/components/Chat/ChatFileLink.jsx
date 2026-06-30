@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
+import { SaveChatFile } from '../../store/sagas/messenger.actions'
 import { IoAttachSharp } from "react-icons/io5"
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
 import { buildFileFullPath } from '../../lib/MessengerUtil'
@@ -52,7 +53,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
       {
         fileImage ?
           <div className={`flex flex-col gap-1 ${isSelf ? 'items-end' : 'items-start'}`}>
-            <button className="file-link m-0" title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
+            <button className="file-link m-0" title={filesize_format(size)} onClick={() => dispatch(SaveChatFile({ hash, size, name, ext }))} aria-label={`Download ${name}${ext}`}>
               <IoAttachSharp className="icon-sm" />
               {name}{ext}
             </button>
@@ -63,7 +64,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
             />
           </div>
           :
-          <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch({ type: 'SaveChatFile', payload: { hash: hash, size: size, name: name, ext: ext } })} aria-label={`Download ${name}${ext}`}>
+          <button className='flex flex-row justify-start file-link' title={filesize_format(size)} onClick={() => dispatch(SaveChatFile({ hash, size, name, ext }))} aria-label={`Download ${name}${ext}`}>
             <IoAttachSharp className="icon-sm" />
             {name}{ext}
           </button>

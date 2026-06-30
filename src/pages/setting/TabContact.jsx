@@ -12,6 +12,7 @@ import ToggleSwitch from '../../components/ToggleSwitch'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
+import { ContactAdd, ContactDel, ContactToggleIsFollow, ContactToggleIsFriend, LoadContactList } from '../../store/sagas/messenger.actions'
 
 export default function TabContact() {
   const [contactAddress, setContactAddress] = useState('')
@@ -23,18 +24,15 @@ export default function TabContact() {
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Contact) {
-      dispatch({ type: 'LoadContactList' })
+      dispatch(LoadContactList())
     }
   }, [dispatch, activeTabSetting])
 
   const addContact = async () => {
-    dispatch({
-      type: 'ContactAdd',
-      payload: {
-        address: contactAddress,
-        nickname: contactNickname
-      }
-    })
+    dispatch(ContactAdd({
+      address: contactAddress,
+      nickname: contactNickname
+    }))
     setContactAddress('')
     setContactNickname('')
     setShowAddContact(false)
@@ -43,10 +41,7 @@ export default function TabContact() {
   const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
     if (ConfirmPopup?.Content === ConfirmContentOptions.DelContact && ConfirmPopup?.Result) {
-      dispatch({
-        type: 'ContactDel',
-        payload: { contact_address: ConfirmPopup?.Params?.Address }
-      })
+      dispatch(ContactDel({ contact_address: ConfirmPopup?.Params?.Address }))
       dispatch(setConfirmPopup(null))
     }
   }, [ConfirmPopup])
@@ -56,17 +51,11 @@ export default function TabContact() {
   }
 
   const toggleIsFollow = async (address) => {
-    dispatch({
-      type: 'ContactToggleIsFollow',
-      payload: { contact_address: address }
-    })
+    dispatch(ContactToggleIsFollow({ contact_address: address }))
   }
 
   const toggleIsFriend = async (address) => {
-    dispatch({
-      type: 'ContactToggleIsFriend',
-      payload: { contact_address: address }
-    })
+    dispatch(ContactToggleIsFriend({ contact_address: address }))
   }
 
   return (

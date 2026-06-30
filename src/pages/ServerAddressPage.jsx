@@ -8,7 +8,7 @@ import { BsGlobe2 } from 'react-icons/bs'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
 
 export default function ServerAddressPage() {
-  const searchParams = useSearchParams()
+  const [searchParams] = useSearchParams()
   const url = searchParams.get('url')
 
   useBulletinLoad('RequestServerAddress')

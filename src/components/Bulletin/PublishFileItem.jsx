@@ -2,6 +2,7 @@ import React from 'react'
 import { IoCloseOutline, IoAttachSharp } from 'react-icons/io5'
 import { filesize_format } from '../../lib/AppUtil'
 import { useDispatch } from 'react-redux'
+import { BulletinFileDel } from '../../store/sagas/messenger.actions'
 
 const PublishFileItem = ({ name, ext, size, hash }) => {
 
@@ -12,7 +13,7 @@ const PublishFileItem = ({ name, ext, size, hash }) => {
       <div className='file-link' title={filesize_format(size)} >
         <IoAttachSharp />{name}{ext}
       </div>
-      <button className="close-btn-icon" onClick={() => dispatch({ type: 'BulletinFileDel', payload: { Hash: hash } })} aria-label={`Remove file ${name}${ext}`}>
+      <button className="close-btn-icon" onClick={() => dispatch(BulletinFileDel({ Hash: hash }))} aria-label={`Remove file ${name}${ext}`}>
         <IoCloseOutline className="text-sm" />
       </button>
     </div>

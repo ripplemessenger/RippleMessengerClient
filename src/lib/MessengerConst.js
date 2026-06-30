@@ -32,6 +32,7 @@ const ActionCode = {
   ServerAddressRequest: 403,
   ReplyBulletinRequest: 404,
   TagBulletinRequest: 405,
+  BulletinAddressListRequest: 406,
 
   // private
   FriendRequest: 500,
