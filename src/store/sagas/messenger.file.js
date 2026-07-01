@@ -60,8 +60,12 @@ export function* SaveBulletinFile({ payload }) {
       const dest_file_path = yield call(() => path.join(dest_dir, `${payload.name}${payload.ext}`))
       yield call(() => writeFile(dest_file_path, content))
       yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
-    } else {
+    } else if (file) {
       yield put(setFlashNoticeMessage({ message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from server...`, duration: 2000 }))
+      yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
+    } else {
+      // file === null (DB missing record), will be created by FetchBulletinFile
+      yield put(setFlashNoticeMessage({ message: 'file record not found, fetching from server...', duration: 2000 }))
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     }
   } catch (e) {
@@ -205,8 +209,12 @@ export function* SaveChatFile({ payload }) {
       const dest_file_path = yield call(() => path.join(dest_dir, `${payload.name}${payload.ext}`))
       yield call(() => writeFile(dest_file_path, content))
       yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
-    } else {
+    } else if (file) {
       yield put(setFlashNoticeMessage({ message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from online friend or group member...`, duration: FLASH_DURATION_MS }))
+      yield call(FetchChatFile, { payload: { hash: payload.hash, size: payload.size } })
+    } else {
+      // file === null (DB missing record), will be created by FetchChatFile
+      yield put(setFlashNoticeMessage({ message: 'file record not found, fetching from contact...', duration: FLASH_DURATION_MS }))
       yield call(FetchChatFile, { payload: { hash: payload.hash, size: payload.size } })
     }
   } catch (e) {

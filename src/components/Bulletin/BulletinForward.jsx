@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseOutline } from "react-icons/io5"
 import { setForwardFlag } from '../../store/slices/MessengerSlice'
@@ -46,4 +47,4 @@ const BulletinForward = ({ }) => {
   )
 }
 
-export default BulletinForward
+export default memo(BulletinForward)

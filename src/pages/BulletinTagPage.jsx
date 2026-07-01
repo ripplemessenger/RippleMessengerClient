@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { HiHashtag } from 'react-icons/hi2'
 
+import TextInput from '../components/Form/TextInput'
 import EmptyState from '../components/EmptyState'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import PageList from '../components/PageList'
@@ -27,7 +28,7 @@ export default function BulletinTagPage() {
     }
   }, [dispatch, Address, MessengerConnStatus])
 
-  const checkTag = async (tag) => {
+  const checkTag = (tag) => {
     const result = trimEndCommasAndValidate(tag)
     if (result) {
       let tmp = [...SearchTagList]
@@ -48,12 +49,12 @@ export default function BulletinTagPage() {
       <div className="tab-page">
         <div className="bulletin-page-inner">
           <div className="card-title">
-            Tag
-            <input type={"text"}
+            <TextInput
+              label=""
               placeholder={','}
               value={tag}
               onChange={(e) => checkTag(e.target.value)}
-              className={`w-32 p-2 border rounded shadow-xl appearance-none  input-color`}
+              autoComplete="off"
             />
           </div>
 

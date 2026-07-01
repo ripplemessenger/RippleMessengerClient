@@ -32,7 +32,6 @@ tauri-plugin-dialog = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-log = { version = "2", features = ["colored"] }
 tokio = { version = "1", features = ["time"] }
-image = { version = "0.25", features = ["png"] }
 
 [profile.release]
 panic = "abort"

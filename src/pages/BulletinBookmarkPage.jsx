@@ -3,12 +3,13 @@ import PageList from '../components/PageList'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import { IoStar } from 'react-icons/io5'
 import EmptyState from '../components/EmptyState'
+import { selectBookmarkBulletins } from '../selectors'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
 
 export default function BookmarkAddressPage() {
   useBulletinLoad('LoadBookmarkBulletin', { page: 1 })
 
-  const { BookmarkBulletinList, BookmarkBulletinPage, BookmarkBulletinTotalPage } = useSelector(state => state.Messenger)
+  const { list: BookmarkBulletinList, page: BookmarkBulletinPage, totalPage: BookmarkBulletinTotalPage } = useSelector(selectBookmarkBulletins)
 
   return (
     <div className="bulletin-page-wrapper">

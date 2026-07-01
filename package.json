@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
@@ -42,7 +46,11 @@
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "postcss": "^8.5.6",
+    "prettier": "^3.9.4",
     "tailwindcss": "^3.4.1",
     "vite": "^7.0.4"
   }

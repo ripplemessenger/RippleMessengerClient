@@ -70,7 +70,7 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
       <div className="w-full border-b border-primary/10 dark:border-primary/20" />
 
       {/* Content section — clickable to navigate to bulletin detail */}
-      <div className="px-3 py-2 w-full min-w-0 overflow-hidden cursor-pointer" role="button" tabIndex={0} onClick={goto_bulletin} aria-label={`View bulletin #${bulletin.sequence}`}>
+      <div className="px-3 py-2 w-full min-w-0 overflow-hidden cursor-pointer" role="button" tabIndex={0} onClick={goto_bulletin} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goto_bulletin() }} aria-label={`View bulletin #${bulletin.sequence}`}>
         <BulletinContentForList content={previewContent} />
       </div>
     </div>

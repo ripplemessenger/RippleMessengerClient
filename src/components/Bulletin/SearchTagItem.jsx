@@ -1,4 +1,4 @@
-import React from 'react'
+import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setSearchTagList, setTagBulletinList } from '../../store/slices/MessengerSlice'
 import { RequestTagBulletin } from '../../store/sagas/messenger.actions'
@@ -33,4 +33,4 @@ const SearchTagItem = ({ tag }) => {
   )
 }
 
-export default React.memo(SearchTagItem)
+export default memo(SearchTagItem)

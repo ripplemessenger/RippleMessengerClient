@@ -3,10 +3,10 @@
 // External consumers (UserSaga, TaskSaga, store/index) should import from here.
 
 // Root watcher (imported by store/index.js)
-export { watchMessenger } from './messenger.watcher'
+export { watchMessenger } from '../messenger.watcher'
 
 // Session management
-export { LoadSessionList } from './messenger.session'
+export { LoadSessionList } from '../messenger.session'
 
 // Private chat
 export {
@@ -17,7 +17,7 @@ export {
   RefreshPrivateMessageList,
   ShowForwardBulletin,
   ForwardBulletin,
-} from './messenger.private'
+} from '../messenger.private'
 
 // Group chat
 export {
@@ -29,7 +29,7 @@ export {
   CreateGroup,
   DeleteGroup,
   GroupSync,
-} from './messenger.group'
+} from '../messenger.group'
 
 // Core messaging
 export {
@@ -39,7 +39,7 @@ export {
   setFileRequestList,
   pushFileRequest,
   genFileNonce,
-} from './messenger.core'
+} from '../messenger.core'
 
 // File transfer
 export {
@@ -50,7 +50,7 @@ export {
   FetchChatFile,
   SaveChatFile,
   SendFile,
-} from './messenger.file'
+} from '../messenger.file'
 
 // Bulletin & avatar (all re-exports from messenger.bulletin)
 export {
@@ -86,7 +86,7 @@ export {
   BulletinFileDel,
   BulletinMarkToggle,
   SubscribeFollow,
-} from './messenger.bulletin'
+} from '../messenger.bulletin'
 
 // Server management & session dispatchers (stays in MessengerSaga.js)
 export {
@@ -101,4 +101,4 @@ export {
   LoadGroupList,
   LoadGroupRequestList,
   AcceptGroupRequest,
-} from './MessengerSaga'
+} from '../MessengerSaga'

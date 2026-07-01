@@ -13,16 +13,17 @@ import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import EmptyState from '../components/EmptyState'
 import PageList from '../components/PageList'
+import { selectPortalBulletins, selectPublishFlags } from '../selectors'
 import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
 
 export default function PortalPage() {
-  const { PortalBulletinList, PortalBulletinTotalPage, PortalBulletinPage } = useSelector(state => state.Messenger)
-  const { ShowPublishFlag, ShowForwardFlag, ShowPasteFlag } = useSelector(state => state.Messenger)
+  const { list: PortalBulletinList, totalPage: PortalBulletinTotalPage, page: PortalBulletinPage } = useSelector(selectPortalBulletins)
+  const { showPublish: ShowPublishFlag, showForward: ShowForwardFlag, showPaste: ShowPasteFlag } = useSelector(selectPublishFlags)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const goto_tag = async () => {
+  const goto_tag = () => {
     dispatch(setSearchTagList([]))
     navigate('/bulletin_tag')
   }

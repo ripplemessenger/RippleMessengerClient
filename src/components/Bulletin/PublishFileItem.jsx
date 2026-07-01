@@ -1,4 +1,4 @@
-import React from 'react'
+import { memo } from 'react'
 import { IoCloseOutline, IoAttachSharp } from 'react-icons/io5'
 import { filesize_format } from '../../lib/AppUtil'
 import { useDispatch } from 'react-redux'
@@ -20,4 +20,4 @@ const PublishFileItem = ({ name, ext, size, hash }) => {
   )
 }
 
-export default React.memo(PublishFileItem)
+export default memo(PublishFileItem)

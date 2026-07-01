@@ -1,12 +1,14 @@
 import { useSelector } from 'react-redux'
 import { FiRefreshCw } from 'react-icons/fi'
 
+import { selectMessengerConnStatus } from '../selectors'
+
 /**
  * Banner showing WebSocket connection status.
  * Hidden when connected. Shows connecting indicator otherwise.
  */
 export default function ConnectionStatusBanner() {
-  const MessengerConnStatus = useSelector(state => state.Messenger.MessengerConnStatus)
+  const MessengerConnStatus = useSelector(selectMessengerConnStatus)
 
   if (MessengerConnStatus) {
     return null

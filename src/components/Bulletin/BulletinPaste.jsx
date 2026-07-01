@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoCloseOutline } from "react-icons/io5"
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { setPasteFlag } from '../../store/slices/MessengerSlice'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
@@ -19,17 +20,7 @@ const BulletinPaste = () => {
     textareaRef.current?.focus()
   }, [])
 
-  // ESC to close
-  useEffect(() => {
-    const handleKeydown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        dispatch(setPasteFlag(false))
-      }
-    }
-    window.addEventListener('keydown', handleKeydown)
-    return () => window.removeEventListener('keydown', handleKeydown)
-  }, [])
+  useEscapeKey(() => dispatch(setPasteFlag(false)))
 
   // Validate on every change — auto-submit when valid
   useEffect(() => {

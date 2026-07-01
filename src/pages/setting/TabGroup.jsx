@@ -12,6 +12,7 @@ import TextTimestamp from '../../components/TextTimestamp'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
+import { ComposeMemberAdd, ComposeMemberDel, CreateGroup, DeleteGroup, AcceptGroupRequest } from '../../store/sagas/messenger'
 
 export default function TabGroup() {
   const [showCreateGroup, setShowCreateGroup] = useState(false)
@@ -23,32 +24,17 @@ export default function TabGroup() {
   const { Address, ContactList } = useSelector(state => state.User)
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(state => state.Messenger)
 
-  const addComposeMember = async (address) => {
-    dispatch({
-      type: 'ComposeMemberAdd',
-      payload: {
-        address: address
-      }
-    })
+  const addComposeMember = (address) => {
+    dispatch(ComposeMemberAdd({ address }))
   }
 
-  const delComposeMember = async (address) => {
-    dispatch({
-      type: 'ComposeMemberDel',
-      payload: {
-        address: address
-      }
-    })
+  const delComposeMember = (address) => {
+    dispatch(ComposeMemberDel({ address }))
   }
 
-  const createGroup = async () => {
+  const createGroup = () => {
     if (groupName !== '') {
-      dispatch({
-        type: 'CreateGroup',
-        payload: {
-          name: groupName
-        }
-      })
+      dispatch(CreateGroup({ name: groupName }))
       setGroupName('')
       setShowCreateGroup(false)
     }
@@ -57,12 +43,7 @@ export default function TabGroup() {
   const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
     if (ConfirmPopup?.Content === ConfirmContentOptions.DelGroup && ConfirmPopup?.Result) {
-      dispatch({
-        type: 'DeleteGroup',
-        payload: {
-          hash: ConfirmPopup?.Params?.Hash
-        }
-      })
+      dispatch(DeleteGroup({ hash: ConfirmPopup?.Params?.Hash }))
       dispatch(setConfirmPopup(null))
     }
   }, [ConfirmPopup])
@@ -71,11 +52,8 @@ export default function TabGroup() {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelGroup, Result: false, Params: { Hash: hash } }))
   }
 
-  const acceptGroupRequest = async (hash) => {
-    dispatch({
-      type: 'AcceptGroupRequest',
-      payload: { hash: hash }
-    })
+  const acceptGroupRequest = (hash) => {
+    dispatch(AcceptGroupRequest({ hash }))
     setShowRequest(false)
   }
 
@@ -209,7 +187,7 @@ export default function TabGroup() {
               </div>
               :
               <EmptyState
-                icon={<MdOutlineVerifiedUser className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />}
+                icon={<MdOutlineVerifiedUser className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
                 title="No group requests"
                 description="Pending group invitations will appear here"
                 className="mx-auto max-w-sm mt-8"
@@ -230,8 +208,6 @@ export default function TabGroup() {
         </div>
 
         <div className={`mt-1 flex-1`}>
-          <div className='flex flex-row'>
-          </div>
           <div className='flex flex-col'>
             {
               GroupList.length > 0 ?
@@ -299,7 +275,7 @@ export default function TabGroup() {
                 </div>
                 :
                 <EmptyState
-                  icon={<GrGroup className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />}
+                  icon={<GrGroup className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
                   title="No groups yet"
                   description="Groups you create or join will appear here"
                   className="mx-auto max-w-sm mt-8"

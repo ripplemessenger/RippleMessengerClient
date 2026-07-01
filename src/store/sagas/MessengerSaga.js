@@ -116,10 +116,14 @@ export function* LoadServerList() {
 }
 
 export function* UpdateConnStatus(action) {
-  const ConnsStatus = yield select(state => state.Messenger.ConnsStatus)
-  let tmp = { ...ConnsStatus }
-  tmp[action.key] = action.status
-  yield put(updateMessengerConnStatus(tmp))
+  try {
+    const ConnsStatus = yield select(state => state.Messenger.ConnsStatus)
+    let tmp = { ...ConnsStatus }
+    tmp[action.key] = action.status
+    yield put(updateMessengerConnStatus(tmp))
+  } catch (e) {
+    Logger.error('[UpdateConnStatus] failed:', e.message)
+  }
 }
 
 export function* ServerAdd({ payload }) {

@@ -173,7 +173,7 @@ export default function TabMessengerNetwork() {
             </div>
           ) : (
             <div className="empty-state-box py-8">
-              <TbCloudNetwork className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />
+              <TbCloudNetwork className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
               <h3 className='text-lg font-medium text-text-secondary dark:text-dark-text-secondary'>No servers yet</h3>
               <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Add a server to get started</p>
             </div>

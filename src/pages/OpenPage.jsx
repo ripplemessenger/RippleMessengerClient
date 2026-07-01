@@ -12,7 +12,8 @@ import FormButton from '../components/Form/FormButton'
 import SelectInput from '../components/Form/SelectInput'
 import TextInput from '../components/Form/TextInput'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { decryptWithPassword, encryptWithPassword, genSalt, getWallet } from '../lib/AppUtil'
+import { decryptWithPassword, encryptWithPassword, genSalt } from '../lib/AppUtil'
+import { getWallet } from '../lib/RippleUtil'
 import Logger from '../lib/Logger'
 import { loadAccountListStart, loginStart } from '../store/slices/UserSlice'
 import { AccountAdd } from '../store/sagas/messenger.actions'
@@ -78,7 +79,7 @@ export default function OpenPage() {
 
   // tmp
   const [showTmp, setShowTmp] = useState(false)
-  const [diplaySeed, setDisplaySeed] = useState('')
+  const [displaySeed, setDisplaySeed] = useState('')
   const [tmpError, setTmpError] = useState(null)
 
   const tmpUpdateSeed = (value) => {
@@ -104,10 +105,10 @@ export default function OpenPage() {
   }
 
   useEffect(() => {
-    if (diplaySeed === '') {
+    if (displaySeed === '') {
       setTmpError(null)
     }
-  }, [diplaySeed])
+  }, [displaySeed])
 
   // gen
   const [showGen, setShowGen] = useState(false)
@@ -125,7 +126,7 @@ export default function OpenPage() {
   const addressOptions = useMemo(() => {
     return AccountList.map(a => ({ value: a.address, label: a.address }))
   }, [AccountList])
-  const [addressSelectd, setAddressSelectd] = useState('')
+  const [addressSelected, setAddressSelectd] = useState('')
   const [openPassword, setOpenPassword] = useState('')
   const [avatarIndex, setAvatarIndex] = useState(0)
   const [loginError, setLoginError] = useState(null)
@@ -189,7 +190,7 @@ export default function OpenPage() {
   }, [showTmp])
 
   const login = () => {
-    const account = AccountList?.find(a => a.address === addressSelectd)
+    const account = AccountList?.find(a => a.address === addressSelected)
     if (!account) return
     setLoginLoading(true)
     // Yield to UI so loading spinner renders before blocking crypto
@@ -199,8 +200,8 @@ export default function OpenPage() {
         if (tmpSeed !== '') {
           setLoginError(null)
           setSeed(tmpSeed)
-          setAddress(addressSelectd)
-          dispatch(loginStart({ seed: tmpSeed, address: addressSelectd }))
+          setAddress(addressSelected)
+          dispatch(loginStart({ seed: tmpSeed, address: addressSelected }))
         } else {
           setLoginError('wrong password')
         }
@@ -226,7 +227,7 @@ export default function OpenPage() {
 
   useEffect(() => {
     if (IsAuth) {
-      navigate('/bulletin',
+      navigate('/',
         {
           replace: true
         }
@@ -244,11 +245,11 @@ export default function OpenPage() {
               <IoCloseOutline className='icon' /> cancel
             </button>
           </div>
-          <div className="space-y-4 flex flex-col justify-center mt-1">
+          <div className="min-w-80 space-y-4 flex flex-col justify-center mt-1">
             <div className="card-title flex flex-row items-center">
               Generate
             </div>
-            <div className="flex flex-col justify-center">
+            <div className="w-full flex flex-col justify-center">
               <FormButton title="Generate Account" onClick={genNewAccount} />
               <div className={`mt-2 ${newSeed === '' ? 'hidden' : ''}`}>
                 <div className="justify-center flex flex-col">
@@ -300,7 +301,7 @@ export default function OpenPage() {
               <div className="form-card-container mb-6">
                 <div className="space-y-4 flex flex-col justify-center">
                   <div className={`mt-1`}>
-                    <TextInput ref={tmpSeedRef} label={'Your Seed:'} type='password' value={diplaySeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => tmpUpdateSeed(e.target.value)} />
+                    <TextInput ref={tmpSeedRef} label={'Your Seed:'} type='password' value={displaySeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => tmpUpdateSeed(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -365,7 +366,7 @@ export default function OpenPage() {
             </button>
           </div>
           {
-            addressSelectd !== '' ?
+            addressSelected !== '' ?
               <div className="!max-w-sm max-w-full w-full mx-auto mb-10">
                 <div className="form-card-container">
                 <div className="flex flex-col justify-center p-6 space-y-4">
@@ -376,7 +377,7 @@ export default function OpenPage() {
                     focusPasswordInput()
                   }} />
                   <div className={`mt-1`}>
-                    <SelectInput label={'Address:'} options={addressOptions} selectdOption={addressSelectd} onChange={(e) => {
+                    <SelectInput label={'Address:'} options={addressOptions} selectedOption={addressSelected} onChange={(e) => {
                       setAddressSelectd(e.target.value)
                       const index = addressOptions.map(a => a.value).indexOf(e.target.value)
                       setAvatarIndex(index)

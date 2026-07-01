@@ -11,6 +11,7 @@ import MessageCard from '../components/Chat/MessageCard'
 import SessionName from '../components/Chat/SessionName'
 import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { selectChatSessions, selectCurrentSession, selectCurrentSessionMessages } from '../selectors'
 import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { LoadCurrentSession, LoadSessionList, SendContent, SendFile } from '../store/sagas/messenger.actions'
@@ -19,7 +20,9 @@ import AvatarImage from '../components/AvatarImage'
 export default function ChatHomePage() {
   const containerRef = useRef(null)
   const dispatch = useDispatch()
-  const { SessionList, CurrentSession, CurrentSessionMessageList } = useSelector(state => state.Messenger)
+  const SessionList = useSelector(selectChatSessions)
+  const CurrentSession = useSelector(selectCurrentSession)
+  const CurrentSessionMessageList = useSelector(selectCurrentSessionMessages)
 
   useEffect(() => {
     dispatch(LoadSessionList())
@@ -58,7 +61,7 @@ export default function ChatHomePage() {
           <div className="overflow-y-auto flex-1">
             {SessionList.length === 0 ? (
               <EmptyState
-                icon={<FiMessageSquare className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />}
+                icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
                 title="No sessions yet"
                 description="Start a conversation with a contact"
                 className="my-6"
@@ -89,7 +92,7 @@ export default function ChatHomePage() {
                     ))
                   ) : (
                     <EmptyState
-                      icon={<FiMessageSquare className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />}
+                      icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
                       title="No messages yet"
                       className="h-full"
                     />
@@ -117,7 +120,7 @@ export default function ChatHomePage() {
                     ))
                   ) : (
                     <EmptyState
-                      icon={<FiMessageSquare className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />}
+                      icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
                       title="No messages yet"
                       className="h-full"
                     />

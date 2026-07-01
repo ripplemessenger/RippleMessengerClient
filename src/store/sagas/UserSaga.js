@@ -1,8 +1,9 @@
-import { call, fork, put, select, takeLatest } from 'redux-saga/effects'
+import { all, call, fork, put, select, takeLatest } from 'redux-saga/effects'
 
 import { dbAPI } from '../../db'
 import Logger from '../../lib/Logger'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
+import { setFileRequestList } from './messenger.core'
 import { PostAddress } from '../../lib/MessengerConst'
 import { SessionType } from '../../lib/AppConst'
 import { setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
@@ -20,12 +21,18 @@ function* handleLogin({ payload }) {
     }
     yield call(() => dbAPI.updateAccountUpdatedAt(payload.address, Date.now()))
     yield put(loginSuccess({ seed: payload.seed, address: payload.address, nickname: nickname }))
-    yield call(loadContactList)
-    yield call(LoadMineBulletinSequence)
-    yield call(RefreshPortalBulletin)
+
+    // Parallelize independent data loads
+    yield all([
+      call(loadContactList),
+      call(LoadMineBulletinSequence),
+      call(RefreshPortalBulletin),
+      call(LoadGroupRequestList),
+    ])
+
+    // LoadGroupList must complete before LoadSessionList (reads GroupList from store)
     yield call(LoadGroupList)
     yield call(LoadSessionList)
-    yield call(LoadGroupRequestList)
 
     const contact_list = yield select(state => state.User.ContactList)
     if (contact_list.length === 0) {
@@ -49,6 +56,7 @@ function* handleLogout() {
     yield put(setSessionList([]))
     yield put(setGroupList({ group_list: [], group_member_map: {} }))
     yield put(setCurrentSession(null))
+    setFileRequestList([])
     yield call(disconnectAllWebsockets)
   } catch (e) {
     Logger.error('[handleLogout] failed:', e.message)

@@ -1,6 +1,6 @@
 import { IoChevronDownOutline } from "react-icons/io5"
 
-const SelectInput = ({ label, options, selectdOption, onChange, disabled }) => {
+const SelectInput = ({ label, options, selectedOption, onChange, disabled }) => {
   return (
     <div className="justify-center flex flex-col">
       <span className={`label`}>
@@ -11,7 +11,7 @@ const SelectInput = ({ label, options, selectdOption, onChange, disabled }) => {
           id={label}
           name={label}
           className={`w-full px-3 py-2 pr-10 border rounded-lg shadow-sm appearance-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${disabled ? 'input-hover-disabled' : 'input-hover border-primary/30 dark:border-primary/40'} input-color`}
-          value={selectdOption}
+          value={selectedOption}
           onChange={onChange}
           disabled={disabled}
         >

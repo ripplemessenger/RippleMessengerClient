@@ -6,12 +6,14 @@ import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import ListBulletin from '../components/Bulletin/ListBulletin'
 import EmptyState from '../components/EmptyState'
 import PageList from '../components/PageList'
+import { selectFollowBulletins, selectPublishFlags } from '../selectors'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
 
 export default function BulletinFollowPage() {
   useBulletinLoad('LoadFollowBulletin')
 
-  const { FollowBulletinList, FollowBulletinTotalPage, FollowBulletinPage, ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
+  const { list: FollowBulletinList, totalPage: FollowBulletinTotalPage, page: FollowBulletinPage } = useSelector(selectFollowBulletins)
+  const { showPublish: ShowPublishFlag, showForward: ShowForwardFlag } = useSelector(selectPublishFlags)
 
   return (
     <div className="bulletin-page-wrapper">

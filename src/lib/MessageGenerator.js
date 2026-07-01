@@ -47,15 +47,14 @@ class MessageGenerator {
 
   /**
    * Sign a JSON object by hashing it (QuarterSHA512), signing with the private key,
-   * and attaching the Signature field.
-   * @param {object} json - Message object to sign (mutated: Signature field added)
-   * @returns {object} Signed message object
+   * and attaching the Signature field. Returns a new object; input is not mutated.
+   * @param {object} json - Message object to sign
+   * @returns {object} Signed message object (new reference)
    */
   signJson(json) {
     let json_hash = QuarterSHA512Message(json)
     let sig = Sign(json_hash, this.PrivateKey)
-    json.Signature = sig
-    return json
+    return { ...json, Signature: sig }
   }
 }
 

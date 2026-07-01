@@ -28,12 +28,7 @@ export default function TabMe() {
   }, [activeTabSetting])
 
   useEffect(() => {
-    const account = AccountList.filter(a => a.address === Address)
-    if (account.length > 0) {
-      setShowRemoveButton(true)
-    } else {
-      setShowRemoveButton(false)
-    }
+    setShowRemoveButton(AccountList.some(a => a.address === Address))
   }, [AccountList])
 
   const browseAvatarSource = async () => {

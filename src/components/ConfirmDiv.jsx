@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoWarningOutline } from "react-icons/io5"
 import { setConfirmPopup } from '../store/slices/CommonSlice'
@@ -13,7 +14,7 @@ const ConfirmDiv = ({ json }) => {
   }
 
   return (
-    <div className={`modal-overlay`}>
+    <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="w-full max-w-md mx-auto">
         <div className="modal-content-wrapper">
           <div className="flex items-center gap-3 mb-4">
@@ -37,4 +38,4 @@ const ConfirmDiv = ({ json }) => {
   )
 }
 
-export default ConfirmDiv
+export default memo(ConfirmDiv)

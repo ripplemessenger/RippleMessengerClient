@@ -7,6 +7,7 @@ import { MdPublish } from 'react-icons/md'
 import PublishFileItem from './PublishFileItem'
 import PublishQuoteItem from './PublishQuoteItem'
 import PublishTagItem from './PublishTagItem'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
@@ -26,16 +27,7 @@ const BulletinPublish = ({ }) => {
     textareaRef.current?.focus()
   }, [])
 
-  // Escape key closes modal
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        dispatch(setPublishFlag(false))
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [dispatch])
+  useEscapeKey(() => dispatch(setPublishFlag(false)))
 
   const handleTmpBulletin = (value) => {
     if (value.trim() !== '') {

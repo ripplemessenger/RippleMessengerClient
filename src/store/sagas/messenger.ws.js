@@ -7,7 +7,7 @@ const ec = new Elliptic.ec('secp256k1')
 import { invoke } from '@tauri-apps/api/core'
 import * as path from '@tauri-apps/api/path'
 import { open, readFile, writeFile, remove, mkdir, SeekMode } from '@tauri-apps/plugin-fs'
-import { call, fork, put, select, take } from 'redux-saga/effects'
+import { cancelled, call, fork, put, select, take } from 'redux-saga/effects'
 
 import { dbAPI } from '../../db'
 import { AvatarDir, FileChunkSize, FileDir, FILE_REQUEST_TTL_MS, SessionType, DefaultPartition } from '../../lib/AppConst'
@@ -681,6 +681,10 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     let content = AesDecrypt(json.Content, ecdh.aes_key)
+    if (content === null) {
+      Logger.error('[PrivateMessage] Failed to decrypt message content')
+      return
+    }
     let content_json = deriveJson(content)
     if (content_json && checkMessageObjectSchema(content_json)) {
       content = content_json
@@ -793,6 +797,10 @@ function* handleGroupMessageListObject(json, address, seed) {
       }
 
       let content = AesDecrypt(group_msg.Content, ecdh.aes_key)
+      if (content === null) {
+        Logger.error('[GroupMessage] Failed to decrypt message content')
+        continue
+      }
       let content_json = deriveJson(content)
       if (content_json && checkMessageObjectSchema(content_json)) {
         content = content_json
@@ -888,50 +896,56 @@ function* handleObjectMessage(json, action, address, seed) {
 export function* WebsocketListener() {
   const channel = globalWsChannel
 
-  while (true) {
-    try {
-      const action = yield take(channel)
-      switch (action.type) {
-        case 'status':
-          Logger.info('!!!conn status change:', action)
-          if (action.status === WebSocket.OPEN) {
-            yield call(UpdateConnStatus, action)
+  try {
+    while (true) {
+      try {
+        const action = yield take(channel)
+        switch (action.type) {
+          case 'status':
+            Logger.info('!!!conn status change:', action)
+            if (action.status === WebSocket.OPEN) {
+              yield call(UpdateConnStatus, action)
+              const seed = yield select(state => state.User.Seed)
+              if (!seed) {
+                continue
+              }
+              const msg = yield call(() => mgAPI.genDeclare(seed))
+              yield call(SendMessage, { key: action.key, msg: msg })
+              yield call(AvatarRequest, { payload: { flag: true } })
+              yield call(SubscribeFollow)
+              yield call(FetchFollowBulletin)
+            } else if (action.status === WebSocket.CLOSED) {
+              yield call(UpdateConnStatus, action)
+            } else if (action.status === 'error') {
+              yield call(UpdateConnStatus, action)
+            }
+            break
+          case 'message':
+            Logger.debug('!!!received message: ', action)
             const seed = yield select(state => state.User.Seed)
             if (!seed) {
               continue
             }
-            const msg = yield call(() => mgAPI.genDeclare(seed))
-            yield call(SendMessage, { key: action.key, msg: msg })
-            yield call(AvatarRequest, { payload: { flag: true } })
-            yield call(SubscribeFollow)
-            yield call(FetchFollowBulletin)
-          } else if (action.status === WebSocket.CLOSED) {
-            yield call(UpdateConnStatus, action)
-          } else if (action.status === 'error') {
-            yield call(UpdateConnStatus, action)
-          }
-          break
-        case 'message':
-          Logger.debug('!!!received message: ', action)
-          const seed = yield select(state => state.User.Seed)
-          if (!seed) {
-            continue
-          }
-          const address = yield select(state => state.User.Address)
-          if (action.isBinary) {
-            yield call(handleBinaryMessage, action)
-          } else {
-            const json = action.data
-            if (json.Action && (json.To === undefined || json.To === address)) {
-              yield call(handleActionMessage, json, action, address, seed)
-            } else if (json.ObjectType) {
-              yield call(handleObjectMessage, json, action, address, seed)
+            const address = yield select(state => state.User.Address)
+            if (action.isBinary) {
+              yield call(handleBinaryMessage, action)
+            } else {
+              const json = action.data
+              if (json.Action && (json.To === undefined || json.To === address)) {
+                yield call(handleActionMessage, json, action, address, seed)
+              } else if (json.ObjectType) {
+                yield call(handleObjectMessage, json, action, address, seed)
+              }
             }
-          }
-          break
+            break
+        }
+      } catch (e) {
+        Logger.error('[WebsocketListener] unhandled error processing message:', e.message, e.stack)
       }
-    } catch (e) {
-      Logger.error('[WebsocketListener] unhandled error processing message:', e.message, e.stack)
+    }
+  } finally {
+    if (yield cancelled()) {
+      Logger.info('[WebsocketListener] saga cancelled, terminating cleanly')
     }
   }
 }

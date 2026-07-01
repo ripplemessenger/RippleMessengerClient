@@ -1,7 +1,7 @@
 import * as path from '@tauri-apps/api/path'
 import { mkdir, readFile, writeFile, stat } from '@tauri-apps/plugin-fs'
 import * as rippleKeyPairs from 'ripple-keypairs'
-import { call, fork, put, select } from 'redux-saga/effects'
+import { all, call, fork, put, select } from 'redux-saga/effects'
 
 import { SendMessage, genFileNonce, pushFileRequest } from './messenger.core'
 import { FetchBulletinFile } from './messenger.file'
@@ -101,23 +101,27 @@ export function* SaveSelfAvatar({ payload }) {
 }
 
 export function* AvatarRequest({ payload }) {
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    return
-  }
-  let timestamp = Date.now()
-  const old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
-  let list = []
-  for (let i = 0; i < old_avatar_list.length; i++) {
-    const avatar = old_avatar_list[i]
-    if (avatar.updated_at < timestamp - Hour || payload.flag) {
-      list.push({ Address: avatar.address, SignedAt: avatar.signed_at })
-      yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
+  try {
+    const seed = yield select(state => state.User.Seed)
+    if (!seed) {
+      return
     }
-  }
-  if (list.length > 0) {
-    const avatar_request = yield call(() => mgAPI.genAvatarRequest(seed, list))
-    yield call(SendMessage, { msg: avatar_request })
+    let timestamp = Date.now()
+    const old_avatar_list = yield call(() => dbAPI.getAvatarOldList())
+    let list = []
+    for (let i = 0; i < old_avatar_list.length; i++) {
+      const avatar = old_avatar_list[i]
+      if (avatar.updated_at < timestamp - Hour || payload.flag) {
+        list.push({ Address: avatar.address, SignedAt: avatar.signed_at })
+        yield call(() => dbAPI.updateAvatarUpdatedAt(avatar.address, timestamp))
+      }
+    }
+    if (list.length > 0) {
+      const avatar_request = yield call(() => mgAPI.genAvatarRequest(seed, list))
+      yield call(SendMessage, { msg: avatar_request })
+    }
+  } catch (e) {
+    Logger.error('[AvatarRequest] failed:', e.message)
   }
 }
 
@@ -177,15 +181,20 @@ export function* RefreshPortalBulletin() {
 }
 
 export function* LoadMineBulletinSequence() {
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    return
+  try {
+    const seed = yield select(state => state.User.Seed)
+    if (!seed) {
+      return
+    }
+    const address = yield select(state => state.User.Address)
+    const bulletin_count = yield call(() => dbAPI.getAddressBulletinCount(address))
+    yield put(setCurrentBulletinSequence(bulletin_count))
+    // Also request own bulletins from server (for first login on new device or after DB clear)
+    yield call(FetchMineBulletin)
+  } catch (e) {
+    Logger.error('[LoadMineBulletinSequence] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to load bulletin sequence', duration: 3000 }))
   }
-  const address = yield select(state => state.User.Address)
-  const bulletin_count = yield call(() => dbAPI.getAddressBulletinCount(address))
-  yield put(setCurrentBulletinSequence(bulletin_count))
-  // Also request own bulletins from server (for first login on new device or after DB clear)
-  yield call(FetchMineBulletin)
 }
 
 /**
@@ -224,21 +233,37 @@ export function* LoadAddressBulletin({ payload }) {
 export function* FetchFollowBulletin() {
   try {
     const address = yield select(state => state.User.Address)
+    const seed = yield select(state => state.User.Seed)
     const follow_list = yield call(() => dbAPI.getMyFollows(address))
     for (let i = 0; i < follow_list.length; i++) {
       const remote_last_bulletin = yield call(() => dbAPI.getLastBulletin(follow_list[i].remote))
       const remote_bulletin_count = yield call(() => dbAPI.getBulletinCountByAddresses([follow_list[i].remote]))
+
       if (remote_last_bulletin === null) {
         yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
       } else if (remote_last_bulletin.sequence === remote_bulletin_count) {
         yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
       } else {
-        for (let j = 1; j <= remote_last_bulletin.sequence; j++) {
-          const tmp = yield call(() => dbAPI.getBulletinBySequence(follow_list[i].remote), j)
-          if (tmp === null) {
-            const seed = yield select(state => state.User.Seed)
-            const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, follow_list[i].remote, j, follow_list[i].remote))
-            yield call(SendMessage, { msg: bulletin_request })
+        // Batch-check for missing bulletins in chunks to avoid O(n*m) queries
+        const max_sequence = remote_last_bulletin.sequence
+        const chunk_size = 50
+
+        for (let start = 1; start <= max_sequence; start += chunk_size) {
+          const end = Math.min(start + chunk_size - 1, max_sequence)
+          const sequences = []
+          for (let j = start; j <= end; j++) {
+            sequences.push(j)
+          }
+
+          const results = yield all(sequences.map(seq =>
+            call(() => dbAPI.getBulletinBySequence(follow_list[i].remote, seq))
+          ))
+
+          for (let k = 0; k < results.length; k++) {
+            if (results[k] === null) {
+              const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, follow_list[i].remote, sequences[k], follow_list[i].remote))
+              yield call(SendMessage, { msg: bulletin_request })
+            }
           }
         }
       }
@@ -310,22 +335,31 @@ export function* LoadBulletin(action) {
 }
 
 export function* RequestRandomBulletin() {
-  yield put(setRandomBulletinList([]))
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    return
+  try {
+    yield put(setRandomBulletinList([]))
+    const seed = yield select(state => state.User.Seed)
+    if (!seed) {
+      return
+    }
+    const random_bulletin_request = yield call(() => mgAPI.genRandomBulletinRequest(seed))
+    yield call(SendMessage, { flag: true, msg: random_bulletin_request })
+  } catch (e) {
+    Logger.error('[RequestRandomBulletin] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to load random bulletins', duration: 3000 }))
   }
-  const random_bulletin_request = yield call(() => mgAPI.genRandomBulletinRequest(seed))
-  yield call(SendMessage, { flag: true, msg: random_bulletin_request })
 }
 
 export function* RequestServerAddress({ payload }) {
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    return
+  try {
+    const seed = yield select(state => state.User.Seed)
+    if (!seed) {
+      return
+    }
+    const bulletin_address_request = yield call(() => mgAPI.genServerAddressRequest(seed, payload.page))
+    yield call(SendMessage, { key: payload.url, msg: bulletin_address_request })
+  } catch (e) {
+    Logger.error('[RequestServerAddress] failed:', e.message)
   }
-  const bulletin_address_request = yield call(() => mgAPI.genServerAddressRequest(seed, payload.page))
-  yield call(SendMessage, { key: payload.url, msg: bulletin_address_request })
 }
 
 export function* RequestReplyBulletin({ payload }) {
@@ -425,42 +459,62 @@ export function* PublishBulletin(action) {
 }
 
 export function* BulletinTagAdd({ payload }) {
-  const old_list = yield select(state => state.Messenger.PublishTagList)
-  let new_list = [...old_list, ...payload.tag_list]
-  new_list = [...new Set(new_list)]
-  if (new_list.length > ListItemMax) {
-    new_list.shift()
+  try {
+    const old_list = yield select(state => state.Messenger.PublishTagList)
+    let new_list = [...old_list, ...payload.tag_list]
+    new_list = [...new Set(new_list)]
+    if (new_list.length > ListItemMax) {
+      new_list.shift()
+    }
+    yield put(setPublishTagList(new_list))
+  } catch (e) {
+    Logger.error('[BulletinTagAdd] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to add tag', duration: 3000 }))
   }
-  yield put(setPublishTagList(new_list))
 }
 
 export function* BulletinTagDel({ payload }) {
-  const old_list = yield select(state => state.Messenger.PublishTagList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(t => t !== payload.Tag)
-  yield put(setPublishTagList(new_list))
+  try {
+    const old_list = yield select(state => state.Messenger.PublishTagList)
+    let new_list = [...old_list]
+    new_list = new_list.filter(t => t !== payload.Tag)
+    yield put(setPublishTagList(new_list))
+  } catch (e) {
+    Logger.error('[BulletinTagDel] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to remove tag', duration: 3000 }))
+  }
 }
 
 export function* BulletinQuoteAdd({ payload }) {
-  const old_list = yield select(state => state.Messenger.PublishQuoteList)
-  for (let i = 0; i < old_list.length; i++) {
-    const quote = old_list[i]
-    if (quote.Hash === payload.Hash) {
-      return
+  try {
+    const old_list = yield select(state => state.Messenger.PublishQuoteList)
+    for (let i = 0; i < old_list.length; i++) {
+      const quote = old_list[i]
+      if (quote.Hash === payload.Hash) {
+        return
+      }
     }
+    const new_list = [...old_list, payload]
+    if (new_list.length > ListItemMax) {
+      new_list.shift()
+    }
+    yield put(setPublishQuoteList(new_list))
+  } catch (e) {
+    Logger.error('[BulletinQuoteAdd] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to add quote', duration: 3000 }))
   }
-  const new_list = [...old_list, payload]
-  if (new_list.length > ListItemMax) {
-    new_list.shift()
-  }
-  yield put(setPublishQuoteList(new_list))
 }
 
 export function* BulletinQuoteDel({ payload }) {
-  const old_list = yield select(state => state.Messenger.PublishQuoteList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(q => q.Hash !== payload.Hash)
-  yield put(setPublishQuoteList(new_list))
+  try {
+    const old_list = yield select(state => state.Messenger.PublishQuoteList)
+    let new_list = [...old_list]
+    new_list = new_list.filter(q => q.Hash !== payload.Hash)
+    yield put(setPublishQuoteList(new_list))
+  } catch (e) {
+    Logger.error('[BulletinQuoteDel] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to remove quote', duration: 3000 }))
+  }
 }
 
 export function* BulletinReply({ payload }) {
@@ -474,12 +528,16 @@ export function* BulletinQuote({ payload }) {
 }
 
 export function* saveLocalFile(hash, content) {
-  const base_dir = yield select(state => state.Common.AppBaseDir)
-  const hash_subpath = buildFileSubPath(hash)
-  const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
-  yield call(() => mkdir(file_dir, { recursive: true }))
-  const save_file_path = yield call(() => path.join(file_dir, hash))
-  yield call(() => writeFile(save_file_path, content))
+  try {
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const hash_subpath = buildFileSubPath(hash)
+    const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
+    yield call(() => mkdir(file_dir, { recursive: true }))
+    const save_file_path = yield call(() => path.join(file_dir, hash))
+    yield call(() => writeFile(save_file_path, content))
+  } catch (e) {
+    Logger.error('[saveLocalFile] failed for', hash, e.message)
+  }
 }
 
 export function* BulletinFileAdd({ payload }) {
@@ -530,25 +588,38 @@ export function* BulletinFileAdd({ payload }) {
 }
 
 export function* BulletinFileDel({ payload }) {
-  const old_list = yield select(state => state.Messenger.PublishFileList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(f => f.Hash !== payload.Hash)
-  yield put(setPublishFileList(new_list))
+  try {
+    const old_list = yield select(state => state.Messenger.PublishFileList)
+    let new_list = [...old_list]
+    new_list = new_list.filter(f => f.Hash !== payload.Hash)
+    yield put(setPublishFileList(new_list))
+  } catch (e) {
+    Logger.error('[BulletinFileDel] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to remove file', duration: 3000 }))
+  }
 }
 
 export function* BulletinMarkToggle({ payload }) {
-  const bulletin_db = yield call(() => dbAPI.getBulletinByHash(payload.hash))
-  if (bulletin_db !== null) {
-    yield call(() => dbAPI.toggleBulletinMark(payload.hash, !bulletin_db.is_marked))
+  try {
+    const bulletin_db = yield call(() => dbAPI.getBulletinByHash(payload.hash))
+    if (bulletin_db !== null) {
+      yield call(() => dbAPI.toggleBulletinMark(payload.hash, !bulletin_db.is_marked))
+    }
+  } catch (e) {
+    Logger.error('[BulletinMarkToggle] failed for', payload.hash, e.message)
   }
 }
 
 export function* SubscribeFollow() {
-  const seed = yield select(state => state.User.Seed)
-  if (!seed) {
-    return
+  try {
+    const seed = yield select(state => state.User.Seed)
+    if (!seed) {
+      return
+    }
+    const follow_list = yield select(state => state.User.FollowList)
+    const subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, follow_list))
+    yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
+  } catch (e) {
+    Logger.error('[SubscribeFollow] failed:', e.message)
   }
-  const follow_list = yield select(state => state.User.FollowList)
-  const subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, follow_list))
-  yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
 }

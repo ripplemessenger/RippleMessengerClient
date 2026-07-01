@@ -1,4 +1,5 @@
-﻿import { useDispatch } from 'react-redux'
+﻿import { memo } from 'react'
+import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import AvatarImage from '../AvatarImage'
 import { setBulletinAddress } from '../../store/slices/MessengerSlice'
@@ -18,4 +19,4 @@ const BulletinAvatarLink = ({ address, classNames }) => {
   )
 }
 
-export default BulletinAvatarLink
+export default memo(BulletinAvatarLink)

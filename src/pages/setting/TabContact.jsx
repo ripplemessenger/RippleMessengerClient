@@ -28,7 +28,7 @@ export default function TabContact() {
     }
   }, [dispatch, activeTabSetting])
 
-  const addContact = async () => {
+  const addContact = () => {
     dispatch(ContactAdd({
       address: contactAddress,
       nickname: contactNickname
@@ -50,11 +50,11 @@ export default function TabContact() {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelContact, Result: false, Params: { Address: address } }))
   }
 
-  const toggleIsFollow = async (address) => {
+  const toggleIsFollow = (address) => {
     dispatch(ContactToggleIsFollow({ contact_address: address }))
   }
 
-  const toggleIsFriend = async (address) => {
+  const toggleIsFriend = (address) => {
     dispatch(ContactToggleIsFriend({ contact_address: address }))
   }
 
@@ -138,7 +138,7 @@ export default function TabContact() {
             </div>
           ) : (
             <EmptyState
-              icon={<AiOutlineUserAdd className="text-4xl text-primary/40 dark:text-dark-primary/40 mb-2" />}
+              icon={<AiOutlineUserAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
               title="No contact yet"
               description="Add a contact to start connecting"
               className="mx-auto max-w-sm mt-8"

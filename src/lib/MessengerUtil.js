@@ -3,19 +3,12 @@ import { Buffer } from 'buffer'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import Logger from './Logger'
 import { Epoch } from './MessengerConst'
-import { ConsoleWarn, HalfSHA512, Int2Bool, QuarterSHA512Message, QuarterSHA512WordArray } from './AppUtil'
+import { ConsoleWarn, HalfSHA512, Int2Bool, QuarterSHA512Message, QuarterSHA512WordArray, sortedAddressPair } from './AppUtil'
 import { NonceMax } from './AppConst'
 
-/**
- * Return two addresses in lexicographically sorted order.
- * Ensures both parties produce the same concatenation regardless of argument order.
- * @param {string} a - First XRPL address
- * @param {string} b - Second XRPL address
- * @returns {[string, string]} Sorted pair [smaller, larger]
- */
-function sortedAddressPair(a, b) {
-  return a < b ? [a, b] : [b, a];
-}
+const ADDRESS_PREFIX_LENGTH = 7
+const ADDRESS_SUFFIX_LENGTH = 5
+const HASH_PREFIX_LENGTH = 6
 
 /**
  * Look up a display name for an address from the map.
@@ -31,7 +24,7 @@ function AddressToName(address_map, address) {
   if (address_map[address] != null) {
     return address_map[address]
   } else {
-    return `${address.substring(0, 7)}...${address.substring(address.length - 5)}`
+    return `${address.substring(0, ADDRESS_PREFIX_LENGTH)}...${address.substring(address.length - ADDRESS_SUFFIX_LENGTH)}`
   }
 }
 
@@ -82,7 +75,7 @@ function GroupFileEHash(group_hash, file_hash) {
  */
 function DHSequence(partition, timestamp, address1, address2) {
   const [a, b] = sortedAddressPair(address1, address2)
-  let tmpInt = parseInt(HalfSHA512(a + b).substring(0, 6), 16)
+  let tmpInt = parseInt(HalfSHA512(a + b).substring(0, HASH_PREFIX_LENGTH), 16)
   let cursor = (tmpInt % partition) * 1000
   let seq = parseInt((timestamp - (Epoch + cursor)) / (partition * 1000))
   return seq
@@ -127,7 +120,7 @@ function VerifyJsonSignature(json) {
  * @returns {Buffer|false} 4-byte buffer, or false if out of range
  */
 function Uint32ToBuffer(num, isBigEndian = true) {
-  if (num < 0 || num > 4294967295) {
+  if (num < 0 || num > NonceMax) {
     return false
   }
   const buf = Buffer.alloc(4)
@@ -145,7 +138,7 @@ function Uint32ToBuffer(num, isBigEndian = true) {
  * @param {boolean} [isBigEndian=true] - Byte order
  * @returns {number} Unsigned 32-bit integer
  */
-async function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
+function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
   const buf = Buffer.from(arrayBuffer)
   return isBigEndian
     ? buf.readUInt32BE(0)
@@ -154,6 +147,7 @@ async function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
 
 /**
  * Generate a random integer in the inclusive range [min, max].
+ * Uses crypto.getRandomValues() instead of Math.random().
  * @param {number} min - Minimum value (inclusive)
  * @param {number} max - Maximum value (inclusive)
  * @returns {number} Random integer
@@ -161,7 +155,10 @@ async function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
 function genRandomInt(min, max) {
   min = Math.ceil(min)
   max = Math.floor(max)
-  return Math.floor(Math.random() * (max - min + 1)) + min
+  const range = max - min + 1
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  return min + (array[0] % range)
 }
 
 /**
@@ -320,6 +317,8 @@ function buildFileFullPath(baseDir, fileDir, hash) {
 }
 
 export {
+  sortedAddressPair,
+
   AddressToName,
 
   FileHash,

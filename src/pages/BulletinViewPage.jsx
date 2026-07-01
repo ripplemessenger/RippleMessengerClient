@@ -8,6 +8,7 @@ import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinViewer from '../components/Bulletin/BulletinViewer'
 import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
+import LoadingDiv from '../components/LoadingDiv'
 import PageList from '../components/PageList'
 import { LoadBulletin, RequestReplyBulletin } from '../store/sagas/messenger.actions'
 
@@ -48,15 +49,19 @@ export default function BulletinViewPage() {
       {DisplayBulletin && (
         <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />
       )}
-      {DisplayBulletinReplyList.length === 0 ? (
-        <EmptyState
-          icon={<FiMessageSquare className="text-4xl text-primary/30 dark:text-dark-primary/30 mb-2" />}
-          title="No replies yet"
-        />
-      ) : (
+      {DisplayBulletinReplyList.length > 0 &&
         DisplayBulletinReplyList.map((bulletin) => (
           <BulletinViewer bulletin={bulletin} key={bulletin.hash} />
         ))
+      }
+      {DisplayBulletinReplyList.length === 0 && !(!DisplayBulletin && bulletin_hash) && (
+        <EmptyState
+          icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+          title="No replies yet"
+        />
+      )}
+      {!DisplayBulletin && bulletin_hash && (
+        <LoadingDiv isLoading={true} text="Loading bulletin..." />
       )}
       {
         DisplayBulletin && DisplayBulletinReplyTotalPage > 1 &&

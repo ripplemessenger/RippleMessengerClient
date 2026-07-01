@@ -1,47 +1,19 @@
-import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
-import { exists, readFile, BaseDirectory } from '@tauri-apps/plugin-fs'
-import * as path from '@tauri-apps/api/path'
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveBulletinFile } from '../../store/sagas/messenger.actions'
-import { IoAttachSharp } from "react-icons/io5"
+import { IoAttachSharp } from 'react-icons/io5'
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
 import { buildFileFullPath } from '../../lib/MessengerUtil'
 import { useAppBaseDir } from '../../hooks/useAppBaseDir'
+import { useFileBlobUrl } from '../../hooks/useFileBlobUrl'
 
 const BulletinFileViewer = ({ name, ext, size, hash }) => {
-
   const AppBaseDir = useAppBaseDir()
-  const [fileImage, setFileImage] = useState(null)
-
   const dispatch = useDispatch()
-  const FilePath = buildFileFullPath('', FileDir, hash).join('/')
 
-  useEffect(() => {
-    if (!FileImageExtRegex.test(ext)) return
-
-    let objectUrl = null
-    setImage().then(url => { objectUrl = url })
-
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [hash, ext])
-
-  async function setImage() {
-    const is_file_exist = await exists(FilePath, {
-      baseDir: BaseDirectory.Resource,
-    })
-    if (is_file_exist) {
-      const filePath = await path.join(AppBaseDir, FilePath)
-      const bytes = await readFile(filePath)
-      const blob = new Blob([new Uint8Array(bytes)])
-      const url = URL.createObjectURL(blob)
-      setFileImage(url)
-      return url
-    }
-    return null
-  }
+  const fileRelativePath = buildFileFullPath('', FileDir, hash).join('/')
+  const filePath = FileImageExtRegex.test(ext) ? `${AppBaseDir}/${fileRelativePath}` : null
+  const fileImage = useFileBlobUrl(filePath, null)
 
   return (
     <div>
@@ -51,15 +23,13 @@ const BulletinFileViewer = ({ name, ext, size, hash }) => {
           ↓{name}{ext}
         </button>
       </div>
-      {
-        fileImage &&
+      {fileImage && (
         <img
           src={fileImage}
           alt={`${name}.${ext}`}
           className={`max-w-[600px] max-h-[600px] object-contain`}
         />
-      }
-
+      )}
     </div>
   )
 }

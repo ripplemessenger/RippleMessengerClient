@@ -1,5 +1,3 @@
-import React from 'react'
-
 /**
  * Reusable empty-state display with icon, heading, and optional description.
  *

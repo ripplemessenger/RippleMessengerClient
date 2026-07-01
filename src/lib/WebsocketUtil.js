@@ -97,14 +97,20 @@ export function createMultiWsChannel(configs) {
 
       ws.onclose = (ev) => {
         Logger.info(`[WS] Closed: ${key} (code: ${ev.code}) (wasClean: ${ev.wasClean})`)
-        emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
-        manager.channels.delete(key)
+        const shouldRetry = (!ev.wasClean || (ev.code !== 1000 && ev.code !== 1001)) && retryCount < manager.MAX_RETRIES
 
-        if ((!ev.wasClean || (ev.code !== 1000 && ev.code !== 1001)) && retryCount < manager.MAX_RETRIES) {
+        if (shouldRetry) {
           retryCount++
           const timerId = setTimeout(connect, manager.RETRY_DELAY)
           manager.channels.set(key, { ws: null, config: cfg, retryCount, retryTimer: timerId })
           Logger.info(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
+        } else if (retryCount >= manager.MAX_RETRIES) {
+          Logger.warn(`[WS] Permanently disconnected: ${key} (retries exhausted)`)
+          emitToGlobal({ type: 'status', key, status: 'permanently_disconnected', code: ev.code })
+          manager.channels.delete(key)
+        } else {
+          emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
+          manager.channels.delete(key)
         }
       }
 

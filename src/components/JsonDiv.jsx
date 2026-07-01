@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
-import Logger from '../lib/Logger'
+import { useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
 import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5"
 import { setDisplayJson, setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { FLASH_DURATION_MS } from '../lib/AppConst'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 
 const JsonDiv = ({ json }) => {
   const [theme, setTheme] = useState(localStorage.getItem('theme'))
@@ -14,30 +14,21 @@ const JsonDiv = ({ json }) => {
   const dispatch = useDispatch()
   const { DisplayJsonOption } = useSelector(state => state.Common)
 
-  // ESC to close
-  useEffect(() => {
-    const handleKeydown = (e) => {
-      if (e.key === 'Escape') {
-        dispatch(setDisplayJson({ json: null, isExpand: false }))
-      }
-    }
-    window.addEventListener('keydown', handleKeydown)
-    return () => window.removeEventListener('keydown', handleKeydown)
-  }, [])
+  const closeJson = () => dispatch(setDisplayJson({ json: null, isExpand: false }))
+  useEscapeKey(closeJson)
 
   const copyText = async (text) => {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
       setTimeout(() => setCopied(false), FLASH_DURATION_MS)
-    } catch (err) {
-      Logger.error('copy failed', err)
+    } catch {
       dispatch(setFlashNoticeMessage({ message: 'Copy failed', duration: FLASH_DURATION_MS }))
     }
   }
 
   return (
-    <div className={`modal-overlay`}>
+    <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="w-full max-w-4xl mx-auto">
         <div className="modal-content-wrapper">
           <div className="flex justify-end gap-2 mb-3">

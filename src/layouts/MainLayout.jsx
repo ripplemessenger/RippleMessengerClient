@@ -9,10 +9,12 @@ import Header from '../components/Header'
 import JsonDiv from '../components/JsonDiv'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { useConfirmPopup } from '../hooks/useConfirmPopup'
+import { selectDisplayJson, selectFlashNotice } from '../selectors'
 
 export default function MainLayout() {
   const ConfirmPopup = useConfirmPopup()
-  const { FlashNoticeMessage, DisplayJson, FlashNoticeDuration } = useSelector(state => state.Common)
+  const FlashNoticeData = useSelector(selectFlashNotice)
+  const DisplayJsonData = useSelector(selectDisplayJson)
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col">
@@ -21,12 +23,12 @@ export default function MainLayout() {
           <ConfirmDiv />
         }
         {
-          FlashNoticeMessage &&
-          <FlashNotice message={FlashNoticeMessage} duration={FlashNoticeDuration} />
+          FlashNoticeData.message &&
+          <FlashNotice message={FlashNoticeData.message} duration={FlashNoticeData.duration} />
         }
         {
-          DisplayJson &&
-          <JsonDiv json={DisplayJson} />
+          DisplayJsonData.json &&
+          <JsonDiv json={DisplayJsonData.json} />
         }
         <Header />
         <ConnectionStatusBanner />

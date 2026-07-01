@@ -1,5 +1,4 @@
 import CryptoJS from 'crypto-js'
-import { Wallet, ECDSA } from 'xrpl'
 import Logger from './Logger'
 import { GenesisHash } from './MessengerConst'
 
@@ -68,11 +67,11 @@ function timestamp_format(timestamp) {
   let now = new Date()
   let tmp = '@'
   if (y !== now.getFullYear()) {
-    tmp += y + '-' + add0(m) + '-' + add0(d) + ' '
+    tmp += `${y}-${add0(m)}-${add0(d)} `
   } else {
-    tmp += add0(m) + '-' + add0(d) + ' '
+    tmp += `${add0(m)}-${add0(d)} `
   }
-  return tmp + add0(h) + ':' + add0(mm) + ':' + add0(s)
+  return `${tmp}${add0(h)}:${add0(mm)}:${add0(s)}`
 }
 
 /**
@@ -88,8 +87,7 @@ function timestamp2Number(timestamp) {
   let h = time.getHours()
   let mm = time.getMinutes()
   let s = time.getSeconds()
-  let tmp = ''
-  return tmp + y + add0(m) + add0(d) + add0(h) + add0(mm) + add0(s)
+  return `${y}${add0(m)}${add0(d)}${add0(h)}${add0(mm)}${add0(s)}`
 }
 
 /**
@@ -107,20 +105,6 @@ function filesize_format(filesize) {
   } else {
     return `${filesize}B`
   }
-}
-
-/**
- * Convert a string to its uppercase hexadecimal representation.
- * @param {string} str - Input string
- * @returns {string} Hex string like "48656C6C6F" for "Hello"
- */
-function Str2Hex(str) {
-  let arr = []
-  let length = str.length
-  for (let i = 0; i < length; i++) {
-    arr[i] = (str.charCodeAt(i).toString(16))
-  }
-  return arr.join('').toUpperCase()
 }
 
 /**
@@ -245,6 +229,18 @@ function decryptWithPassword(password, salt, cipherData, isObject = false) {
 }
 
 /**
+ * Return two addresses in lexicographically sorted order.
+ * Ensures both parties produce the same concatenation regardless of argument order.
+ * Handles equality correctly by returning [a, a].
+ * @param {string} a - First XRPL address
+ * @param {string} b - Second XRPL address
+ * @returns {[string, string]} Sorted pair [smaller, larger] or [a, a] if equal
+ */
+function sortedAddressPair(a, b) {
+  return a < b ? [a, b] : [b, a]
+}
+
+/**
  * Split a combined AES key+IV string into separate key and IV components.
  * Input is expected to be a 48-character hex string or a 48-byte Uint8Array
  * where the first 32 bytes are the key and the remaining 16 bytes are the IV.
@@ -256,15 +252,6 @@ function splitAesKeyIv(aes_key) {
     return { key: aes_key.slice(0, 32), iv: aes_key.slice(32, 48) }
   }
   return { key: aes_key.slice(0, 32), iv: aes_key.slice(32, 48) }
-}
-
-/**
- * Create an XRPL Wallet from a seed using secp256k1 (mainnet algorithm).
- * @param {string} seed - ED- or s- prefixed seed string
- * @returns {Wallet} XRPL Wallet instance
- */
-function getWallet(seed) {
-  return Wallet.fromSeed(seed, { algorithm: ECDSA.secp256k1 })
 }
 
 /**
@@ -289,17 +276,21 @@ function AesEncrypt(content, aes_key) {
  * Decrypt content that was encrypted with AesEncrypt.
  * @param {string} cipherData - Encrypted string
  * @param {string} aes_key - 48-character hex string (32-key + 16-IV)
- * @returns {string} Decrypted string
+ * @returns {string|null} Decrypted string, or null on failure
  */
 function AesDecrypt(cipherData, aes_key) {
-  const { key, iv } = splitAesKeyIv(aes_key)
-  const decrypted = CryptoJS.AES.decrypt(cipherData, key, {
-    iv: iv,
-    mode: CryptoJS.mode.CBC,
-    padding: CryptoJS.pad.Pkcs7
-  })
-  const decryptedStr = decrypted.toString(CryptoJS.enc.Utf8)
-  return decryptedStr
+  try {
+    const { key, iv } = splitAesKeyIv(aes_key)
+    const decrypted = CryptoJS.AES.decrypt(cipherData, key, {
+      iv: iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    })
+    return decrypted.toString(CryptoJS.enc.Utf8)
+  } catch (error) {
+    Logger.error('[AesDecrypt]', error)
+    return null
+  }
 }
 
 /**
@@ -345,13 +336,8 @@ function hkdf(ikm, salt, length) {
  * @returns {string} 32-byte hex AES key string
  */
 function genAESKey(shared_key, address1, address2, sequence) {
-  let address12 = ''
-  if (address1 > address2) {
-    address12 = address1 + address2
-  } else if (address2 > address1) {
-    address12 = address2 + address1
-  }
-  const salt = CryptoJS.SHA512(GenesisHash + address12 + sequence)
+  const [a, b] = sortedAddressPair(address1, address2)
+  const salt = CryptoJS.SHA512(GenesisHash + a + b + sequence)
   const derivedKeyLength = 32
 
   const aesKey = hkdf(shared_key, salt, derivedKeyLength)
@@ -469,10 +455,10 @@ export {
   genSalt,
   encryptWithPassword,
   decryptWithPassword,
-  getWallet,
   AesEncrypt,
   AesDecrypt,
 
+  sortedAddressPair,
   genAESKey,
 
   AesEncryptBuffer,

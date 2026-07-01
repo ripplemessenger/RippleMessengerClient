@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useSelector } from 'react-redux'
 import { FiLogOut, FiMoon, FiSun } from 'react-icons/fi'
 import { HiOutlineStatusOffline, HiOutlineStatusOnline } from 'react-icons/hi'
@@ -8,14 +9,16 @@ import InternalLink from './InternalLink'
 import NavBarIconButton from './NavBarIconButton'
 import NavBarIconLink from './NavBarIconLink'
 import { useTheme } from './ThemeProvider'
+import { selectMessengerConnStatus, selectTotalNewMessages } from '../selectors'
 import useAuth from '../hooks/useAuth'
 
-export default function Header() {
+function Header() {
 
   const { IsAuth, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
 
-  const { MessengerConnStatus, SessionNewMsgCount } = useSelector(state => state.Messenger)
+  const MessengerConnStatus = useSelector(selectMessengerConnStatus)
+  const SessionNewMsgCount = useSelector(selectTotalNewMessages)
   const { Address } = useSelector(state => state.User)
 
   return (
@@ -71,3 +74,5 @@ export default function Header() {
     </nav>
   )
 }
+
+export default memo(Header)

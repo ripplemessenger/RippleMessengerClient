@@ -52,10 +52,8 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
             }
           })
           onClose()
-          // alert(`save to: ${savePath}`)
         } catch (error) {
           Logger.error('avatar save', error)
-          // alert('save fail')
         }
       }, 'image/png')
     }

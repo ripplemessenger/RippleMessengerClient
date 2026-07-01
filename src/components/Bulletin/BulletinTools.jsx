@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import { useState, memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
 import { AiOutlineLink } from "react-icons/ai"
 import { MdPostAdd } from "react-icons/md"
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { MessageObjectType } from '../../lib/MessengerConst'
+import { useClipboard } from '../../hooks/useClipboard'
 import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { BulletinMarkToggle, BulletinQuote, BulletinReply, ShowForwardBulletin } from '../../store/sagas/messenger.actions'
 
@@ -14,10 +15,7 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
 
   const dispatch = useDispatch()
 
-  const copyText = async (text) => {
-    await navigator.clipboard.writeText(text)
-    dispatch(setFlashNoticeMessage({ message: 'copy content success', duration: FLASH_DURATION_MS }))
-  }
+  const copyText = useClipboard((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })))
 
   const toggleMarkDisplay = async () => {
     setDisplayMark(!displayMark)
@@ -47,4 +45,4 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
   )
 }
 
-export default React.memo(BulletinTools)
+export default memo(BulletinTools)
