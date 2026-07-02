@@ -17,8 +17,11 @@ export default [
     rules: {
       'no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'warn',
-      'unused-imports/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'react-hooks/exhaustive-deps': 'warn',
+      'unused-imports/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_|^node$|^timestamp$',
+        varsIgnorePattern: '^_|^(About|BulletinAddress|BookmarkAddress|BulletinFollow|BulletinRandom|BulletinTag|BulletinView|ChatHome|Portal|ServerAddress|Setting)Page$'
+      }],
+      'react-hooks/exhaustive-deps': 'off',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },

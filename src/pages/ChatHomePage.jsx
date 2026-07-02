@@ -68,7 +68,7 @@ export default function ChatHomePage() {
               />
             ) : (
               SessionList.map((session) => (
-                <ListSession key={session.address || session.hash || session.remote} session={session} onClick={() => handleSessionClick(session)} />
+                <ListSession key={session.address || session.hash || session.remote} session={session} onSessionClick={handleSessionClick} />
               ))
             )}
           </div>

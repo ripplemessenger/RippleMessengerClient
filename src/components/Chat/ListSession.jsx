@@ -5,13 +5,14 @@ import SessionName from './SessionName'
 import { SessionType } from '../../lib/AppConst'
 import AvatarWithBadger from './AvatarWithBadger'
 
-const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
+const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
   const rowClass = `flex flex-row mx-1.5 mt-2 cursor-pointer rounded-lg px-2 py-1 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors`
+  const handleClick = () => onSessionClick?.(session)
 
   return (
     <div className={`${textSize}`}>
       {session.type === SessionType.Private && (
-        <div className={rowClass} onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick() }} role="button" tabIndex={0} aria-label={`Open chat with ${session.address}`}>
+        <div className={rowClass} onClick={handleClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick() }} role="button" tabIndex={0} aria-label={`Open chat with ${session.address}`}>
           <AvatarWithBadger session_type={session.type} address={session.address} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">
             <AvatarName address={session.address} />
@@ -20,7 +21,7 @@ const ListSession = ({ session, onClick, textSize = 'text-base' }) => {
         </div>
       )}
       {session.type === SessionType.Group && (
-        <div className={rowClass} onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick() }} role="button" tabIndex={0} aria-label={`Open group chat ${session.name}`}>
+        <div className={rowClass} onClick={handleClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick() }} role="button" tabIndex={0} aria-label={`Open group chat ${session.name}`}>
           <AvatarWithBadger session_type={session.type} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">
             <SessionName name={session.name} />

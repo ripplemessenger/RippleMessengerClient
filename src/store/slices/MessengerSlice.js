@@ -188,8 +188,7 @@ const MessengerSlice = createSlice({
       let group_member_map = {}
       for (let i = 0; i < group_list.length; i++) {
         const group = group_list[i]
-        group_member_map[group.hash] = group.member
-        group_member_map[group.hash].push(group.created_by)
+        group_member_map[group.hash] = [...group.member, group.created_by]
       }
       state.GroupMemberMap = group_member_map
 

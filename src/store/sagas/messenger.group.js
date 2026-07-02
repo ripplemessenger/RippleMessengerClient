@@ -169,7 +169,7 @@ export function* CreateGroup(action) {
     const address = yield select(state => state.User.Address)
     const member = yield select(state => state.Messenger.ComposeMemberList)
 
-    let hash = QuarterSHA512Message({ created_by: address, Member: member, Random: Math.random() })
+    let hash = QuarterSHA512Message({ created_by: address, Member: member, Random: crypto.getRandomValues(new Uint32Array(1))[0] / 4294967295 })
     let json = yield call(() => mgAPI.genGroupCreate(seed, hash, action.payload.name, member))
     let result = yield call(() => dbAPI.createGroup(json.Hash, action.payload.name, address, json.Member, json.Timestamp, json, true))
     if (result) {

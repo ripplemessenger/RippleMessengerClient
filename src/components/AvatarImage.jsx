@@ -1,11 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { RxAvatar } from 'react-icons/rx'
 import { AvatarDir } from '../lib/AppConst'
 import { useAppBaseDir } from '../hooks/useAppBaseDir'
 import { useFileBlobUrl } from '../hooks/useFileBlobUrl'
 
-const AvatarImage = ({ address, onClick, classNames }) => {
+const AvatarImage = memo(({ address, onClick, classNames }) => {
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
 
@@ -34,6 +34,6 @@ const AvatarImage = ({ address, onClick, classNames }) => {
       )}
     </div>
   )
-}
+})
 
 export default AvatarImage

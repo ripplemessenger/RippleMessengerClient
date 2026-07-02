@@ -32,7 +32,7 @@ const BulletinForward = ({ }) => {
               {
                 SessionList.map((session, index) => (
                   <div key={index} className='text-xs text-text-primary dark:text-dark-text-primary mt-1 p-1'>
-                    <ListSession session={session} onClick={() => forward(session)} />
+                    <ListSession session={session} onSessionClick={forward} />
                   </div>
                 ))
               }

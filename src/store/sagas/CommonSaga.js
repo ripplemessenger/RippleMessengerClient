@@ -6,11 +6,11 @@ import Logger from '../../lib/Logger'
 import { setAppBaseDir } from '../slices/CommonSlice'
 
 function* GetDB() {
-  yield call(LoadAppBaseDir)
   try {
+    yield call(LoadAppBaseDir)
     yield call(getDB)
   } catch (e) {
-    Logger.error(e)
+    Logger.error('[GetDB] failed:', e.message || e)
   }
 }
 

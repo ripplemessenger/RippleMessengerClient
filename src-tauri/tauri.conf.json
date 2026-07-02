@@ -16,7 +16,7 @@
         "title": "RippleMessenger",
         "width": 1280,
         "height": 1000,
-        "devtools": false
+        "devtools": true
       }
     ],
     "security": {

@@ -5,33 +5,110 @@
 // Root watcher (imported by store/index.js)
 export { watchMessenger } from '../messenger.watcher'
 
-// Session management
-export { LoadSessionList } from '../messenger.session'
+// Action creators (preferred export — Redux dispatches these as plain objects)
+// Covers all symbols that have both an action creator and a saga handler.
+export {
+  // Server management
+  LoadServerList,
+  ServerAdd,
+  ServerDel,
+  ServerSetDefault,
+  ServerToggle,
 
-// Private chat
+  // Bulletin loading
+  LoadPortalBulletin,
+  LoadAddressBulletin,
+  LoadFollowBulletin,
+  LoadBookmarkBulletin,
+  LoadBulletin,
+  RequestRandomBulletin,
+  RequestServerAddress,
+  RequestReplyBulletin,
+  RequestTagBulletin,
+
+  // Avatar
+  CheckAvatar,
+  SaveSelfAvatar,
+
+  // Bulletin file transfer
+  FetchBulletinFile,
+  SaveBulletinFile,
+
+  // Chat file transfer
+  FetchPrivateChatFile,
+  FetchGroupChatFile,
+  FetchChatFile,
+  SaveChatFile,
+
+  // Bulletin publish
+  PublishBulletin,
+  BulletinTagAdd,
+  BulletinTagDel,
+  BulletinQuoteAdd,
+  BulletinQuoteDel,
+  BulletinFileAdd,
+  BulletinFileDel,
+  BulletinReply,
+  BulletinQuote,
+  BulletinMarkToggle,
+
+  // Bulletin local
+  UploadBulletin,
+
+  // Session
+  LoadSessionList,
+  LoadCurrentSession,
+
+  // File send
+  SendFile,
+
+  // Chat
+  SendContent,
+  ShowForwardBulletin,
+  ForwardBulletin,
+
+  // Group compose
+  ComposeMemberAdd,
+  ComposeMemberDel,
+
+  // Group management
+  CreateGroup,
+  DeleteGroup,
+  AcceptGroupRequest,
+} from '../messenger.actions'
+
+// Saga-only: bulletin & avatar internal helpers (no action creator)
+export {
+  CacheBulletin,
+  AvatarRequest,
+  RequestAvatarFile,
+  RequestNextBulletin,
+  RefreshPortalBulletin,
+  LoadMineBulletinSequence,
+  FetchFollowBulletin,
+  RefreshFollowBulletin,
+  saveLocalFile,
+  SubscribeFollow,
+} from '../messenger.bulletin'
+
+// Saga-only: private chat
 export {
   SyncPrivateMessage,
   InitHandshake,
   LoadPrivateSession,
   SendPrivateContent,
   RefreshPrivateMessageList,
-  ShowForwardBulletin,
-  ForwardBulletin,
 } from '../messenger.private'
 
-// Group chat
+// Saga-only: group chat
 export {
   RefreshGroupMessageList,
   LoadGroupSession,
   SendGroupContent,
-  ComposeMemberAdd,
-  ComposeMemberDel,
-  CreateGroup,
-  DeleteGroup,
   GroupSync,
 } from '../messenger.group'
 
-// Core messaging
+// Saga-only: core messaging utilities
 export {
   SendMessage,
   ConnectServer,
@@ -41,64 +118,8 @@ export {
   genFileNonce,
 } from '../messenger.core'
 
-// File transfer
+// Saga-only: MessengerSaga internal helpers
 export {
-  FetchBulletinFile,
-  SaveBulletinFile,
-  FetchPrivateChatFile,
-  FetchGroupChatFile,
-  FetchChatFile,
-  SaveChatFile,
-  SendFile,
-} from '../messenger.file'
-
-// Bulletin & avatar (all re-exports from messenger.bulletin)
-export {
-  CacheBulletin,
-  UploadBulletin,
-  CheckAvatar,
-  SaveSelfAvatar,
-  AvatarRequest,
-  RequestAvatarFile,
-  RequestNextBulletin,
-  LoadPortalBulletin,
-  RefreshPortalBulletin,
-  LoadMineBulletinSequence,
-  LoadAddressBulletin,
-  FetchFollowBulletin,
-  LoadFollowBulletin,
-  RefreshFollowBulletin,
-  LoadBookmarkBulletin,
-  LoadBulletin,
-  RequestRandomBulletin,
-  RequestServerAddress,
-  RequestReplyBulletin,
-  RequestTagBulletin,
-  PublishBulletin,
-  BulletinTagAdd,
-  BulletinTagDel,
-  BulletinQuoteAdd,
-  BulletinQuoteDel,
-  BulletinReply,
-  BulletinQuote,
-  saveLocalFile,
-  BulletinFileAdd,
-  BulletinFileDel,
-  BulletinMarkToggle,
-  SubscribeFollow,
-} from '../messenger.bulletin'
-
-// Server management & session dispatchers (stays in MessengerSaga.js)
-export {
-  LoadServerList,
-  UpdateConnStatus,
-  ServerAdd,
-  ServerDel,
-  ServerSetDefault,
-  ServerToggle,
-  LoadCurrentSession,
-  SendContent,
   LoadGroupList,
   LoadGroupRequestList,
-  AcceptGroupRequest,
 } from '../MessengerSaga'

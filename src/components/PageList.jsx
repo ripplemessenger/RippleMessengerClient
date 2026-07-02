@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux'
 
 const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
   const dispatch = useDispatch()
-  const bound = useRef(false)
   // Use ref for payload to avoid re-binding keyboard listener on every parent re-render
   // when payload is an inline object literal (new reference each render).
   const payloadRef = useRef(payload)
@@ -11,8 +10,6 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
 
   // Keyboard navigation: left/right arrow keys
   useEffect(() => {
-    if (bound.current) return
-    bound.current = true
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
       if (e.key === 'ArrowLeft' && current_page > 1) {
@@ -24,7 +21,6 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
     window.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      bound.current = false
     }
   }, [current_page, total_page, dispatch_type, dispatch])
 

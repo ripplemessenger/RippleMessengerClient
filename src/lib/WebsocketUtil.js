@@ -77,10 +77,18 @@ export function createMultiWsChannel(configs) {
       Logger.info(`[WS] Keeping existing connection: ${key}`)
       return
     }
+    // Reset retry count on each fresh attempt so temporary flapping doesn't permanently kill the channel
+    if (existing) {
+      manager.channels.set(key, { ...existing, retryCount: 0 })
+    }
 
     let retryCount = 0
 
     function connect() {
+      const entry = manager.channels.get(key)
+      if (!entry) return
+      retryCount = entry.retryCount || 0
+
       const ws = new WebSocket(url)
       ws.binaryType = 'arraybuffer'
 
@@ -105,9 +113,9 @@ export function createMultiWsChannel(configs) {
           manager.channels.set(key, { ws: null, config: cfg, retryCount, retryTimer: timerId })
           Logger.info(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
         } else if (retryCount >= manager.MAX_RETRIES) {
-          Logger.warn(`[WS] Permanently disconnected: ${key} (retries exhausted)`)
-          emitToGlobal({ type: 'status', key, status: 'permanently_disconnected', code: ev.code })
-          manager.channels.delete(key)
+          Logger.warn(`[WS] Retries exhausted for ${key} -- pausing (will retry on next createMultiWsChannel call)`)
+          emitToGlobal({ type: 'status', key, status: 'retries_exhausted', code: ev.code })
+          manager.channels.set(key, { ws: null, config: cfg, retryCount: 0, retryTimer: null })
         } else {
           emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
           manager.channels.delete(key)

@@ -286,11 +286,11 @@ export const dbAPI = {
     })) || false
   },
 
-  async toggleServerConnect(url, is_connect) {
+  async toggleServerConnect(url, is_connect, updated_at) {
     return (await withDb(async (db) => {
       await db.execute(
-        'UPDATE servers SET is_connect = $1 WHERE url = $2',
-        [Bool2Int(is_connect), url]
+        'UPDATE servers SET is_connect = $1, updated_at = $2 WHERE url = $3',
+        [Bool2Int(is_connect), updated_at || Date.now(), url]
       )
       return true
     })) || false

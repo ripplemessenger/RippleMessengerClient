@@ -790,7 +790,7 @@ function* handleGroupMessageListObject(json, address, seed) {
     for (let i = 0; i < json.List.length; i++) {
       const group_msg = json.List[i]
       const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
-      const pre_message = yield call(() => dbAPI.getGroupByHash(json.GroupHash, group_msg.PreHash))
+      const pre_message = yield call(() => dbAPI.getGroupMessageByHash(json.GroupHash, group_msg.PreHash))
       if (pre_message === undefined && !(group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
         unCachedMessageAddress.push(msg_address)
         continue

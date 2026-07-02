@@ -6,7 +6,7 @@ import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
 import { setFileRequestList } from './messenger.core'
 import { PostAddress } from '../../lib/MessengerConst'
 import { SessionType } from '../../lib/AppConst'
-import { setCurrentSession, setGroupList, setSessionList } from '../slices/MessengerSlice'
+import { setCurrentSession, setGroupList, setSessionList, setPortalBulletinList, setRandomBulletinList, setAddressBulletinList, setFollowBulletinList, setBookmarkBulletinList, setDisplayBulletin, setDisplayBulletinReplyList, setPublishTagList, setPublishQuoteList, setPublishFileList, setForwardBulletin, setServerAddressList, setTagBulletinList, setSearchTagList, setBulletinAddress } from '../slices/MessengerSlice'
 import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from '../slices/UserSlice'
 import { AccountAdd as AccountAddAction, AccountDel as AccountDelAction, ContactAdd as ContactAddAction, ContactDel as ContactDelAction, ContactToggleIsFollow as ContactToggleIsFollowAction, ContactToggleIsFriend as ContactToggleIsFriendAction, LoadContactList as LoadContactListAction } from './messenger.actions'
 import { LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadServerList, RefreshPortalBulletin, SubscribeFollow } from './MessengerSaga'
@@ -56,6 +56,22 @@ function* handleLogout() {
     yield put(setSessionList([]))
     yield put(setGroupList({ group_list: [], group_member_map: {} }))
     yield put(setCurrentSession(null))
+    // Clear all bulletin-related state
+    yield put(setPortalBulletinList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setRandomBulletinList([]))
+    yield put(setAddressBulletinList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setFollowBulletinList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setBookmarkBulletinList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setDisplayBulletin(null))
+    yield put(setDisplayBulletinReplyList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setPublishTagList([]))
+    yield put(setPublishQuoteList([]))
+    yield put(setPublishFileList([]))
+    yield put(setForwardBulletin(null))
+    yield put(setServerAddressList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setTagBulletinList({ List: [], Page: 1, TotalPage: 1 }))
+    yield put(setSearchTagList([]))
+    yield put(setBulletinAddress(null))
     setFileRequestList([])
     yield call(disconnectAllWebsockets)
   } catch (e) {
