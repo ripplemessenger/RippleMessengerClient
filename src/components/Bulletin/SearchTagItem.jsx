@@ -10,7 +10,7 @@ const SearchTagItem = ({ tag }) => {
 
   const { SearchTagList } = useSelector(state => state.Messenger)
 
-  const delTag = async () => {
+  const delTag = () => {
     let tmp = [...SearchTagList]
     tmp = tmp.filter(t => t !== tag)
     dispatch(setSearchTagList(tmp))

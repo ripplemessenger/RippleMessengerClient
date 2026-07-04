@@ -750,6 +750,61 @@ export const dbAPI = {
     }
   },
 
+  /**
+   * Batch version: returns the latest bulletin (highest sequence) for each address.
+   * Uses a subquery so we get one row per address with max(sequence), then joins
+   * back to fetch the full bulletin row. Returns an object keyed by address.
+   * Missing addresses simply do not appear in the result.
+   */
+  async getLastBulletinByAddresses(addresses) {
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+      return {}
+    }
+    const dbInstance = await getDB()
+    const placeholders = addresses.map((_, i) => `$${i + 1}`).join(', ')
+    const query = `
+      SELECT b.*
+      FROM bulletins b
+      INNER JOIN (
+        SELECT address, MAX(sequence) AS max_seq
+        FROM bulletins
+        WHERE address IN (${placeholders})
+        GROUP BY address
+      ) mx ON b.address = mx.address AND b.sequence = mx.max_seq
+    `
+    const rows = await dbInstance.select(query, addresses)
+    const result = {}
+    for (const row of rows) {
+      result[row.address] = bulletin2Display(row)
+    }
+    return result
+  },
+
+  /**
+   * Given an array of {address, sequence} objects, returns only those that
+   * actually exist in the bulletins table.  Callers use the difference to find gaps.
+   */
+  async getBulletinSequencesBatch(pairs) {
+    if (!Array.isArray(pairs) || pairs.length === 0) {
+      return []
+    }
+    const dbInstance = await getDB()
+    // Build (address, sequence) tuples: ('addr1',1),('addr2',3),...
+    const tupleStrs = pairs.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`)
+    const values = []
+    for (const p of pairs) {
+      values.push(p.address, p.sequence)
+    }
+    const query = `
+      SELECT address, sequence
+      FROM bulletins
+      WHERE (address, sequence) IN (${tupleStrs})
+    `
+    const rows = await dbInstance.select(query, values)
+    // Return flat set of "address:sequence" strings for easy diffing
+    return new Set(rows.map(r => `${r.address}:${r.sequence}`))
+  },
+
   async addBulletin(hash, address, sequence, pre_hash, content, json, signed_at) {
     return (await withDb(async (db) => {
       await db.execute(

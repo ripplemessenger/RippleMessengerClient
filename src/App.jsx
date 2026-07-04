@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 
 import LoadingDiv from './components/LoadingDiv'
 import ProtectedRoute from './components/ProtectedRoute'
-import PublicOnlyRoute from './components/PublicOnlyRoute'
 import useAuth from './hooks/useAuth'
 import MainLayout from './layouts/MainLayout'
 import OpenPage from './pages/OpenPage'
@@ -27,9 +26,6 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<RootRouter />} />
           <Route path="/about" element={<AboutPage />} />
-
-          <Route element={<PublicOnlyRoute />}>
-          </Route>
 
           <Route element={<ProtectedRoute />}>
             <Route path="/bulletin_follow" element={<BulletinFollowPage />} />

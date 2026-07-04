@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState, memo } from 'react'
 import { IoAttachOutline, IoSendOutline } from 'react-icons/io5'
 
 /**
@@ -48,4 +48,4 @@ const ChatInput = ({ disabled = false, onSend, onAttach }) => {
   )
 }
 
-export default React.memo(ChatInput)
+export default memo(ChatInput)

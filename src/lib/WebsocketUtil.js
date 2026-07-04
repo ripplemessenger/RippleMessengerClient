@@ -199,6 +199,7 @@ export function sendToAllConn(payload) {
  * Iterates until it finds an open connection and sends.
  * @param {Array<{url: string}>} server_list - List of server configurations with URL keys
  * @param {string|object|ArrayBuffer|Blob|ArrayBufferView} payload - Data to send
+ * @returns {boolean} True if sent successfully, false if no server is open
  */
 export function sendToFirstConn(server_list, payload) {
   for (let i = 0; i < server_list.length; i++) {
@@ -217,4 +218,5 @@ export function sendToFirstConn(server_list, payload) {
     }
     return true
   }
+  return false
 }

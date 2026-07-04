@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { selectMessengerConnStatus, selectUserAddress } from '../selectors'
+
 /**
  * Load a bulletin list on mount when authenticated and connected.
  *
@@ -14,12 +16,12 @@ import { useDispatch, useSelector } from 'react-redux'
  */
 export function useBulletinLoad(actionType, payload, guard, extraDeps = []) {
   const dispatch = useDispatch()
-  const Address = useSelector(state => state.User.Address)
-  const MessengerConnStatus = useSelector(state => state.Messenger.MessengerConnStatus)
+  const Address = useSelector(selectUserAddress)
+  const MessengerConnStatus = useSelector(selectMessengerConnStatus)
 
   useEffect(() => {
     if (MessengerConnStatus && (guard === undefined || guard !== null)) {
       dispatch({ type: actionType, payload: payload ?? { page: 1 } })
     }
-  }, [dispatch, MessengerConnStatus, guard ?? Address, actionType, ...extraDeps])
+  }, [dispatch, MessengerConnStatus, guard ?? Address, actionType, payload, ...extraDeps])
 }

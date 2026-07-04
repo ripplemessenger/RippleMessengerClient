@@ -317,8 +317,6 @@ function buildFileFullPath(baseDir, fileDir, hash) {
 }
 
 export {
-  sortedAddressPair,
-
   AddressToName,
 
   FileHash,

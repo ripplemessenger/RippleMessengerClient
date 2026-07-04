@@ -4,83 +4,47 @@ import { useNavigate } from 'react-router-dom'
 import { AiOutlineUserAdd } from 'react-icons/ai'
 import { BsIncognito } from 'react-icons/bs'
 import { CgDice5 } from 'react-icons/cg'
-import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
-import { ECDSA, Wallet } from 'xrpl'
 
 import AvatarSelector from '../components/AvatarSelector'
 import FormButton from '../components/Form/FormButton'
 import SelectInput from '../components/Form/SelectInput'
 import TextInput from '../components/Form/TextInput'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { decryptWithPassword, encryptWithPassword, genSalt } from '../lib/AppUtil'
-import { getWallet } from '../lib/RippleUtil'
 import Logger from '../lib/Logger'
+import { decryptWithPassword } from '../lib/AppUtil'
+import { getWallet } from '../lib/RippleUtil'
 import { loadAccountListStart, loginStart } from '../store/slices/UserSlice'
 import { AccountAdd } from '../store/sagas/messenger.actions'
 
+// Sub-components (modals)
+import AddAccountModal from './AddAccountModal'
+import TempLoginModal from './TempLoginModal'
+import GenerateAccountModal from './GenerateAccountModal'
+
 export default function OpenPage() {
-  // --- Hooks first (React rules: all hooks at the top, before any logic) ---
+  // --- Redux hooks ---
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { IsAuth, AccountList, Seed } = useSelector(state => state.User)
 
+  // --- LocalStorage ---
   const [seed, setSeed] = useLocalStorage('Seed', '')
   const [address, setAddress] = useLocalStorage('Address', '')
 
-  // add
+  // --- Modal visibility toggles ---
   const [showAdd, setShowAdd] = useState(false)
-  const [savePassword, setSavePassword] = useState('')
-  const [saveSeed, setSaveSeed] = useState('')
-  const [saveAddress, setSaveAddress] = useState('')
-  const [addError, setAddError] = useState(null)
-  const [addLoading, setAddLoading] = useState(false)
-
-  const updateSeed = (value) => {
-    value = value.trim()
-    setSaveSeed(value)
-    setSaveAddress('')
-    setAddError(null)
-
-    if (value !== '') {
-      try {
-        const wallet = getWallet(value)
-        setSaveAddress(wallet.classicAddress)
-      } catch (error) {
-        Logger.debug(error)
-        setAddError(error.message)
-      }
-    }
-  }
-
-  const addAccount = () => {
-    if (saveSeed === '' || savePassword.trim() === '') return
-    setAddLoading(true)
-    // Yield to UI so loading spinner renders before blocking crypto
-    setTimeout(() => {
-      try {
-        const salt = genSalt()
-        const cipherData = encryptWithPassword(saveSeed, savePassword, salt)
-        dispatch(AccountAdd({ address: saveAddress, salt: salt, cipher_data: cipherData }))
-        setSavePassword('')
-        setSaveSeed('')
-        if (addError === null && saveSeed !== '') {
-          setSeed(saveSeed)
-          setAddress(saveAddress)
-          dispatch(loginStart({ seed: saveSeed, address: saveAddress }))
-        }
-      } catch (e) {
-        Logger.error('[addAccount] encryption failed:', e.message)
-        setAddError(e.message)
-      } finally {
-        setAddLoading(false)
-      }
-    }, 50)
-  }
-
-  // tmp
   const [showTmp, setShowTmp] = useState(false)
+  const [showGen, setShowGen] = useState(false)
+
+  // --- Temp login state (owned here, passed down) ---
   const [displaySeed, setDisplaySeed] = useState('')
   const [tmpError, setTmpError] = useState(null)
+
+  useEffect(() => {
+    if (displaySeed === '') {
+      setTmpError(null)
+    }
+  }, [displaySeed])
 
   const tmpUpdateSeed = (value) => {
     value = value.trim()
@@ -104,53 +68,34 @@ export default function OpenPage() {
     }
   }
 
-  useEffect(() => {
-    if (displaySeed === '') {
-      setTmpError(null)
+  // --- Add account callback ---
+  const onAddAccount = ({ seed: acctSeed, address: acctAddr, salt, cipher_data }) => {
+    dispatch(AccountAdd({ address: acctAddr, salt, cipher_data }))
+    if (acctAddr !== '') {
+      setSeed(acctSeed)
+      setAddress(acctAddr)
+      dispatch(loginStart({ seed: acctSeed, address: acctAddr }))
     }
-  }, [displaySeed])
-
-  // gen
-  const [showGen, setShowGen] = useState(false)
-  const [newSeed, setNewSeed] = useState('')
-  const [newAddress, setNewAddress] = useState('')
-
-  const genNewAccount = async () => {
-    const tmp = Wallet.generate(ECDSA.secp256k1)
-    setNewSeed(tmp.seed)
-    const wallet = getWallet(tmp.seed)
-    setNewAddress(wallet.classicAddress)
   }
 
-  // open save
+  // --- Main login form state ---
   const addressOptions = useMemo(() => {
     return AccountList.map(a => ({ value: a.address, label: a.address }))
   }, [AccountList])
-  const [addressSelected, setAddressSelectd] = useState('')
+  const [addressSelected, setSelectedAddress] = useState('')
   const [openPassword, setOpenPassword] = useState('')
   const [avatarIndex, setAvatarIndex] = useState(0)
   const [loginError, setLoginError] = useState(null)
   const [loginLoading, setLoginLoading] = useState(false)
 
-  // Refs for focusing inputs — replaces document.getElementById
+  // Ref for focusing password input
   const passwordRef = useRef(null)
-  const addSeedRef = useRef(null)
-  const tmpSeedRef = useRef(null)
 
   const focusPasswordInput = () => {
     setTimeout(() => passwordRef.current?.focus(), 0)
   }
 
-  const [copiedField, setCopiedField] = useState(null)
-
-  const copyToClipboard = (text, label) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedField(label)
-      setTimeout(() => setCopiedField(null), 1500)
-    })
-  }
-
-  // Global keyboard: Left/Right switch avatar, Down focus password, Escape close modals
+  // --- Keyboard shortcuts (Escape closes modals, Left/Right/Down navigate avatars) ---
   useEffect(() => {
     const handleKeydown = (e) => {
       if (e.key === 'Escape') {
@@ -159,7 +104,6 @@ export default function OpenPage() {
         setShowGen(false)
         return
       }
-      // Left/Right/Down only work when no modal is open
       if (showAdd || showTmp || showGen) return
       if (addressOptions.length <= 1) return
 
@@ -169,7 +113,7 @@ export default function OpenPage() {
           ? (avatarIndex - 1 + addressOptions.length) % addressOptions.length
           : (avatarIndex + 1) % addressOptions.length
         setAvatarIndex(newIndex)
-        setAddressSelectd(addressOptions[newIndex].value)
+        setSelectedAddress(addressOptions[newIndex].value)
         focusPasswordInput()
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -180,20 +124,11 @@ export default function OpenPage() {
     return () => window.removeEventListener('keydown', handleKeydown)
   }, [avatarIndex, addressOptions, showAdd, showTmp, showGen])
 
-  // Auto-focus first input when modals open
-  useEffect(() => {
-    if (showAdd) addSeedRef.current?.focus()
-  }, [showAdd])
-
-  useEffect(() => {
-    if (showTmp) tmpSeedRef.current?.focus()
-  }, [showTmp])
-
+  // --- Login ---
   const login = () => {
     const account = AccountList?.find(a => a.address === addressSelected)
     if (!account) return
     setLoginLoading(true)
-    // Yield to UI so loading spinner renders before blocking crypto
     setTimeout(() => {
       try {
         const tmpSeed = decryptWithPassword(openPassword, account.salt, account.cipher_data)
@@ -214,9 +149,10 @@ export default function OpenPage() {
     }, 50)
   }
 
+  // --- Initial load / side effects ---
   useEffect(() => {
     if (addressOptions.length > 0) {
-      setAddressSelectd(addressOptions[0].value)
+      setSelectedAddress(addressOptions[0].value)
       focusPasswordInput()
     }
   }, [addressOptions])
@@ -227,131 +163,36 @@ export default function OpenPage() {
 
   useEffect(() => {
     if (IsAuth) {
-      navigate('/',
-        {
-          replace: true
-        }
-      )
+      navigate('/', { replace: true })
     }
   }, [IsAuth])
 
   return (
     <div className="p-1 mt-8 flex justify-center items-center">
-      {
-        showGen &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowGen(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <div className="min-w-80 space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title flex flex-row items-center">
-              Generate
-            </div>
-            <div className="w-full flex flex-col justify-center">
-              <FormButton title="Generate Account" onClick={genNewAccount} />
-              <div className={`mt-2 ${newSeed === '' ? 'hidden' : ''}`}>
-                <div className="justify-center flex flex-col">
-                  <label className="label flex items-center gap-1">
-                    Seed:
-                    <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">(click to copy)</span>
-                  </label>
-                  <div onClick={() => copyToClipboard(newSeed, 'seed')}
-                    className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative">
-                    {newSeed}
-                    <IoCopyOutline className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'seed' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`} />
-                  </div>
-                  {copiedField === 'seed' && <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">✓ Copied to clipboard!</span>}
-                </div>
-              </div>
-              <div className={`mt-2 ${newAddress === '' ? 'hidden' : ''}`}>
-                <div className="justify-center flex flex-col">
-                  <label className="label flex items-center gap-1">
-                    Address:
-                    <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">(click to copy)</span>
-                  </label>
-                  <div onClick={() => copyToClipboard(newAddress, 'address')}
-                    className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative">
-                    {newAddress}
-                    <IoCopyOutline className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'address' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`} />
-                  </div>
-                  {copiedField === 'address' && <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">✓ Copied to clipboard!</span>}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
+      {/* Generate Account Modal */}
+      {showGen && <GenerateAccountModal onClose={() => setShowGen(false)} />}
 
-      {
-        showTmp &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowTmp(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <div className="space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title flex flex-row items-center">
-              Tmp Open
-            </div>
-            {
-              Seed === null &&
-              <div className="form-card-container mb-6">
-                <div className="space-y-4 flex flex-col justify-center">
-                  <div className={`mt-1`}>
-                    <TextInput ref={tmpSeedRef} label={'Your Seed:'} type='password' value={displaySeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => tmpUpdateSeed(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-            }
-            {tmpError !== null && (
-              <div className="p-3 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20 max-w-md mx-auto mb-4">
-                <span className='text-sm font-medium block w-full break-words text-status-error dark:text-status-error-dark'>{tmpError}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      }
+      {/* Temporary Login Modal */}
+      {showTmp && (
+        <TempLoginModal
+          displaySeed={displaySeed}
+          tmpError={tmpError}
+          Seed={Seed}
+          onClose={() => setShowTmp(false)}
+          onSeedUpdate={tmpUpdateSeed}
+        />
+      )}
 
-      {
-        showAdd &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowAdd(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <form onSubmit={(e) => { e.preventDefault(); addAccount() }} className="space-y-4 flex flex-col justify-center mt-1">
-            <div className="card-title flex flex-row items-center">
-              Add Account
-            </div>
-            <div className={`mt-1`}>
-              <TextInput ref={addSeedRef} label={'Your Seed:'} type='password' value={saveSeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => updateSeed(e.target.value)} />
-            </div>
-            <div className={`mt-1 ${saveSeed === '' ? 'hidden' : ''}`}>
-              <TextInput label={'Address:'} value={saveAddress} disabled={true} autoComplete={"off"} placeholder={"r.................................."} />
-            </div>
-            {addError !== null && (
-              <div className="p-3 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20">
-                <span className='label-error break-all'>{addError}</span>
-              </div>
-            )}
-            <div className={`mt-1`}>
-              <TextInput label={'Password:'} type='password' value={savePassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setSavePassword(e.target.value)} />
-            </div>
-            <FormButton title={addLoading ? 'Encrypting...' : 'Add Account'} disabled={saveSeed === '' || savePassword.trim() === '' || addLoading} >
-              {addLoading && (
-                <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle"/>
-              )}
-            </FormButton>
-          </form>
-        </div>
-      }
+      {/* Add Account Modal */}
+      {showAdd && (
+        <AddAccountModal
+          onClose={() => setShowAdd(false)}
+          onAddAccount={onAddAccount}
+        />
+      )}
 
-      <div className="overflow-y-auto text-text-primary dark:text-dark-text-primary transition-width duration-300 ease-in-out"
-      >
+      {/* Main Login Form */}
+      <div className="overflow-y-auto text-text-primary dark:text-dark-text-primary transition-width duration-300 ease-in-out">
         <div className="tab-page">
           <div className="card-title flex flex-row items-center">
             Open Account
@@ -365,27 +206,26 @@ export default function OpenPage() {
               <CgDice5 className="card-icon" />
             </button>
           </div>
-          {
-            addressSelected !== '' ?
-              <div className="!max-w-sm max-w-full w-full mx-auto mb-10">
-                <div className="form-card-container">
+          {addressSelected !== '' ? (
+            <div className="!max-w-sm max-w-full w-full mx-auto mb-10">
+              <div className="form-card-container">
                 <div className="flex flex-col justify-center p-6 space-y-4">
                   <AvatarSelector avatars={addressOptions} defaultIndex={avatarIndex} disableKeyboard={true} onSelect={(address) => {
                     const index = addressOptions.map(a => a.value).indexOf(address)
                     setAvatarIndex(index)
-                    setAddressSelectd(address)
+                    setSelectedAddress(address)
                     focusPasswordInput()
                   }} />
-                  <div className={`mt-1`}>
+                  <div className="mt-1">
                     <SelectInput label={'Address:'} options={addressOptions} selectedOption={addressSelected} onChange={(e) => {
-                      setAddressSelectd(e.target.value)
+                      setSelectedAddress(e.target.value)
                       const index = addressOptions.map(a => a.value).indexOf(e.target.value)
                       setAvatarIndex(index)
                       focusPasswordInput()
                     }} />
                   </div>
                   <form onSubmit={(e) => { e.preventDefault(); if (!loginLoading) login() }} className="flex flex-col">
-                    <div className={`mt-1`}>
+                    <div className="mt-1">
                       <TextInput ref={passwordRef} label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
                     </div>
                     <FormButton title={loginLoading ? 'Decrypting...' : 'Open Account'} disabled={loginLoading}>
@@ -396,12 +236,12 @@ export default function OpenPage() {
                   </form>
                 </div>
               </div>
-              </div>
-              :
-              <div className="empty-state-box my-4">
-                <p className="text-text-secondary dark:text-dark-text-secondary">No saved accounts</p>
-              </div>
-          }
+            </div>
+          ) : (
+            <div className="empty-state-box my-4">
+              <p className="text-text-secondary dark:text-dark-text-secondary">No saved accounts</p>
+            </div>
+          )}
           {loginError !== null && (
             <div className="p-4 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20 mb-4 max-w-md mx-auto">
               <span className='label-error break-all'>{loginError}</span>

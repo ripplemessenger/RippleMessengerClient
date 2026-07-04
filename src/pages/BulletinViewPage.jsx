@@ -10,6 +10,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
 import LoadingDiv from '../components/LoadingDiv'
 import PageList from '../components/PageList'
+import { selectDisplayBulletins, selectPublishFlags } from '../selectors'
 import { LoadBulletin, RequestReplyBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinViewPage() {
@@ -22,8 +23,8 @@ export default function BulletinViewPage() {
 
   const dispatch = useDispatch()
 
-  const { ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
-  const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } = useSelector(state => state.Messenger)
+  const { ShowPublishFlag, ShowForwardFlag } = useSelector(selectPublishFlags)
+  const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } = useSelector(selectDisplayBulletins)
 
   useEffect(() => {
     if (DisplayBulletin?.hash === bulletin_hash) {

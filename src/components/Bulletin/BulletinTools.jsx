@@ -17,7 +17,7 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
 
   const copyText = useClipboard((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })))
 
-  const toggleMarkDisplay = async () => {
+  const toggleMarkDisplay = () => {
     setDisplayMark(!displayMark)
   }
 

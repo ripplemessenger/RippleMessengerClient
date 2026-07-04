@@ -1,7 +1,8 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { useCallback, lazy, Suspense, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import LoadingDiv from '../components/LoadingDiv'
+import { selectActiveTabSetting } from '../selectors'
 import { SettingPageTab } from '../lib/AppConst'
 import { setActiveTabSetting } from '../store/slices/UserSlice'
 
@@ -19,8 +20,9 @@ const tabContentMap = {
 
 export default function SettingPage() {
   const dispatch = useDispatch()
-  const { activeTabSetting } = useSelector(state => state.User)
+  const activeTabSetting = useSelector(selectActiveTabSetting)
 
+  const handleTabClick = useCallback((tab) => dispatch(setActiveTabSetting(tab)), [dispatch])
   const tabItems = useMemo(() => Object.keys(tabContentMap), [])
 
   return (
@@ -30,7 +32,7 @@ export default function SettingPage() {
           {tabItems.map((name) => (
             <button
               key={name}
-              onClick={() => dispatch(setActiveTabSetting(name))}
+              onClick={() => handleTabClick(name)}
               className={`px-5 py-3 text-sm font-medium transition-colors rounded-t-lg ${activeTabSetting === name ?
                 'tab-title-active border-b-2 border-primary dark:border-dark-primary' :
                 'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
@@ -43,12 +45,10 @@ export default function SettingPage() {
         <div className="p-4">
           {tabItems.map((name) => {
             const TabComponent = tabContentMap[name]
-            return (
-              <div key={name} className={`${activeTabSetting === name ? 'block' : 'hidden'}`}>
-                <Suspense fallback={<LoadingDiv isLoading={true} text="Loading..." />}>
-                  <TabComponent />
-                </Suspense>
-              </div>
+            return activeTabSetting === name && (
+              <Suspense key={name} fallback={<LoadingDiv isLoading={true} text="Loading..." />}>
+                <TabComponent />
+              </Suspense>
             )
           })}
         </div>

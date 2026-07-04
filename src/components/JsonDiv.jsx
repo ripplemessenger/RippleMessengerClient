@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
 import 'react-json-view-lite/dist/index.css'
@@ -6,15 +6,16 @@ import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from "react-icons/i
 import { setDisplayJson, setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { FLASH_DURATION_MS } from '../lib/AppConst'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useTheme } from './ThemeProvider'
 
 const JsonDiv = ({ json }) => {
-  const [theme, setTheme] = useState(localStorage.getItem('theme'))
+  const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
 
   const dispatch = useDispatch()
   const { DisplayJsonOption } = useSelector(state => state.Common)
 
-  const closeJson = () => dispatch(setDisplayJson({ json: null, isExpand: false }))
+  const closeJson = useCallback(() => dispatch(setDisplayJson({ json: null, isExpand: false })), [dispatch])
   useEscapeKey(closeJson)
 
   const copyText = async (text) => {
@@ -41,7 +42,7 @@ const JsonDiv = ({ json }) => {
                 <IoCopyOutline className="icon-sm" /> copy
               </button>
             )}
-            <button onClick={() => dispatch(setDisplayJson({ json: null, isExpand: false }))} className="btn-sm modal-btn-gray">
+            <button onClick={closeJson} className="btn-sm modal-btn-gray">
               <IoCloseOutline className="icon-sm" /> close
             </button>
           </div>

@@ -60,7 +60,7 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
   }
 
   return (
-    <div className={`modal-overlay`}>
+    <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="modal-action-row">
         <button onClick={() => saveAvatar()} className="modal-btn-yellow">
           <IoCopyOutline /> save

@@ -5,16 +5,15 @@ import { MdPostAdd } from 'react-icons/md'
 import AvatarName from '../components/AvatarName'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
-import EmptyState from '../components/EmptyState'
-import ListBulletin from '../components/Bulletin/ListBulletin'
-import PageList from '../components/PageList'
+import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { useUserAddress } from '../hooks/useUserSelectors'
+import { selectBulletinAddressData } from '../selectors'
 import { setPublishFlag } from '../store/slices/MessengerSlice'
 import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinAddressPage() {
   const Address = useUserAddress()
-  const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(state => state.Messenger)
+  const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(selectBulletinAddressData)
 
   const dispatch = useDispatch()
 
@@ -26,45 +25,29 @@ export default function BulletinAddressPage() {
 
   return (
     <div className="bulletin-page-wrapper">
-      {
-        ShowPublishFlag &&
-        <BulletinPublish />
-      }
-      {
-        ShowForwardFlag &&
-        <BulletinForward />
-      }
-      <div className="tab-page">
-        <div className="bulletin-page-inner">
-          <div className="card-title flex flex-row items-center">
+      {ShowPublishFlag && <BulletinPublish />}
+      {ShowForwardFlag && <BulletinForward />}
+      <BulletinListPage
+        title={
+          <>
             <AvatarName address={BulletinAddress} />
             {BulletinAddress === Address &&
               <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label="Publish bulletin">
                 <MdPostAdd className="card-icon" />
               </button>
             }
-          </div>
-
-          <div className="bulletin-card-list">
-            {AddressBulletinTotalPage > 1 && (
-              <PageList current_page={AddressBulletinPage} total_page={AddressBulletinTotalPage} dispatch_type={'LoadAddressBulletin'} payload={{ address: BulletinAddress }} />
-            )}
-            <div className={`bulletin-list-content`}>
-              {AddressBulletinList.length === 0 ? (
-                <EmptyState
-                  icon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                  title="No bulletins from this account"
-                  description="This account has not posted yet"
-                />
-              ) : (
-                AddressBulletinList.map((bulletin) => (
-                  <ListBulletin key={bulletin.hash} bulletin={bulletin} />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div >
+          </>
+        }
+        bulletins={AddressBulletinList}
+        bulletinData={{ page: AddressBulletinPage, totalPage: AddressBulletinTotalPage }}
+        pageListType={'LoadAddressBulletin'}
+        pageListPayload={{ address: BulletinAddress }}
+        showEmpty
+        emptyIcon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+        emptyTitle="No bulletins from this account"
+        emptyDescription="This account has not posted yet"
+        renderWrapper={false}
+      />
+    </div>
   )
 }

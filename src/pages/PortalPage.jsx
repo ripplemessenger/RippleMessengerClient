@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { BiSolidFileJson } from 'react-icons/bi'
@@ -10,9 +11,7 @@ import { SlUserFollowing } from 'react-icons/sl'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPaste from '../components/Bulletin/BulletinPaste'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
-import ListBulletin from '../components/Bulletin/ListBulletin'
-import EmptyState from '../components/EmptyState'
-import PageList from '../components/PageList'
+import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { selectPortalBulletins, selectPublishFlags } from '../selectors'
 import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
 
@@ -23,6 +22,9 @@ export default function PortalPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
+  const handleShowPublish = useCallback(() => dispatch(setPublishFlag(true)), [dispatch])
+  const handleShowPaste = useCallback(() => dispatch(setPasteFlag(true)), [dispatch])
+
   const goto_tag = () => {
     dispatch(setSearchTagList([]))
     navigate('/bulletin_tag')
@@ -30,23 +32,14 @@ export default function PortalPage() {
 
   return (
     <div className="bulletin-page-wrapper">
-      {
-        ShowPublishFlag &&
-        <BulletinPublish />
-      }
-      {
-        ShowForwardFlag &&
-        <BulletinForward />
-      }
-      {
-        ShowPasteFlag &&
-        <BulletinPaste />
-      }
-      <div className="tab-page">
-        <div className="bulletin-page-inner">
-          <div className="card-title flex flex-row items-center">
+      {ShowPublishFlag && <BulletinPublish />}
+      {ShowForwardFlag && <BulletinForward />}
+      {ShowPasteFlag && <BulletinPaste />}
+      <BulletinListPage
+        title={
+          <>
             Portal
-            <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label="Publish bulletin">
+            <button className="icon-action-btn" onClick={handleShowPublish} aria-label="Publish bulletin">
               <MdPostAdd className="card-icon" />
             </button>
             <button className="icon-action-btn" onClick={() => navigate('/bulletin_follow')} aria-label="Followed bulletins">
@@ -61,33 +54,22 @@ export default function PortalPage() {
             <button className="icon-action-btn" onClick={() => navigate('/bulletin_random')} aria-label="Random bulletin">
               <GiPerspectiveDiceSixFacesRandom className="card-icon" />
             </button>
-            <button className="icon-action-btn" onClick={() => dispatch(setPasteFlag(true))} aria-label="Paste bulletin">
+            <button className="icon-action-btn" onClick={handleShowPaste} aria-label="Paste bulletin">
               <BiSolidFileJson className="card-icon" />
             </button>
-          </div>
-
-          <div className="bulletin-card-list">
-            <div className={`bulletin-list-content`}>
-              {
-                PortalBulletinList.length === 0 ?
-                  <EmptyState
-                    icon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                    title="No bulletin yet"
-                    description="Publish your first post to get started"
-                  />
-                  :
-                  PortalBulletinList.map((bulletin) => (
-                    <ListBulletin key={bulletin.hash} bulletin={bulletin} />
-                  ))
-              }
-            </div>
-            {
-              PortalBulletinTotalPage > 1 &&
-              <PageList current_page={PortalBulletinPage} total_page={PortalBulletinTotalPage} dispatch_type={'LoadPortalBulletin'} payload={{}} />
-            }
-          </div>
-        </div>
-      </div>
-    </div >
+          </>
+        }
+        bulletins={PortalBulletinList}
+        bulletinData={{ page: PortalBulletinPage, totalPage: PortalBulletinTotalPage }}
+        pageListType={'LoadPortalBulletin'}
+        pageListPayload={{}}
+        pageListPosition={'after'}
+        showEmpty
+        emptyIcon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+        emptyTitle="No bulletin yet"
+        emptyDescription="Publish your first post to get started"
+        renderWrapper={false}
+      />
+    </div>
   )
 }

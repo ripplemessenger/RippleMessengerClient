@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoCloseOutline } from "react-icons/io5"
 import { useEscapeKey } from '../../hooks/useEscapeKey'
@@ -20,7 +20,8 @@ const BulletinPaste = () => {
     textareaRef.current?.focus()
   }, [])
 
-  useEscapeKey(() => dispatch(setPasteFlag(false)))
+  const handleClose = useCallback(() => dispatch(setPasteFlag(false)), [dispatch])
+  useEscapeKey(handleClose)
 
   // Validate on every change — auto-submit when valid
   useEffect(() => {
@@ -41,11 +42,11 @@ const BulletinPaste = () => {
   }, [tmpBulletin])
 
   return (
-    <div className={`modal-overlay`}>
+    <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         <div className="modal-header-bar">
           <span className={`label text-base`}>Paste Bulletin</span>
-          <button onClick={() => dispatch(setPasteFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+          <button onClick={handleClose} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
         </div>

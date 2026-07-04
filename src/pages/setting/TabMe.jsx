@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
@@ -7,6 +7,7 @@ import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
 import TextInput from '../../components/Form/TextInput'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { selectUserTabMe } from '../../selectors'
 import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setNickname } from '../../store/slices/UserSlice'
@@ -15,11 +16,12 @@ import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
   const [imageSrc, setImageSrc] = useState(null)
+  const blobUrlRef = useRef(null)
   const [imageTimestamp, setImageTimestamp] = useState(Date.now())
   const [showRemoveButton, setShowRemoveButton] = useState(false)
 
   const dispatch = useDispatch()
-  const { Address, Nickname, Seed, AccountList, activeTabSetting } = useSelector(state => state.User)
+  const { Address, Nickname, Seed, AccountList, activeTabSetting } = useSelector(selectUserTabMe)
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Me) {
@@ -38,9 +40,15 @@ export default function TabMe() {
     })
 
     if (file) {
+      // Revoke previous blob URL to prevent memory leak
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+        blobUrlRef.current = null
+      }
       const bytes = await readFile(file)
       const blob = new Blob([new Uint8Array(bytes)])
       const url = URL.createObjectURL(blob)
+      blobUrlRef.current = url
       setImageSrc(url)
     }
   }
@@ -56,6 +64,10 @@ export default function TabMe() {
   }
 
   const closeAvatarCropper = () => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current)
+      blobUrlRef.current = null
+    }
     setImageSrc(null)
     setImageTimestamp(Date.now())
   }
@@ -67,6 +79,14 @@ export default function TabMe() {
       dispatch(setConfirmPopup(null))
     }
   }, [ConfirmPopup])
+
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+      }
+    }
+  }, [])
 
   const confirmDelAccount = (address) => {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.RemoveAccount, Result: false }))

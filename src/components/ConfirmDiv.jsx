@@ -9,7 +9,7 @@ const ConfirmDiv = ({ json }) => {
   const dispatch = useDispatch()
   const ConfirmPopup = useConfirmPopup()
 
-  const confirm = async () => {
+  const confirm = () => {
     dispatch(setConfirmPopup({ ...ConfirmPopup, Result: true }))
   }
 

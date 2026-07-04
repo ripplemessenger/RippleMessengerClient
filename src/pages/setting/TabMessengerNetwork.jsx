@@ -8,7 +8,9 @@ import { TbCloudNetwork } from 'react-icons/tb'
 import TextInput from '../../components/Form/TextInput'
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { selectServerNetworkData } from '../../selectors'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
+import { ServerAdd, ServerDel, ServerSetDefault, ServerToggle } from '../../store/sagas/messenger.actions'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabMessengerNetwork() {
@@ -18,36 +20,27 @@ export default function TabMessengerNetwork() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const { ServerList, ConnsStatus } = useSelector(state => state.Messenger)
+  const { ServerList, ConnsStatus } = useSelector(selectServerNetworkData)
 
-  const addServer = async () => {
-    dispatch({
-      type: 'ServerAdd',
-      payload: {
-        url: newURL
-      }
-    })
+  const addServer = () => {
+    dispatch(ServerAdd({
+      url: newURL
+    }))
     setNewURL('')
     setShowAddServer(false)
   }
 
-  const toggleIsConnect = async (url, is_connect) => {
-    dispatch({
-      type: 'ServerToggle',
-      payload: {
-        url: url,
-        is_connect: is_connect
-      }
-    })
+  const toggleIsConnect = (url, is_connect) => {
+    dispatch(ServerToggle({
+      url: url,
+      is_connect: is_connect
+    }))
   }
 
   const ConfirmPopup = useConfirmPopup()
   useEffect(() => {
     if (ConfirmPopup?.Content === ConfirmContentOptions.DelServer && ConfirmPopup?.Result) {
-      dispatch({
-        type: 'ServerDel',
-        payload: { url: ConfirmPopup?.Params?.URL }
-      })
+      dispatch(ServerDel({ url: ConfirmPopup?.Params?.URL }))
       dispatch(setConfirmPopup(null))
     }
   }, [ConfirmPopup])
@@ -56,16 +49,13 @@ export default function TabMessengerNetwork() {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelServer, Result: false, Params: { URL: url } }))
   }
 
-  const setDefaultServer = async (url) => {
-    dispatch({
-      type: 'ServerSetDefault',
-      payload: {
-        url: url
-      }
-    })
+  const setDefaultServer = (url) => {
+    dispatch(ServerSetDefault({
+      url: url
+    }))
   }
 
-  const goto_server = async (url) => {
+  const goto_server = (url) => {
     const params = { url: url }
     navigate({
       pathname: '/server_address',
@@ -77,7 +67,7 @@ export default function TabMessengerNetwork() {
     <div className="tab-page">
       {
         showAddServer &&
-        <div className={`modal-overlay`}>
+        <div className={`modal-overlay`} role="dialog" aria-modal="true">
           <div className="max-w-md w-full mx-4 flex flex-col">
             {/* Header */}
             <div className="modal-header-bar">

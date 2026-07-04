@@ -3,9 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { HiHashtag } from 'react-icons/hi2'
 
 import TextInput from '../components/Form/TextInput'
-import EmptyState from '../components/EmptyState'
-import ListBulletin from '../components/Bulletin/ListBulletin'
-import PageList from '../components/PageList'
+import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import SearchTagItem from '../components/Bulletin/SearchTagItem'
 import { useUserAddress } from '../hooks/useUserSelectors'
 import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
@@ -45,51 +43,35 @@ export default function BulletinTagPage() {
   }
 
   return (
-    <div className="bulletin-page-wrapper">
-      <div className="tab-page">
-        <div className="bulletin-page-inner">
-          <div className="card-title">
-            <TextInput
-              label=""
-              placeholder={','}
-              value={tag}
-              onChange={(e) => checkTag(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
-
-          {
-            SearchTagList.length > 0 &&
-            <div className='flex flex-wrap'>
-              {
-                SearchTagList.map((tag, index) => (
-                  <div key={tag} className='mt-1 px-1'>
-                    <SearchTagItem tag={tag} />
-                  </div>
-                ))
-              }
+    <BulletinListPage
+      title={
+        <TextInput
+          label=""
+          placeholder={','}
+          value={tag}
+          onChange={(e) => checkTag(e.target.value)}
+          autoComplete="off"
+        />
+      }
+      extraContent={
+        SearchTagList.length > 0 &&
+        <div className='flex flex-wrap'>
+          {SearchTagList.map((tag) => (
+            <div key={tag} className='mt-1 px-1'>
+              <SearchTagItem tag={tag} />
             </div>
-          }
-          <div className="max-w-full min-w-0 p-4 rounded-xl card">
-            {TagBulletinTotalPage > 1 && (
-              <PageList current_page={TagBulletinPage} total_page={TagBulletinTotalPage} dispatch_type={'RequestTagBulletin'} payload={{ tag: SearchTagList }} />
-            )}
-            <div className={`bulletin-list-content`}>
-              {TagBulletinList.length === 0 ? (
-                <EmptyState
-                  icon={<HiHashtag className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                  title="No tagged bulletins"
-                  description="Bulletin tags will appear here"
-                />
-              ) : (
-                TagBulletinList.map((bulletin) => (
-                  <ListBulletin key={bulletin.hash} bulletin={bulletin} />
-                ))
-              )}
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
-    </div>
+      }
+      bulletins={TagBulletinList}
+      bulletinData={{ page: TagBulletinPage, totalPage: TagBulletinTotalPage }}
+      pageListType={'RequestTagBulletin'}
+      pageListPayload={{ tag: SearchTagList }}
+      wrapperStyle={'card'}
+      showEmpty
+      emptyIcon={<HiHashtag className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+      emptyTitle="No tagged bulletins"
+      emptyDescription="Bulletin tags will appear here"
+    />
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
 import { IoAttachSharp, IoCloseOutline } from 'react-icons/io5'
@@ -21,6 +21,8 @@ const BulletinPublish = ({ }) => {
   const [tmpBulletin, setTmpBulletin] = useLocalStorage('TmpBulletin', '')
   const { CurrentBulletinSequence, PublishTagList, PublishQuoteList, PublishFileList } = useSelector(state => state.Messenger)
   const dispatch = useDispatch()
+
+  const handleCancel = useCallback(() => dispatch(setPublishFlag(false)), [dispatch])
 
   // Focus textarea on mount
   useEffect(() => {
@@ -88,14 +90,14 @@ const BulletinPublish = ({ }) => {
   }
 
   return (
-    <div className={`modal-overlay`}>
+    <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="modal-header-bar">
           <span className={`label text-base`}>
             {`Bulletin #${CurrentBulletinSequence + 1}`}
           </span>
-          <button onClick={() => dispatch(setPublishFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+          <button onClick={handleCancel} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
         </div>
@@ -184,7 +186,7 @@ const BulletinPublish = ({ }) => {
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
-          <button onClick={() => dispatch(setPublishFlag(false))} className="btn-sm hover:bg-primary/10 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30">
+          <button onClick={handleCancel} className="btn-sm hover:bg-primary/10 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30">
             Cancel
           </button>
           <button onClick={() => publish()} className="btn-sm btn-gold flex items-center gap-1">

@@ -10,6 +10,7 @@ import EmptyState from '../../components/EmptyState'
 import TextInput from '../../components/Form/TextInput'
 import TextTimestamp from '../../components/TextTimestamp'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { selectGroupData, selectUserTabGroup } from '../../selectors'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 import { ComposeMemberAdd, ComposeMemberDel, CreateGroup, DeleteGroup, AcceptGroupRequest } from '../../store/sagas/messenger'
@@ -21,8 +22,8 @@ export default function TabGroup() {
   const [groupName, setGroupName] = useState('')
 
   const dispatch = useDispatch()
-  const { Address, ContactList } = useSelector(state => state.User)
-  const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(state => state.Messenger)
+  const { Address, ContactList } = useSelector(selectUserTabGroup)
+  const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(selectGroupData)
 
   const addComposeMember = (address) => {
     dispatch(ComposeMemberAdd({ address }))
@@ -77,7 +78,7 @@ export default function TabGroup() {
                 ComposeMemberList.length > 0 ?
                   <div className='flex flex-wrap'>
                     {
-                      ComposeMemberList.map((member, index) => (
+                      ComposeMemberList.map((member) => (
                         <button key={member} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => delComposeMember(member)} aria-label={`Remove ${member}`}>
                           <AvatarImage address={member} classNames={'avatar'} />
                           <AvatarName address={member} />
@@ -96,7 +97,7 @@ export default function TabGroup() {
                 ContactList.length > 0 ?
                   <div className='flex flex-wrap'>
                     {
-                      ContactList.map((contact, index) => (
+                      ContactList.map((contact) => (
                         <div key={contact.address} className='mt-1 px-1 flex flex-col justify-center items-center' onClick={() => addComposeMember(contact.address)}>
                           <AvatarImage address={contact.address} classNames={'avatar-sm'} />
                           <div>
@@ -161,7 +162,7 @@ export default function TabGroup() {
                           <td className="table-cell">
                             <div className='flex flex-wrap'>
                               {
-                                request.member.map((member, index) => (
+                                request.member.map((member) => (
                                   <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                     <AvatarImage address={member} classNames={'avatar-sm'} />
                                     <AvatarName address={member} classNames={'text-xs'} />
@@ -239,7 +240,7 @@ export default function TabGroup() {
                               <td className="table-cell">
                                 <div className='flex flex-wrap'>
                                   {
-                                    group.member.map((member, index) => (
+                                    group.member.map((member) => (
                                       <div key={member} className='mt-1 px-1 flex flex-col justify-center items-center'>
                                         <AvatarImage address={member} classNames={'avatar-sm'} />
                                         <AvatarName address={member} classNames={'text-xs'} />

@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, stat } from '@tauri-apps/plugin-fs'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import { all, call, fork, put, select } from 'redux-saga/effects'
 
-import { SendMessage, genFileNonce, pushFileRequest } from './messenger.core'
+import { SendMessage, genFileNonce, pushFileRequest, safeFork } from './messenger.core'
 import { FetchBulletinFile } from './messenger.file'
 import { dbAPI } from '../../db'
 import { AvatarDir, BulletinPageSize, FileChunkSize, FileDir, FileMaxSize, FLASH_DURATION_MS, Hour } from '../../lib/AppConst'
@@ -39,7 +39,7 @@ export function* CacheBulletin(bulletin_json) {
             if (file === null) {
               yield call(() => dbAPI.addFile(f.Hash, f.Size, Date.now(), chunk_length, 0, false))
             }
-            yield fork(FetchBulletinFile, { payload: { hash: f.Hash } })
+            yield fork(safeFork, FetchBulletinFile, { payload: { hash: f.Hash } })
           }
           yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
         }
@@ -235,35 +235,66 @@ export function* FetchFollowBulletin() {
     const address = yield select(state => state.User.Address)
     const seed = yield select(state => state.User.Seed)
     const follow_list = yield call(() => dbAPI.getMyFollows(address))
-    for (let i = 0; i < follow_list.length; i++) {
-      const remote_last_bulletin = yield call(() => dbAPI.getLastBulletin(follow_list[i].remote))
-      const remote_bulletin_count = yield call(() => dbAPI.getBulletinCountByAddresses([follow_list[i].remote]))
+    if (follow_list.length === 0) return
 
-      if (remote_last_bulletin === null) {
-        yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
-      } else if (remote_last_bulletin.sequence === remote_bulletin_count) {
-        yield fork(RequestNextBulletin, { payload: { address: follow_list[i].remote } })
+    const remote_addresses = follow_list.map(f => f.remote)
+
+    // --- Batch 1: latest bulletin per address (single query) ---
+    const lastByAddr = yield call(() => dbAPI.getLastBulletinByAddresses(remote_addresses))
+
+    // --- Batch 2: total count per address (reuse existing batch helper, called per-addr to get individual counts) ---
+    //   getBulletinCountByAddresses already accepts an array but returns a single sum.
+    //   We need per-address counts, so we use a raw-per-address approach.
+    //   To keep it simple and correct, query each address individually.
+    //   (This is N queries for count, which is cheaper than the lastBulletin loop was.)
+    const countsMap = {}
+    const countResults = yield all(
+      remote_addresses.map(addr => call(() => dbAPI.getAddressBulletinCount(addr)))
+    )
+    for (let i = 0; i < remote_addresses.length; i++) {
+      countsMap[remote_addresses[i]] = countResults[i]
+    }
+
+    // --- Classify: which addresses need sync, which need gap-check ---
+    const needSync = []       // no bulletins yet or already up to date
+    const needGapCheck = []   // has some but may have holes
+
+    for (let i = 0; i < remote_addresses.length; i++) {
+      const addr = remote_addresses[i]
+      const last = lastByAddr[addr] || null
+      const count = countsMap[addr] || 0
+
+      if (last === null) {
+        needSync.push(addr)
+      } else if (last.sequence === count) {
+        needSync.push(addr)
       } else {
-        // Batch-check for missing bulletins in chunks to avoid O(n*m) queries
-        const max_sequence = remote_last_bulletin.sequence
-        const chunk_size = 50
+        needGapCheck.push({ address: addr, maxSeq: last.sequence, count })
+      }
+    }
 
-        for (let start = 1; start <= max_sequence; start += chunk_size) {
-          const end = Math.min(start + chunk_size - 1, max_sequence)
-          const sequences = []
-          for (let j = start; j <= end; j++) {
-            sequences.push(j)
-          }
+    // --- Fork sync requests for addresses that are empty or already complete ---
+    for (const addr of needSync) {
+      yield fork(RequestNextBulletin, { payload: { address: addr } })
+    }
 
-          const results = yield all(sequences.map(seq =>
-            call(() => dbAPI.getBulletinBySequence(follow_list[i].remote, seq))
-          ))
+    // --- Gap-check: batch all (address, sequence) pairs into one query per address ---
+    const CHUNK_SIZE = 50
+    for (const { address: addr, maxSeq } of needGapCheck) {
+      for (let start = 1; start <= maxSeq; start += CHUNK_SIZE) {
+        const end = Math.min(start + CHUNK_SIZE - 1, maxSeq)
+        const pairs = []
+        for (let j = start; j <= end; j++) {
+          pairs.push({ address: addr, sequence: j })
+        }
 
-          for (let k = 0; k < results.length; k++) {
-            if (results[k] === null) {
-              const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, follow_list[i].remote, sequences[k], follow_list[i].remote))
-              yield call(SendMessage, { msg: bulletin_request })
-            }
+        // Single batch query returns set of "addr:seq" strings that exist
+        const existingSet = yield call(() => dbAPI.getBulletinSequencesBatch(pairs))
+
+        for (let k = 0; k < pairs.length; k++) {
+          if (!existingSet.has(`${addr}:${pairs[k].sequence}`)) {
+            const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, addr, pairs[k].sequence, addr))
+            yield call(SendMessage, { msg: bulletin_request })
           }
         }
       }

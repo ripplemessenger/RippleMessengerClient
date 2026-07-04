@@ -6,6 +6,7 @@ import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
 import EmptyState from '../components/EmptyState'
 import { BsGlobe2 } from 'react-icons/bs'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
+import { selectServerAddressData } from '../selectors'
 
 export default function ServerAddressPage() {
   const [searchParams] = useSearchParams()
@@ -13,7 +14,7 @@ export default function ServerAddressPage() {
 
   useBulletinLoad('RequestServerAddress')
 
-  const { ServerAddressPage, ServerAddressTotalPage, ServerAddressList } = useSelector(state => state.Messenger)
+  const { ServerAddressPage, ServerAddressTotalPage, ServerAddressList } = useSelector(selectServerAddressData)
 
   return (
     <div className="flex justify-center items-center">

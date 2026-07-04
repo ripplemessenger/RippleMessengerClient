@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'
+﻿import { useState, useEffect, memo } from 'react'
 import { useSelector } from 'react-redux'
 
 const AvatarName = ({ address, classNames = '', short_flag = false }) => {
@@ -38,4 +38,4 @@ const AvatarName = ({ address, classNames = '', short_flag = false }) => {
   )
 }
 
-export default React.memo(AvatarName)
+export default memo(AvatarName)

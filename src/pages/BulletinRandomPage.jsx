@@ -4,8 +4,7 @@ import { IoMdRefresh } from 'react-icons/io'
 
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
-import EmptyState from '../components/EmptyState'
-import ListBulletin from '../components/Bulletin/ListBulletin'
+import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { RequestRandomBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinRandomPage() {
@@ -17,43 +16,26 @@ export default function BulletinRandomPage() {
     dispatch(RequestRandomBulletin())
   }, [dispatch, MessengerConnStatus])
 
-
   return (
     <div className="bulletin-page-wrapper">
-      {
-        ShowPublishFlag &&
-        <BulletinPublish />
-      }
-      {
-        ShowForwardFlag &&
-        <BulletinForward />
-      }
-      <div className="tab-page">
-        <div className="bulletin-page-inner">
-          <div className="card-title flex flex-row items-center">
+      {ShowPublishFlag && <BulletinPublish />}
+      {ShowForwardFlag && <BulletinForward />}
+      <BulletinListPage
+        title={
+          <>
             Random
             <button className="icon-action-btn" onClick={() => dispatch(RequestRandomBulletin())} aria-label="Refresh">
               <IoMdRefresh className="card-icon" />
             </button>
-          </div>
-
-          <div className="bulletin-card-list">
-            <div className={`bulletin-list-content`}>
-              {RandomBulletinList.length === 0 ? (
-                <EmptyState
-                  icon={<IoMdRefresh className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                  title="No random bulletins"
-                  description="Refresh to discover random posts"
-                />
-              ) : (
-                RandomBulletinList.map((bulletin) => (
-                  <ListBulletin key={bulletin.hash} bulletin={bulletin} />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        bulletins={RandomBulletinList}
+        showEmpty
+        emptyIcon={<IoMdRefresh className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+        emptyTitle="No random bulletins"
+        emptyDescription="Refresh to discover random posts"
+        renderWrapper={false}
+      />
     </div>
   )
 }

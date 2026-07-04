@@ -3,7 +3,7 @@ import { all, call, fork, put, select, takeLatest } from 'redux-saga/effects'
 import { dbAPI } from '../../db'
 import Logger from '../../lib/Logger'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
-import { setFileRequestList } from './messenger.core'
+import { setFileRequestList, safeFork } from './messenger.core'
 import { PostAddress } from '../../lib/MessengerConst'
 import { SessionType } from '../../lib/AppConst'
 import { setCurrentSession, setGroupList, setSessionList, setPortalBulletinList, setRandomBulletinList, setAddressBulletinList, setFollowBulletinList, setBookmarkBulletinList, setDisplayBulletin, setDisplayBulletinReplyList, setPublishTagList, setPublishQuoteList, setPublishFileList, setForwardBulletin, setServerAddressList, setTagBulletinList, setSearchTagList, setBulletinAddress } from '../slices/MessengerSlice'
@@ -149,7 +149,7 @@ function* loadContactList() {
     }
     yield put(setContactList({ contact_list: contact_list, contact_map: contact_map }))
     yield put(setFollowList(follow_list))
-    yield fork(SubscribeFollow)
+    yield fork(safeFork, SubscribeFollow)
     yield put(setFriendList(friend_list))
   } catch (e) {
     Logger.error('[loadContactList] failed:', e.message)

@@ -18,7 +18,6 @@ function format(msg, ...args) {
  */
 const Logger = {
   /** @param {string} msg @param {...*} args */
-  /** @param {string} msg @param {...*} args */
   debug: function (msg, ...args) {
     if (isDev) return console.debug(format(msg, ...args))
     tDebug(format(msg, ...args))

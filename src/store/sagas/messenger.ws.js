@@ -42,7 +42,7 @@ import {
 } from '../../lib/MessageSchemaVerifier'
 
 // Core messaging
-import { SendMessage, getFileRequestList, setFileRequestList } from './messenger.core'
+import { SendMessage, getFileRequestList, setFileRequestList, safeFork } from './messenger.core'
 
 // Bulletin & avatar
 import { CacheBulletin, RequestNextBulletin, AvatarRequest, RequestAvatarFile, SubscribeFollow, FetchFollowBulletin } from './messenger.bulletin'
@@ -440,11 +440,15 @@ function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) 
         yield call(GroupSync, { key: action.key })
       } else if (group.is_accepted === true && (group.created_by === ob_address || group.member.includes(ob_address))) {
         const ecdh_sequence = DHSequence(DefaultPartition, timestamp, address, ob_address)
-        const ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+        let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
         if (ecdh === null && address !== ob_address) {
           yield call(InitHandshake, { ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-        } else if (ecdh.aes_key === null) {
-          yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
+          ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+        }
+        if (ecdh === null || ecdh.aes_key === null) {
+          if (ecdh) {
+            yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
+          }
         } else {
           let tmp_msg_list = []
           if (json.Sequence === 0) {
@@ -508,6 +512,8 @@ function* handleActionMessage(json, action, address, seed) {
       case ActionCode.GroupMessageSync:
         yield call(handleGroupMessageSyncAction, json, action, address, ob_address, seed)
         break
+      default:
+        Logger.warn('[handleActionMessage] unknown ActionCode', json.Action)
     }
   } catch (e) {
     Logger.error('[handleActionMessage] failed for Action', json.Action, e.message)
@@ -691,7 +697,7 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     if (typeof content === 'object' && content.ObjectType === MessageObjectType.PrivateChatFile) {
-      yield fork(FetchPrivateChatFile, { payload: { remote: remote, hash: content.Hash, size: content.Size } })
+      yield fork(safeFork, FetchPrivateChatFile, { payload: { remote: remote, hash: content.Hash, size: content.Size } })
     }
 
     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
@@ -776,10 +782,11 @@ function* handleGroupMessageListObject(json, address, seed) {
     if (group.is_accepted !== true) return
 
     const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-    const ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+    let ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
     if (ecdh === null) {
       yield call(InitHandshake, { key: null, ecdh_sequence: ecdh_sequence, pair_address: ob_address })
-      return
+      ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+      if (ecdh === null) return
     }
     if (ecdh.aes_key === null) {
       yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
@@ -886,6 +893,8 @@ function* handleObjectMessage(json, action, address, seed) {
       yield call(handleGroupListObject, json, address)
     } else if (json.ObjectType === ObjectType.GroupMessageList) {
         yield call(handleGroupMessageListObject, json, address, seed)
+      } else {
+        Logger.warn('[handleObjectMessage] unknown ObjectType', json.ObjectType)
       }
   } catch (e) {
     Logger.error('[handleObjectMessage] failed for ObjectType', json.ObjectType, e.message)
