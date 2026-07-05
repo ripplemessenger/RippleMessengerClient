@@ -1,3 +1,4 @@
+import React from 'react'
 import { useDispatch } from 'react-redux'
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveBulletinFile } from '../../store/sagas/messenger.actions'
@@ -34,4 +35,4 @@ const BulletinFileViewer = ({ name, ext, size, hash }) => {
   )
 }
 
-export default BulletinFileViewer
+export default React.memo(BulletinFileViewer)

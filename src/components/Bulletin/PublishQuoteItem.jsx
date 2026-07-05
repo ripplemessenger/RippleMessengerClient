@@ -1,7 +1,8 @@
 import React from 'react'
 import { useDispatch } from 'react-redux'
-import BulletinLink from './BulletinLink'
 import { IoCloseOutline } from 'react-icons/io5'
+
+import BulletinLink from './BulletinLink'
 import { BulletinQuoteDel } from '../../store/sagas/messenger.actions'
 
 const PublishQuoteItem = ({ address, sequence, hash }) => {

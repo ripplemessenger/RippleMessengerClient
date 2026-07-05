@@ -1,15 +1,16 @@
-import { useDispatch } from 'react-redux'
+import React from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveChatFile } from '../../store/sagas/messenger.actions'
 import { IoAttachSharp } from 'react-icons/io5'
 import { FileDir, FileImageExtRegex } from '../../lib/AppConst'
 import { buildFileFullPath } from '../../lib/MessengerUtil'
-import { useUserAddress } from '../../hooks/useUserSelectors'
+import { selectUserAddress } from '../../selectors'
 import { useAppBaseDir } from '../../hooks/useAppBaseDir'
 import { useFileBlobUrl } from '../../hooks/useFileBlobUrl'
 
 const ChatFileLink = ({ address, name, ext, size, hash }) => {
-  const Address = useUserAddress()
+  const Address = useSelector(selectUserAddress)
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
 
@@ -43,4 +44,4 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
   )
 }
 
-export default ChatFileLink
+export default React.memo(ChatFileLink)

@@ -45,7 +45,7 @@ const BulletinPaste = () => {
     <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         <div className="modal-header-bar">
-          <span className={`label text-base`}>Paste Bulletin</span>
+          <span className={`label text-base`}>Paste bulletin JSON to save</span>
           <button onClick={handleClose} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
@@ -55,7 +55,7 @@ const BulletinPaste = () => {
           <textarea
             ref={textareaRef}
             value={tmpBulletin}
-            placeholder='Paste bulletin JSON here'
+            placeholder='Paste here'
             rows="6"
             onChange={(e) => setTmpBulletin(e.target.value)}
             className={`px-3 py-2 border rounded-lg appearance-none resize-none input-color input-hover`}

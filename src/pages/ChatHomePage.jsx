@@ -4,6 +4,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { FiMessageSquare } from 'react-icons/fi'
 import { GrGroup } from 'react-icons/gr'
 
+import AvatarImage from '../components/AvatarImage'
 import AvatarName from '../components/AvatarName'
 import ChatInput from '../components/Chat/ChatInput'
 import ListSession from '../components/Chat/ListSession'
@@ -15,7 +16,6 @@ import { selectChatSessions, selectCurrentSession, selectCurrentSessionMessages 
 import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { LoadCurrentSession, LoadSessionList, SendContent, SendFile } from '../store/sagas/messenger.actions'
-import AvatarImage from '../components/AvatarImage'
 
 export default function ChatHomePage() {
   const containerRef = useRef(null)
@@ -85,10 +85,10 @@ export default function ChatHomePage() {
                   <AvatarName address={CurrentSession.remote} />
                 </div>
                 {/* Messages — fills remaining, scrolls when too tall */}
-                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2">
+                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col">
                   {CurrentSessionMessageList.length > 0 ? (
                     CurrentSessionMessageList.map((msg) => (
-                      <MessageCard key={msg.hash} message={msg} mode="private" className="mt-1" />
+                      <MessageCard key={msg.hash} message={msg} mode="private" />
                     ))
                   ) : (
                     <EmptyState
@@ -113,10 +113,10 @@ export default function ChatHomePage() {
                   <GrGroup className="session-icon" />
                   <SessionName name={CurrentSession.name} />
                 </div>
-                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2">
+                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col">
                   {CurrentSessionMessageList.length > 0 ? (
                     CurrentSessionMessageList.map((msg) => (
-                      <MessageCard key={msg.hash} message={msg} mode="group" className="mt-1" />
+                      <MessageCard key={msg.hash} message={msg} mode="group" />
                     ))
                   ) : (
                     <EmptyState

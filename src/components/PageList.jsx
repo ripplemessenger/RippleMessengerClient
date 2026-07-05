@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 
 const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
@@ -57,9 +57,9 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
     return result
   }, [current_page, total_page])
 
-  const goto = (p) => {
-    dispatch({ type: dispatch_type, payload: { ...payload, page: p } })
-  }
+  const goto = useCallback((p) => {
+    dispatch({ type: dispatch_type, payload: { ...payloadRef.current, page: p } })
+  }, [dispatch, dispatch_type])
 
   return (
     <div className='flex flex-row items-center gap-1'>

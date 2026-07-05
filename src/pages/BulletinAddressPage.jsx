@@ -6,13 +6,12 @@ import AvatarName from '../components/AvatarName'
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinListPage from '../components/Bulletin/BulletinListPage'
-import { useUserAddress } from '../hooks/useUserSelectors'
-import { selectBulletinAddressData } from '../selectors'
+import { selectUserAddress, selectBulletinAddressData } from '../selectors'
 import { setPublishFlag } from '../store/slices/MessengerSlice'
 import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinAddressPage() {
-  const Address = useUserAddress()
+  const Address = useSelector(selectUserAddress)
   const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(selectBulletinAddressData)
 
   const dispatch = useDispatch()

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
 import { ECDSA, Wallet } from 'xrpl'
 
@@ -13,6 +14,8 @@ export default function GenerateAccountModal({ onClose }) {
   const [newSeed, setNewSeed] = useState('')
   const [newAddress, setNewAddress] = useState('')
   const [copiedField, setCopiedField] = useState(null)
+
+  useEscapeKey(onClose)
 
   const genNewAccount = useCallback(() => {
     const tmp = Wallet.generate(ECDSA.secp256k1)
@@ -29,16 +32,15 @@ export default function GenerateAccountModal({ onClose }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-action-row">
-        <button onClick={onClose} className="modal-btn-gray">
-          <IoCloseOutline className="icon" /> cancel
-        </button>
-      </div>
-      <div className="min-w-80 space-y-4 flex flex-col justify-center mt-1">
-        <div className="card-title flex flex-row items-center">
-          Generate
+    <div className="modal-overlay" role="dialog" aria-modal="true">
+      <div className="max-w-md w-full mx-4 flex flex-col">
+        <div className="modal-header-bar">
+          <span className={`label text-base`}>Generate</span>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+            <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+          </button>
         </div>
+        <div className="modal-content-area gap-3">
         <div className="w-full flex flex-col justify-center">
           <FormButton title="Generate Account" onClick={genNewAccount} />
           <div className={`mt-2 ${newSeed === '' ? 'hidden' : ''}`}>
@@ -70,6 +72,7 @@ export default function GenerateAccountModal({ onClose }) {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

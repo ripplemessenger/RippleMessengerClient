@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
 import { AiOutlineLink } from "react-icons/ai"
@@ -15,7 +15,7 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
 
   const dispatch = useDispatch()
 
-  const copyText = useClipboard((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })))
+  const copyText = useClipboard(useCallback((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })), [dispatch]))
 
   const toggleMarkDisplay = () => {
     setDisplayMark(!displayMark)

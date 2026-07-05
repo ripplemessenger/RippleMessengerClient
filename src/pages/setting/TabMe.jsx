@@ -27,11 +27,11 @@ export default function TabMe() {
     if (activeTabSetting === SettingPageTab.Me) {
       setDisplayNickname(Nickname)
     }
-  }, [activeTabSetting])
+  }, [activeTabSetting, Nickname])
 
   useEffect(() => {
     setShowRemoveButton(AccountList.some(a => a.address === Address))
-  }, [AccountList])
+  }, [AccountList, Address])
 
   const browseAvatarSource = async () => {
     const file = await open({
@@ -72,13 +72,13 @@ export default function TabMe() {
     setImageTimestamp(Date.now())
   }
 
-  const ConfirmPopup = useConfirmPopup()
+  const confirmPopup = useConfirmPopup()
   useEffect(() => {
-    if (ConfirmPopup?.Content === ConfirmContentOptions.RemoveAccount && ConfirmPopup?.Result) {
+    if (confirmPopup?.Content === ConfirmContentOptions.RemoveAccount && confirmPopup?.Result) {
       dispatch(AccountDel({ address: Address }))
       dispatch(setConfirmPopup(null))
     }
-  }, [ConfirmPopup])
+  }, [confirmPopup?.Content, confirmPopup?.Result, dispatch, Address])
 
   useEffect(() => {
     return () => {

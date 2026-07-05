@@ -1,3 +1,5 @@
+import React from 'react'
+
 const FormError = ({ error }) => {
   return (
     <div className="justify-center items-center">
@@ -13,4 +15,4 @@ const FormError = ({ error }) => {
   )
 }
 
-export default FormError
+export default React.memo(FormError)

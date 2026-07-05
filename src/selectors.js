@@ -10,7 +10,6 @@ export const selectUserAddress = state => state.User.Address
 // Each selector only invalidates when its own field changes.
 const selectMessengerConnStatusField = state => state.Messenger.MessengerConnStatus
 const selectConnsStatus = state => state.Messenger.ConnsStatus
-const selectSessionNewMsgCount = state => state.Messenger.SessionNewMsgCount
 const selectPortalBulletinList = state => state.Messenger.PortalBulletinList
 const selectPortalBulletinPage = state => state.Messenger.PortalBulletinPage
 const selectPortalBulletinTotalPage = state => state.Messenger.PortalBulletinTotalPage
@@ -26,16 +25,13 @@ const selectBookmarkBulletinTotalPage = state => state.Messenger.BookmarkBulleti
 const selectTagBulletinList = state => state.Messenger.TagBulletinList
 const selectTagBulletinPage = state => state.Messenger.TagBulletinPage
 const selectTagBulletinTotalPage = state => state.Messenger.TagBulletinTotalPage
-const selectSearchTagList = state => state.Messenger.SearchTagList
+// Exported for SearchTagItem; used internally by selectTagBulletins
+export const selectSearchTagList = state => state.Messenger.SearchTagList
 const selectAddressBulletinList = state => state.Messenger.AddressBulletinList
 const selectAddressBulletinPage = state => state.Messenger.AddressBulletinPage
 const selectAddressBulletinTotalPage = state => state.Messenger.AddressBulletinTotalPage
 const selectBulletinAddress = state => state.Messenger.BulletinAddress
-const selectRandomBulletinList = state => state.Messenger.RandomBulletinList
-const selectSessionList = state => state.Messenger.SessionList
-const selectCurrentSessionField = state => state.Messenger.CurrentSession
 const selectCurrentSessionMessageList = state => state.Messenger.CurrentSessionMessageList
-const selectGroupMemberMap = state => state.Messenger.GroupMemberMap
 
 // Display bulletin + reply data
 const selectDisplayBulletin = state => state.Messenger.DisplayBulletin
@@ -57,23 +53,23 @@ const selectGroupList = state => state.Messenger.GroupList
 const selectServerList = state => state.Messenger.ServerList
 
 // ── Leaf-level field accessors (User slice) ──
+const selectUserIsAuth = state => state.User.IsAuth
 const selectUserNickname = state => state.User.Nickname
 const selectUserSeed = state => state.User.Seed
 const selectUserAccountList = state => state.User.AccountList
 const selectActiveTabSettingField = state => state.User.activeTabSetting
 const selectContactList = state => state.User.ContactList
+const selectContactMap = state => state.User.ContactMap
 
 // ── Leaf-level field accessors (Common slice) ──
 const selectFlashNoticeMessage = state => state.Common.FlashNoticeMessage
 const selectFlashNoticeDuration = state => state.Common.FlashNoticeDuration
 const selectDisplayJsonField = state => state.Common.DisplayJson
-const selectDisplayJsonOption = state => state.Common.DisplayJsonOption
+// Exported directly — single-leaf selector, no need for createSelector wrapper
+export const selectDisplayJsonOption = state => state.Common.DisplayJsonOption
 
-// Connection status — used by Header, ConnectionStatusBanner, useBulletinLoad, useMessengerConnStatus
-export const selectMessengerConnStatus = createSelector(
-  [selectMessengerConnStatusField],
-  field => field
-)
+// Connection status — used by Header, ConnectionStatusBanner, useBulletinLoad
+export const selectMessengerConnStatus = state => state.Messenger.MessengerConnStatus
 
 // Connected server count derived from ConnsStatus — used by TabMessengerNetwork
 export const selectConnectedServerCount = createSelector(
@@ -84,11 +80,8 @@ export const selectConnectedServerCount = createSelector(
   }
 )
 
-// Total new message count across all sessions — computed by setSessionList reducer, already a number
-export const selectTotalNewMessages = createSelector(
-  [selectSessionNewMsgCount],
-  (count) => count || 0
-)
+// Total new message count — leaf accessor already gives us the number
+export const selectTotalNewMessages = state => state.Messenger.SessionNewMsgCount || 0
 
 // Portal bulletin list with pagination — most visited page
 export const selectPortalBulletins = createSelector(
@@ -153,32 +146,13 @@ export const selectAddressBulletins = createSelector(
 )
 
 // Random bulletin list
-export const selectRandomBulletins = createSelector(
-  [selectRandomBulletinList],
-  (list) => list || []
-)
+export const selectRandomBulletins = state => state.Messenger.RandomBulletinList || []
 
-// Chat session data — SessionList + CurrentSession + messages
-export const selectChatSessions = createSelector(
-  [selectSessionList],
-  (list) => list || []
-)
-
-export const selectCurrentSession = createSelector(
-  [selectCurrentSessionField],
-  session => session
-)
-
-export const selectCurrentSessionMessages = createSelector(
-  [selectCurrentSessionMessageList],
-  (list) => list || []
-)
-
-// Group member list for a given group hash
-export const selectGroupMembers = createSelector(
-  [selectGroupMemberMap],
-  (map) => map || {}
-)
+// Chat session data — simple field accessors
+export const selectChatSessions = state => state.Messenger.SessionList || []
+export const selectCurrentSession = state => state.Messenger.CurrentSession
+export const selectCurrentSessionMessages = state => state.Messenger.CurrentSessionMessageList || []
+export const selectGroupMembers = state => state.Messenger.GroupMemberMap || {}
 
 // Flash notice state — used by MainLayout
 export const selectFlashNotice = createSelector(
@@ -268,10 +242,7 @@ export const selectServerAddressData = createSelector(
 )
 
 // SettingPage — active tab for settings sub-navigation
-export const selectActiveTabSetting = createSelector(
-  [selectActiveTabSettingField],
-  tab => tab
-)
+export const selectActiveTabSetting = state => state.User.activeTabSetting
 
 // TabMessengerNetwork — server list + connection statuses
 export const selectServerNetworkData = createSelector(
@@ -279,5 +250,39 @@ export const selectServerNetworkData = createSelector(
   (servers, conns) => ({
     ServerList: servers || [],
     ConnsStatus: conns || {},
+  })
+)
+
+// AvatarName — Address + ContactMap for nickname lookup
+export const selectAvatarNameData = createSelector(
+  [selectUserAddress, selectContactMap],
+  (address, contactMap) => ({
+    Address: address,
+    ContactMap: contactMap || {},
+  })
+)
+
+// AuthProvider — IsAuth only
+export const selectIsAuth = state => state.User.IsAuth
+
+// BulletinForward — SessionList
+// (selectChatSessions already exists and returns SessionList)
+
+// TabContact — ContactList + activeTabSetting
+export const selectTabContactData = createSelector(
+  [selectContactList, selectActiveTabSettingField],
+  (contacts, activeTab) => ({
+    ContactList: contacts || [],
+    activeTabSetting: activeTab,
+  })
+)
+
+// OpenPage — IsAuth + AccountList + Seed
+export const selectOpenPageData = createSelector(
+  [selectUserIsAuth, selectUserAccountList, selectUserSeed],
+  (isAuth, accounts, seed) => ({
+    IsAuth: isAuth,
+    AccountList: accounts || [],
+    Seed: seed,
   })
 )

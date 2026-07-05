@@ -1,7 +1,7 @@
 import React from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
-import { useUserAddress } from '../../hooks/useUserSelectors'
+import { selectUserAddress } from '../../selectors'
 import { MessageObjectType } from '../../lib/MessengerConst'
 import { setDisplayJson } from '../../store/slices/CommonSlice'
 import AvatarImage from '../AvatarImage'
@@ -18,7 +18,7 @@ import ChatFileLink from './ChatFileLink'
 const MessageCard = ({ message, mode = 'private' }) => {
 
   const dispatch = useDispatch()
-  const Address = useUserAddress()
+  const Address = useSelector(selectUserAddress)
 
   // Field names differ between private and group messages
   const senderField = mode === 'group' ? 'address' : 'sour'

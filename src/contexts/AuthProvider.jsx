@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import AuthContext from './AuthContext'
 import { loginStart, logoutStart } from '../store/slices/UserSlice'
+import { selectIsAuth } from '../selectors'
 
 export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
@@ -11,7 +12,7 @@ export function AuthProvider({ children }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const { IsAuth } = useSelector(state => state.User)
+  const IsAuth = useSelector(selectIsAuth)
 
   useEffect(() => {
     const localSeed = localStorage.getItem("Seed")

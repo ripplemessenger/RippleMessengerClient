@@ -43,8 +43,8 @@ export function* CacheBulletin(bulletin_json) {
           }
           yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
         }
-        yield fork(RefreshPortalBulletin)
-        yield fork(RefreshFollowBulletin)
+        yield fork(safeFork, RefreshPortalBulletin)
+        yield fork(safeFork, RefreshFollowBulletin)
       }
       bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
     }
@@ -486,6 +486,7 @@ export function* PublishBulletin(action) {
     yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
   } catch (e) {
     Logger.error('[PublishBulletin] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'bulletin publish failed', duration: FLASH_DURATION_MS }))
   }
 }
 

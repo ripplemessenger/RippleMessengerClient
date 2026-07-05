@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Logger from '../lib/Logger'
 
 export const useLocalStorage = (key, initialValue) => {
@@ -6,19 +6,19 @@ export const useLocalStorage = (key, initialValue) => {
     try {
       const item = localStorage.getItem(key)
       return item ? item : initialValue
-    } catch (error) {
+    } catch {
       return initialValue
     }
   })
 
-  const setValue = (value) => {
+  const setValue = useCallback((value) => {
     try {
       setStoredValue(value)
       localStorage.setItem(key, value)
     } catch (error) {
       Logger.error('write LocalStorage failed', error)
     }
-  }
+  }, [key])
 
   return [storedValue, setValue]
 }

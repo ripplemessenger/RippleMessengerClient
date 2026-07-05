@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { IoCloseOutline } from 'react-icons/io5'
 
 import TextInput from '../components/Form/TextInput'
@@ -21,6 +22,8 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
   const [addLoading, setAddLoading] = useState(false)
 
   const addSeedRef = useRef(null)
+
+  useEscapeKey(onClose)
 
   useEffect(() => {
     addSeedRef.current?.focus()
@@ -64,16 +67,15 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-action-row">
-        <button onClick={onClose} className="modal-btn-gray">
-          <IoCloseOutline className="icon" /> cancel
-        </button>
-      </div>
-      <form onSubmit={(e) => { e.preventDefault(); addAccount() }} className="space-y-4 flex flex-col justify-center mt-1">
-        <div className="card-title flex flex-row items-center">
-          Add Account
+    <div className="modal-overlay" role="dialog" aria-modal="true">
+      <div className="max-w-md w-full mx-4 flex flex-col">
+        <div className="modal-header-bar">
+          <span className={`label text-base`}>Add Account</span>
+          <button onClick={onClose} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+            <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+          </button>
         </div>
+        <form onSubmit={(e) => { e.preventDefault(); addAccount() }} className="modal-content-area gap-3">
         <div className="mt-1">
           <TextInput ref={addSeedRef} label={'Your Seed:'} type='password' value={saveSeed} autoComplete={"off"} placeholder={"s.................................."} onChange={(e) => updateSeed(e.target.value)} />
         </div>
@@ -94,6 +96,7 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
           )}
         </FormButton>
       </form>
+      </div>
     </div>
   )
 }

@@ -1,20 +1,24 @@
 ﻿import { useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { exists, readFile, writeFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { useEscapeKey } from '../hooks/useEscapeKey'
+import { exists, mkdir, readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs'
 import * as path from '@tauri-apps/api/path'
 import { IoCopyOutline, IoCloseOutline } from "react-icons/io5"
 import Cropper from "react-cropper"
-import "cropperjs/dist/cropper.css"
+
 import Logger from '../lib/Logger'
 import { FileHash } from '../lib/MessengerUtil'
 import { AvatarDir } from '../lib/AppConst'
 import { useAppBaseDir } from '../hooks/useAppBaseDir'
+import "cropperjs/dist/cropper.css"
 
 const AvatarCropper = ({ address, imageSrc, onClose }) => {
 
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
   const cropperRef = useRef(null)
+
+  useEscapeKey(onClose)
 
   const saveAvatar = async () => {
     const is_avater_dir_exist = await exists('avatar', {
@@ -65,7 +69,7 @@ const AvatarCropper = ({ address, imageSrc, onClose }) => {
         <button onClick={() => saveAvatar()} className="modal-btn-yellow">
           <IoCopyOutline /> save
         </button>
-        <button onClick={onClose} className="modal-btn-green">
+        <button onClick={onClose} className="modal-btn-gray">
           <IoCloseOutline /> cancel
         </button>
       </div>

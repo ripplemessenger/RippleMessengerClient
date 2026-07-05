@@ -8,6 +8,7 @@ import { TbCloudNetwork } from 'react-icons/tb'
 import TextInput from '../../components/Form/TextInput'
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { selectServerNetworkData } from '../../selectors'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { ServerAdd, ServerDel, ServerSetDefault, ServerToggle } from '../../store/sagas/messenger.actions'
@@ -21,6 +22,8 @@ export default function TabMessengerNetwork() {
   const navigate = useNavigate()
 
   const { ServerList, ConnsStatus } = useSelector(selectServerNetworkData)
+
+  useEscapeKey(() => setShowAddServer(false))
 
   const addServer = () => {
     dispatch(ServerAdd({
@@ -43,7 +46,7 @@ export default function TabMessengerNetwork() {
       dispatch(ServerDel({ url: ConfirmPopup?.Params?.URL }))
       dispatch(setConfirmPopup(null))
     }
-  }, [ConfirmPopup])
+  }, [ConfirmPopup, dispatch])
 
   const confirmDelServer = (url) => {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelServer, Result: false, Params: { URL: url } }))
@@ -83,10 +86,7 @@ export default function TabMessengerNetwork() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
-              <button onClick={() => setShowAddServer(false)} className="btn-sm hover:bg-primary/10 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30">
-                Cancel
-              </button>
+            <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
               <button
                 className="btn-sm btn-gold"
                 disabled={newURL === ''}

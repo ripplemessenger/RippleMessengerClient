@@ -1,7 +1,8 @@
 import { useDispatch } from 'react-redux'
+import { IoAttachSharp } from "react-icons/io5"
+
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveBulletinFile } from '../../store/sagas/messenger.actions'
-import { IoAttachSharp } from "react-icons/io5"
 
 const BulletinFileLink = ({ name, ext, size, hash }) => {
 

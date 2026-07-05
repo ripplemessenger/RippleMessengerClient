@@ -10,6 +10,7 @@ import EmptyState from '../../components/EmptyState'
 import TextInput from '../../components/Form/TextInput'
 import TextTimestamp from '../../components/TextTimestamp'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { selectGroupData, selectUserTabGroup } from '../../selectors'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
@@ -24,6 +25,11 @@ export default function TabGroup() {
   const dispatch = useDispatch()
   const { Address, ContactList } = useSelector(selectUserTabGroup)
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(selectGroupData)
+
+  useEscapeKey(() => {
+    setShowCreateGroup(false)
+    setShowRequest(false)
+  })
 
   const addComposeMember = (address) => {
     dispatch(ComposeMemberAdd({ address }))
@@ -47,7 +53,7 @@ export default function TabGroup() {
       dispatch(DeleteGroup({ hash: ConfirmPopup?.Params?.Hash }))
       dispatch(setConfirmPopup(null))
     }
-  }, [ConfirmPopup])
+  }, [ConfirmPopup, dispatch])
 
   const confirmDelGroup = (hash) => {
     dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelGroup, Result: false, Params: { Hash: hash } }))
@@ -62,17 +68,15 @@ export default function TabGroup() {
     <div className="tab-page">
       {
         showCreateGroup &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowCreateGroup(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <div className="mx-auto flex flex-col mt-4">
-            <div className="card-title">
-              Create Group
+        <div className={`modal-overlay`} role="dialog" aria-modal="true">
+          <div className="max-w-2xl w-full mx-4 flex flex-col mt-4">
+            <div className="modal-header-bar">
+              <span className={`label text-base`}>Create Group</span>
+              <button onClick={() => setShowCreateGroup(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+                <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+              </button>
             </div>
-            <div className="modal-content-wrapper max-w-7xl overflow-auto">
+            <div className="modal-content-area overflow-auto">
               <TextInput label={'Group Name:'} value={groupName} onChange={(e) => setGroupName(e.target.value.trim())} />
               {
                 ComposeMemberList.length > 0 ?
@@ -116,23 +120,28 @@ export default function TabGroup() {
                   </div>
               }
             </div>
-            <button
-              className="btn-primary btn-green"
-              disabled={ComposeMemberList.length === 0}
-              onClick={() => createGroup()}>
-              Create
-            </button>
+            <div className="flex justify-center">
+              <button
+                className="btn-primary btn-gold max-w-xs"
+                disabled={ComposeMemberList.length === 0}
+                onClick={() => createGroup()}>
+                Create
+              </button>
+            </div>
           </div>
         </div>
       }
       {
         showRequest &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowRequest(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
+        <div className={`modal-overlay`} role="dialog" aria-modal="true">
+          <div className="max-w-4xl w-full mx-4 flex flex-col mt-4">
+            <div className="modal-header-bar">
+              <span className={`label text-base`}>Group Requests</span>
+              <button onClick={() => setShowRequest(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+                <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+              </button>
+            </div>
+            <div className="modal-content-area">
           {
             GroupRequestList.length > 0 ?
               <div className={`table-container`}>
@@ -194,6 +203,8 @@ export default function TabGroup() {
                 className="mx-auto max-w-sm mt-8"
               />
           }
+            </div>
+          </div>
         </div>
       }
 

@@ -1,3 +1,5 @@
+import React from 'react'
+
 const LoadingDiv = ({ isLoading = false, text = 'Loading...' }) => {
   if (!isLoading) return null
 
@@ -17,4 +19,4 @@ const LoadingDiv = ({ isLoading = false, text = 'Loading...' }) => {
   )
 }
 
-export default LoadingDiv
+export default React.memo(LoadingDiv)

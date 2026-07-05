@@ -1,10 +1,11 @@
 ﻿import { useState, useEffect, memo } from 'react'
 import { useSelector } from 'react-redux'
+import { selectAvatarNameData } from '../selectors'
 
 const AvatarName = ({ address, classNames = '', short_flag = false }) => {
   const [nickname, setNickname] = useState(address)
   const [contactFlag, setContactFlag] = useState(false)
-  const { Address, ContactMap } = useSelector(state => state.User)
+  const { Address, ContactMap } = useSelector(selectAvatarNameData)
 
   useEffect(() => {
     if (address === Address) {
@@ -20,7 +21,7 @@ const AvatarName = ({ address, classNames = '', short_flag = false }) => {
         setNickname(address)
       }
     }
-  }, [ContactMap, address])
+  }, [ContactMap, address, Address])
 
   return (
     <div>

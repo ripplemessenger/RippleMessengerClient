@@ -17,22 +17,38 @@ function format(msg, ...args) {
  * Logger proxy that routes to console in dev mode and Tauri log plugin in production.
  */
 const Logger = {
-  /** @param {string} msg @param {...*} args */
+  /**
+   * Log a debug-level message. Routes to console.debug in dev, Tauri plugin-log in production.
+   * @param {string} msg - Log message
+   * @param {...*} args - Additional values serialized as JSON
+   */
   debug: function (msg, ...args) {
     if (isDev) return console.debug(format(msg, ...args))
     tDebug(format(msg, ...args))
   },
-  /** @param {string} msg @param {...*} args */
+  /**
+   * Log an info-level message. Routes to console.info in dev, Tauri plugin-log in production.
+   * @param {string} msg - Log message
+   * @param {...*} args - Additional values serialized as JSON
+   */
   info: function (msg, ...args) {
     if (isDev) return console.info(format(msg, ...args))
     tInfo(format(msg, ...args))
   },
-  /** @param {string} msg @param {...*} args */
+  /**
+   * Log a warning-level message. Routes to console.warn in dev, Tauri plugin-log in production.
+   * @param {string} msg - Log message
+   * @param {...*} args - Additional values serialized as JSON
+   */
   warn: function (msg, ...args) {
     if (isDev) return console.warn(format(msg, ...args))
     tWarn(format(msg, ...args))
   },
-  /** @param {string} msg @param {...*} args */
+  /**
+   * Log an error-level message. Routes to console.error in dev, Tauri plugin-log in production.
+   * @param {string} msg - Log message
+   * @param {...*} args - Additional values serialized as JSON
+   */
   error: function (msg, ...args) {
     if (isDev) return console.error(format(msg, ...args))
     tError(format(msg, ...args))

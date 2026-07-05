@@ -16,6 +16,10 @@ export const globalWsChannel = eventChannel(emitter => {
   return () => { globalEmitter = null }
 })
 
+/**
+ * Push an action (message or status event) into the global Redux-Saga event channel.
+ * @param {{type: string, key?: string, data?: any, status?: number|string, [k: string]: any}} action - Event object routed to sagas
+ */
 function emitToGlobal(action) {
   if (globalEmitter) {
     globalEmitter(action)
@@ -114,8 +118,14 @@ export function createMultiWsChannel(configs) {
           Logger.info(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
         } else if (retryCount >= manager.MAX_RETRIES) {
           Logger.warn(`[WS] Retries exhausted for ${key} -- pausing (will retry on next createMultiWsChannel call)`)
+          ws.onclose = null;
+          ws.onerror = null;
+          ws.onmessage = null;
+          if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close(1000, 'Retries exhausted');
+          }
           emitToGlobal({ type: 'status', key, status: 'retries_exhausted', code: ev.code })
-          manager.channels.set(key, { ws: null, config: cfg, retryCount: 0, retryTimer: null })
+          manager.channels.delete(key);
         } else {
           emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
           manager.channels.delete(key)
@@ -155,6 +165,20 @@ export function createMultiWsChannel(configs) {
 }
 
 /**
+ * Convert a payload to the appropriate WebSocket send format.
+ * Binary types (ArrayBuffer, Blob, TypedArray) are returned as-is.
+ * Non-binary types are stringified (objects via JSON.stringify, strings passed through).
+ * @param {string|object|ArrayBuffer|Blob|ArrayBufferView} payload - Data to serialize
+ * @returns {string|ArrayBuffer|Blob|ArrayBufferView} Serialized data ready for ws.send()
+ */
+function serializePayload(payload) {
+  if (payload instanceof ArrayBuffer || payload instanceof Blob || ArrayBuffer.isView(payload)) {
+    return payload
+  }
+  return typeof payload === 'string' ? payload : JSON.stringify(payload)
+}
+
+/**
  * Send a payload to a specific WebSocket connection by key.
  * Automatically handles binary (ArrayBuffer/Blob/TypedArray) and text (string/object) payloads.
  * @param {string} key - Connection identifier
@@ -168,12 +192,7 @@ export function sendToSingleConn(key, payload) {
     return false
   }
 
-  if (payload instanceof ArrayBuffer || payload instanceof Blob || ArrayBuffer.isView(payload)) {
-    entry.ws.send(payload)
-  } else {
-    const msg = typeof payload === 'string' ? payload : JSON.stringify(payload)
-    entry.ws.send(msg)
-  }
+  entry.ws.send(serializePayload(payload))
   return true
 }
 
@@ -204,18 +223,13 @@ export function sendToAllConn(payload) {
 export function sendToFirstConn(server_list, payload) {
   for (let i = 0; i < server_list.length; i++) {
     const server = server_list[i]
-    const entry = manager.channels.get(server.url)
+    const entry = manager.channels.get(server.key)
     if (!entry || entry.ws.readyState !== WebSocket.OPEN) {
-      Logger.warn(`[WS] Send failed: ${server.url} not open`)
+      Logger.warn(`[WS] Send failed: ${server.key} not open`)
       continue
     }
 
-    if (payload instanceof ArrayBuffer || payload instanceof Blob || ArrayBuffer.isView(payload)) {
-      entry.ws.send(payload)
-    } else {
-      const msg = typeof payload === 'string' ? payload : JSON.stringify(payload)
-      entry.ws.send(msg)
-    }
+    entry.ws.send(serializePayload(payload))
     return true
   }
   return false

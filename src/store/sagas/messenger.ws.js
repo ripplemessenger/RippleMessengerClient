@@ -447,7 +447,7 @@ function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) 
         }
         if (ecdh === null || ecdh.aes_key === null) {
           if (ecdh) {
-            yield fork(SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
+            yield fork(safeFork, SendMessage, { key: action.key, msg: JSON.stringify(ecdh.self_json) })
           }
         } else {
           let tmp_msg_list = []
@@ -544,18 +544,32 @@ function* handleServerAddressListObject(json) {
   }
 }
 
-function* handleReplyBulletinListObject(json) {
-  try {
-    if (!checkReplyBulletinListSchema(json)) return
-    let replys = []
-    for (let i = 0; i < json.List.length; i++) {
-      const bulletin = json.List[i]
-      if (VerifyJsonSignature(bulletin)) {
-        const b = yield call(CacheBulletin, bulletin)
-        replys.push(b)
+/**
+ * Shared helper: process a list of bulletins from a WebSocket message.
+ * Validates schema, verifies signatures, caches each bulletin, and dispatches results.
+ * @param {object} json - Parsed message with List array
+ * @param {function} schemaCheck - AJV schema validator for this list type
+ * @param {function} dispatchAction - Redux action creator to dispatch results
+ */
+function* processBulletinList(json, schemaCheck, dispatchAction) {
+  if (!schemaCheck(json)) return
+  const bulletins = []
+  for (let i = 0; i < json.List.length; i++) {
+    const bulletin = json.List[i]
+    if (VerifyJsonSignature(bulletin)) {
+      const b = yield call(CacheBulletin, bulletin)
+      if (b) {
+        bulletins.push(b)
       }
     }
-    yield put(setDisplayBulletinReplyList({ List: replys, Page: json.Page, TotalPage: json.TotalPage }))
+  }
+  yield put(dispatchAction(bulletins, json))
+}
+
+function* handleReplyBulletinListObject(json) {
+  try {
+    yield call(processBulletinList, json, checkReplyBulletinListSchema,
+      (list, j) => setDisplayBulletinReplyList({ List: list, Page: j.Page, TotalPage: j.TotalPage }))
   } catch (e) {
     Logger.error('[handleReplyBulletinListObject] failed:', e.message)
   }
@@ -563,16 +577,8 @@ function* handleReplyBulletinListObject(json) {
 
 function* handleTagBulletinListObject(json) {
   try {
-    if (!checkTagBulletinListSchema(json)) return
-    let tag_bulletin_list = []
-    for (let i = 0; i < json.List.length; i++) {
-      const bulletin = json.List[i]
-      if (VerifyJsonSignature(bulletin)) {
-        const b = yield call(CacheBulletin, bulletin)
-        tag_bulletin_list.push(b)
-      }
-    }
-    yield put(setTagBulletinList({ List: tag_bulletin_list, Page: json.Page, TotalPage: json.TotalPage }))
+    yield call(processBulletinList, json, checkTagBulletinListSchema,
+      (list, j) => setTagBulletinList({ List: list, Page: j.Page, TotalPage: j.TotalPage }))
   } catch (e) {
     Logger.error('[handleTagBulletinListObject] failed:', e.message)
   }
@@ -580,16 +586,8 @@ function* handleTagBulletinListObject(json) {
 
 function* handleRandomBulletinListObject(json) {
   try {
-    if (!checkRandomBulletinListSchema(json)) return
-    let random_bulletin_list = []
-    for (let i = 0; i < json.List.length; i++) {
-      const bulletin = json.List[i]
-      if (VerifyJsonSignature(bulletin)) {
-        const b = yield call(CacheBulletin, bulletin)
-        random_bulletin_list.push(b)
-      }
-    }
-    yield put(setRandomBulletinList(random_bulletin_list))
+    yield call(processBulletinList, json, checkRandomBulletinListSchema,
+      (list) => setRandomBulletinList(list))
   } catch (e) {
     Logger.error('[handleRandomBulletinListObject] failed:', e.message)
   }
@@ -789,7 +787,7 @@ function* handleGroupMessageListObject(json, address, seed) {
       if (ecdh === null) return
     }
     if (ecdh.aes_key === null) {
-      yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
+      yield fork(safeFork, SendMessage, { msg: JSON.stringify(ecdh.self_json) })
       return
     }
 

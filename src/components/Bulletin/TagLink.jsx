@@ -1,8 +1,9 @@
 import { memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { setSearchTagList } from '../../store/slices/MessengerSlice'
 import { HiHashtag } from 'react-icons/hi2'
+
+import { setSearchTagList } from '../../store/slices/MessengerSlice'
 
 const TagLink = ({ tag }) => {
 

@@ -14,6 +14,9 @@ import { setCurrentSession, setCurrentSessionMessageList, setComposeMemberList }
 export function* RefreshGroupMessageList() {
   try {
     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (!CurrentSession) {
+      return
+    }
     const current_msg_list = yield call(() => dbAPI.getGroupSession(CurrentSession.hash))
     yield put(setCurrentSessionMessageList(current_msg_list))
   } catch (e) {
@@ -103,6 +106,9 @@ export function* SendGroupContent({ payload }) {
     let timestamp = Date.now()
     const self_address = yield select(state => state.User.Address)
     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (!CurrentSession) {
+      return
+    }
 
     const last_confirmed_group_msg = yield call(() => dbAPI.getLastConfirmGroupMessage(CurrentSession.hash, self_address))
     const last_unconfirm_message_group_list = yield call(() => dbAPI.getLastUnconfirmGroupMessage(CurrentSession.hash, self_address))

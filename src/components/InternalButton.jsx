@@ -1,3 +1,5 @@
+import React from 'react'
+
 const InternalButton = ({ title, onClick, text_size }) => {
   return (
     <button
@@ -11,4 +13,4 @@ const InternalButton = ({ title, onClick, text_size }) => {
   )
 }
 
-export default InternalButton
+export default React.memo(InternalButton)

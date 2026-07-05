@@ -119,6 +119,9 @@ export function* SendPrivateContent({ payload }) {
     let timestamp = Date.now()
     const self_address = yield select(state => state.User.Address)
     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (!CurrentSession) {
+      return
+    }
 
     if (CurrentSession.aes_key !== undefined) {
       let content = AesEncrypt(payload.content, CurrentSession.aes_key)
@@ -160,8 +163,11 @@ export function* SendPrivateContent({ payload }) {
 
 export function* RefreshPrivateMessageList() {
   try {
-    const self_address = yield select(state => state.User.Address)
     const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (!CurrentSession) {
+      return
+    }
+    const self_address = yield select(state => state.User.Address)
     const current_msg_list = yield call(() => dbAPI.getPrivateSession(self_address, CurrentSession.remote))
     yield put(setCurrentSessionMessageList(current_msg_list))
   } catch (e) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { IoInformationCircleOutline } from "react-icons/io5"
@@ -39,4 +39,4 @@ const FlashNotice = ({ message, duration }) => {
   )
 }
 
-export default FlashNotice
+export default React.memo(FlashNotice)

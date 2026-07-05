@@ -5,7 +5,7 @@ import { HiHashtag } from 'react-icons/hi2'
 import TextInput from '../components/Form/TextInput'
 import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import SearchTagItem from '../components/Bulletin/SearchTagItem'
-import { useUserAddress } from '../hooks/useUserSelectors'
+import { selectUserAddress } from '../selectors'
 import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
 import { setSearchTagList } from '../store/slices/MessengerSlice'
 import { RequestTagBulletin } from '../store/sagas/messenger.actions'
@@ -13,7 +13,7 @@ import { RequestTagBulletin } from '../store/sagas/messenger.actions'
 export default function BulletinTagPage() {
   const [tag, setTag] = useState('')
 
-  const Address = useUserAddress()
+  const Address = useSelector(selectUserAddress)
   const { MessengerConnStatus, TagBulletinList, TagBulletinPage, TagBulletinTotalPage, SearchTagList } = useSelector(state => state.Messenger)
 
   const dispatch = useDispatch()

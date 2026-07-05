@@ -1,7 +1,8 @@
 import React from 'react'
+import { useDispatch } from 'react-redux'
 import { HiHashtag } from 'react-icons/hi2'
 import { IoCloseOutline } from 'react-icons/io5'
-import { useDispatch } from 'react-redux'
+
 import { BulletinTagDel } from '../../store/sagas/messenger.actions'
 
 const PublishTagItem = ({ tag }) => {

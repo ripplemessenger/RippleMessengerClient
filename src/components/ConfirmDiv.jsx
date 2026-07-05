@@ -1,13 +1,16 @@
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { IoWarningOutline } from "react-icons/io5"
 import { setConfirmPopup } from '../store/slices/CommonSlice'
 import { useConfirmPopup } from '../hooks/useConfirmPopup'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 
 const ConfirmDiv = ({ json }) => {
 
   const dispatch = useDispatch()
   const ConfirmPopup = useConfirmPopup()
+
+  useEscapeKey(useCallback(() => dispatch(setConfirmPopup(null)), [dispatch]))
 
   const confirm = () => {
     dispatch(setConfirmPopup({ ...ConfirmPopup, Result: true }))

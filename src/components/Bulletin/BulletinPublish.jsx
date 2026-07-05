@@ -31,15 +31,15 @@ const BulletinPublish = ({ }) => {
 
   useEscapeKey(() => dispatch(setPublishFlag(false)))
 
-  const handleTmpBulletin = (value) => {
+  const handleTmpBulletin = useCallback((value) => {
     if (value.trim() !== '') {
       setTmpBulletin(value)
     } else {
       setTmpBulletin('')
     }
-  }
+  }, [setTmpBulletin])
 
-  const browseFile = async () => {
+  const browseFile = useCallback(async () => {
     const file_path = await open({
       multiple: false,
       directory: false,
@@ -47,9 +47,9 @@ const BulletinPublish = ({ }) => {
     if (file_path) {
       dispatch(BulletinFileAdd({ file_path }))
     }
-  }
+  }, [dispatch])
 
-  const publish = async () => {
+  const publish = useCallback(async () => {
     if (tmpBulletin !== '') {
       let payload = {
         content: tmpBulletin
@@ -62,16 +62,16 @@ const BulletinPublish = ({ }) => {
     } else {
       dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: FLASH_DURATION_MS }))
     }
-  }
+  }, [tmpBulletin, dispatch, setTmpBulletin])
 
-  const addTag = (text) => {
+  const addTag = useCallback((text) => {
     // Split by commas, trim each, filter empties
     const tag_list = text.split(',').map(t => t.trim()).filter(t => t !== '')
     if (tag_list.length > 0) {
       dispatch(BulletinTagAdd({ tag_list }))
       setTag('')
     }
-  }
+  }, [dispatch])
 
   const handleTagChange = (e) => {
     const value = e.target.value
@@ -185,10 +185,7 @@ const BulletinPublish = ({ }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
-          <button onClick={handleCancel} className="btn-sm hover:bg-primary/10 dark:hover:bg-primary/20 text-text-secondary dark:text-dark-text-secondary border border-primary/20 dark:border-primary/30">
-            Cancel
-          </button>
+        <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
           <button onClick={() => publish()} className="btn-sm btn-gold flex items-center gap-1">
             <MdPublish className="inline mr-1" /> Publish
           </button>

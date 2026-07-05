@@ -1,10 +1,11 @@
 import { useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
+import { BsGlobe2 } from 'react-icons/bs'
+
 import AvatarName from '../components/AvatarName'
-import PageList from '../components/PageList'
 import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
 import EmptyState from '../components/EmptyState'
-import { BsGlobe2 } from 'react-icons/bs'
+import PageList from '../components/PageList'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
 import { selectServerAddressData } from '../selectors'
 

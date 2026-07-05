@@ -15,6 +15,7 @@ import { decryptWithPassword } from '../lib/AppUtil'
 import { getWallet } from '../lib/RippleUtil'
 import { loadAccountListStart, loginStart } from '../store/slices/UserSlice'
 import { AccountAdd } from '../store/sagas/messenger.actions'
+import { selectOpenPageData } from '../selectors'
 
 // Sub-components (modals)
 import AddAccountModal from './AddAccountModal'
@@ -25,7 +26,7 @@ export default function OpenPage() {
   // --- Redux hooks ---
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { IsAuth, AccountList, Seed } = useSelector(state => state.User)
+  const { IsAuth, AccountList, Seed } = useSelector(selectOpenPageData)
 
   // --- LocalStorage ---
   const [seed, setSeed] = useLocalStorage('Seed', '')

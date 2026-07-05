@@ -1,14 +1,19 @@
 import { memo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseOutline } from "react-icons/io5"
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { ForwardBulletin } from '../../store/sagas/messenger.actions'
 import { setForwardFlag } from '../../store/slices/MessengerSlice'
 import ListSession from '../Chat/ListSession'
+import EmptyState from '../EmptyState'
+import { selectChatSessions } from '../../selectors'
 
 const BulletinForward = ({ }) => {
 
-  const { SessionList } = useSelector(state => state.Messenger)
+  const sessionList = useSelector(selectChatSessions)
   const dispatch = useDispatch()
+
+  useEscapeKey(() => dispatch(setForwardFlag(false)))
 
   const forward = (session) => {
     dispatch(ForwardBulletin({
@@ -18,17 +23,19 @@ const BulletinForward = ({ }) => {
 
   return (
     <div className={`modal-overlay`} role="dialog" aria-modal="true">
-      <div className="modal-action-row">
-        <button onClick={() => dispatch(setForwardFlag(false))} className="modal-btn-gray">
-          <IoCloseOutline className='icon' /> cancel
-        </button>
-      </div>
-      <div className="modal-content-wrapper">
+      <div className="max-w-md w-full mx-4 flex flex-col">
+        <div className="modal-header-bar">
+          <span className={`label text-base`}>Forward Bulletin</span>
+          <button onClick={() => dispatch(setForwardFlag(false))} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+            <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+          </button>
+        </div>
+        <div className="modal-content-area">
         {
-          SessionList.length > 0 ?
+          sessionList.length > 0 ?
             <div className='flex flex-wrap'>
               {
-                SessionList.map((session) => (
+                sessionList.map((session) => (
                   <div key={`${session.type}-${session.address || session.name}`} className='text-xs text-text-primary dark:text-dark-text-primary mt-1 p-1'>
                     <ListSession session={session} onSessionClick={forward} />
                   </div>
@@ -36,10 +43,12 @@ const BulletinForward = ({ }) => {
               }
             </div>
             :
-            <div>
-              no session yet...
-            </div>
+            <EmptyState
+              title="No sessions"
+              description="Start a chat to forward bulletins"
+            />
         }
+        </div>
       </div>
     </div>
   )

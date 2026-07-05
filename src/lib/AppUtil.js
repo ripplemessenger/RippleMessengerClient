@@ -225,7 +225,17 @@ function decryptWithPassword(password, salt, cipherData, isObject = false) {
     padding: CryptoJS.pad.Pkcs7
   })
   const decryptedStr = decrypted.toString(CryptoJS.enc.Utf8)
-  return isObject ? JSON.parse(decryptedStr) : decryptedStr
+  if (!decryptedStr) {
+    throw new Error('Decrypt failed: empty result (wrong password or corrupted data)')
+  }
+  if (isObject) {
+    try {
+      return JSON.parse(decryptedStr)
+    } catch (e) {
+      throw new Error('Failed to parse decrypted data as JSON: ' + e.message)
+    }
+  }
+  return decryptedStr
 }
 
 /**

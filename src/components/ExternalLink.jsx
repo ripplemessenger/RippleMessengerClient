@@ -1,3 +1,5 @@
+import React from 'react'
+
 const ExternalLink = ({ href, title, text_size, children }) => {
   return (
     <a
@@ -14,4 +16,4 @@ const ExternalLink = ({ href, title, text_size, children }) => {
   )
 }
 
-export default ExternalLink 
+export default React.memo(ExternalLink) 

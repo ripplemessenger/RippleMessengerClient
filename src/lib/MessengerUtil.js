@@ -235,64 +235,82 @@ function getMemberByIndex(members, index) {
 }
 
 /**
+ * Safely parse the json field of a message object.
+ * Shared helper — returns true on success so callers skip their catch fallbacks.
+ * @param {object} msg - Message with a json string field
+ * @returns {boolean} True if JSON.parse succeeded
+ */
+function safeJsonParseMsg(msg) {
+  try {
+    msg.json = JSON.parse(msg.json)
+    return true
+  } catch (e) {
+    Logger.warn('Failed to parse message json:', msg.hash, e.message)
+    msg.json = {}
+    return false
+  }
+}
+
+/**
  * Transform a raw bulletin record into a display-ready object.
  * Parses JSON payload and extracts content, tags, files, and quotes.
  * @param {object} bulletin - Raw bulletin database record with json string field
  * @returns {object} Display-ready bulletin object
  */
 function bulletin2Display(bulletin) {
-  bulletin.json = JSON.parse(bulletin.json)
-  bulletin.content = bulletin.json.Content
+  if (safeJsonParseMsg(bulletin)) {
+    bulletin.content = bulletin.json.Content || ''
+    bulletin.tag = bulletin.json.Tag !== undefined ? bulletin.json.Tag : []
+    bulletin.file = bulletin.json.File !== undefined ? bulletin.json.File : []
+    bulletin.quote = bulletin.json.Quote !== undefined ? bulletin.json.Quote : []
+  } else {
+    bulletin.content = bulletin.content || ''
+    bulletin.tag = bulletin.tag || []
+    bulletin.file = bulletin.file || []
+    bulletin.quote = bulletin.quote || []
+  }
   bulletin.is_marked = Int2Bool(bulletin.is_marked)
-  bulletin.tag = []
-  bulletin.file = []
-  bulletin.quote = []
-  if (bulletin.json.Tag !== undefined) {
-    bulletin.tag = bulletin.json.Tag
-  }
-  if (bulletin.json.File !== undefined) {
-    bulletin.file = bulletin.json.File
-  }
-  if (bulletin.json.Quote !== undefined) {
-    bulletin.quote = bulletin.json.Quote
-  }
   return bulletin
 }
 
 /**
- * Transform a raw private message record into a display-ready object.
- * Parses JSON payload and converts integer flags to booleans.
- * @param {object} msg - Raw private message database record
+ * Transform a raw private or group message record into a display-ready object.
+ * Parses JSON payload, converts integer flags to booleans, and parses content if flagged.
+ * @param {object} msg - Raw message database record
  * @returns {object} Display-ready message object (mutates input)
  */
-function privateMessage2Display(msg) {
-  msg.json = JSON.parse(msg.json)
+function parseMessageCommon(msg) {
+  safeJsonParseMsg(msg)
   msg.is_confirmed = Int2Bool(msg.is_confirmed)
   msg.is_marked = Int2Bool(msg.is_marked)
   msg.is_readed = Int2Bool(msg.is_readed)
   msg.is_object = Int2Bool(msg.is_object)
-  if (msg.is_object) {
-    msg.content = JSON.parse(msg.content)
+  if (msg.is_object && typeof msg.content === 'string') {
+    try {
+      msg.content = JSON.parse(msg.content)
+    } catch (e) {
+      Logger.warn('Failed to parse message content:', msg.hash, e.message)
+    }
   }
   return msg
 }
 
 /**
+ * Transform a raw private message record into a display-ready object.
+ * @param {object} msg - Raw private message database record
+ * @returns {object} Display-ready message object (mutates input)
+ */
+function privateMessage2Display(msg) {
+  return parseMessageCommon(msg)
+}
+
+/**
  * Transform a raw group message record into a display-ready object.
- * Parses JSON payload and converts integer flags to booleans.
  * @param {object} msg - Raw group message database record
  * @returns {object} Display-ready message object (mutates input)
  */
 function groupMessage2Display(msg) {
-  msg.json = JSON.parse(msg.json)
-  msg.is_confirmed = Int2Bool(msg.is_confirmed)
-  msg.is_marked = Int2Bool(msg.is_marked)
-  msg.is_readed = Int2Bool(msg.is_readed)
-  msg.is_object = Int2Bool(msg.is_object)
-  if (msg.is_object) {
-    msg.content = JSON.parse(msg.content)
-  }
-  return msg
+  return parseMessageCommon(msg)
 }
 
 /**

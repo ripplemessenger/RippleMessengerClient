@@ -1,19 +1,20 @@
 import { useCallback, useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
-import 'react-json-view-lite/dist/index.css'
 import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from "react-icons/io5"
-import { setDisplayJson, setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { FLASH_DURATION_MS } from '../lib/AppConst'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { setDisplayJson, setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { useTheme } from './ThemeProvider'
+import { selectDisplayJsonOption } from '../selectors'
+import 'react-json-view-lite/dist/index.css'
 
 const JsonDiv = ({ json }) => {
   const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
 
   const dispatch = useDispatch()
-  const { DisplayJsonOption } = useSelector(state => state.Common)
+  const DisplayJsonOption = useSelector(selectDisplayJsonOption)
 
   const closeJson = useCallback(() => dispatch(setDisplayJson({ json: null, isExpand: false })), [dispatch])
   useEscapeKey(closeJson)

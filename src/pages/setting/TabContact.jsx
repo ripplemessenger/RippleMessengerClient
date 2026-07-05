@@ -10,9 +10,11 @@ import TextInput from '../../components/Form/TextInput'
 import TextTimestamp from '../../components/TextTimestamp'
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 import { ContactAdd, ContactDel, ContactToggleIsFollow, ContactToggleIsFriend, LoadContactList } from '../../store/sagas/messenger.actions'
+import { selectTabContactData } from '../../selectors'
 
 export default function TabContact() {
   const [contactAddress, setContactAddress] = useState('')
@@ -20,7 +22,9 @@ export default function TabContact() {
   const [showAddContact, setShowAddContact] = useState(false)
 
   const dispatch = useDispatch()
-  const { ContactList, activeTabSetting } = useSelector(state => state.User)
+  const { ContactList, activeTabSetting } = useSelector(selectTabContactData)
+
+  useEscapeKey(() => setShowAddContact(_ => false))
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Contact) {
@@ -62,24 +66,26 @@ export default function TabContact() {
     <div className="tab-page">
       {
         showAddContact &&
-        <div className={`modal-overlay`}>
-          <div className="modal-action-row">
-            <button onClick={() => setShowAddContact(false)} className="modal-btn-gray">
-              <IoCloseOutline className='icon' /> cancel
-            </button>
-          </div>
-          <div className="mx-auto flex flex-col mt-4">
-            <div className="card-title">
-              Add/Update Contact
+        <div className={`modal-overlay`} role="dialog" aria-modal="true">
+          <div className="max-w-md w-full mx-4 flex flex-col mt-4">
+            <div className="modal-header-bar">
+              <span className={`label text-base`}>Add/Update Contact</span>
+              <button onClick={() => setShowAddContact(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+                <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
+              </button>
             </div>
-            <TextInput label={'Address:'} value={contactAddress} onChange={(e) => setContactAddress(e.target.value.trim())} />
-            <TextInput label={'Nickname:'} value={contactNickname} onChange={(e) => setContactNickname(e.target.value.trim())} />
-            <button
-              className="btn-primary btn-green"
-              disabled={contactAddress === '' || contactNickname === ''}
-              onClick={() => addContact()}>
-              Add/Update
-            </button>
+            <div className="modal-content-area gap-3">
+              <TextInput label={'Address:'} value={contactAddress} onChange={(e) => setContactAddress(e.target.value.trim())} />
+              <TextInput label={'Nickname:'} value={contactNickname} onChange={(e) => setContactNickname(e.target.value.trim())} />
+              <div className="flex justify-center">
+                <button
+                  className="btn-primary btn-gold max-w-xs"
+                  disabled={contactAddress === '' || contactNickname === ''}
+                  onClick={() => addContact()}>
+                  Add/Update
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       }

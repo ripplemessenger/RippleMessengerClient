@@ -1,7 +1,8 @@
 import { memo } from 'react'
-import { IoCloseOutline, IoAttachSharp } from 'react-icons/io5'
-import { filesize_format } from '../../lib/AppUtil'
 import { useDispatch } from 'react-redux'
+import { IoAttachSharp, IoCloseOutline } from 'react-icons/io5'
+
+import { filesize_format } from '../../lib/AppUtil'
 import { BulletinFileDel } from '../../store/sagas/messenger.actions'
 
 const PublishFileItem = ({ name, ext, size, hash }) => {

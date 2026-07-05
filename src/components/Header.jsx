@@ -9,7 +9,7 @@ import InternalLink from './InternalLink'
 import NavBarIconButton from './NavBarIconButton'
 import NavBarIconLink from './NavBarIconLink'
 import { useTheme } from './ThemeProvider'
-import { selectMessengerConnStatus, selectTotalNewMessages } from '../selectors'
+import { selectUserAddress, selectMessengerConnStatus, selectTotalNewMessages } from '../selectors'
 import useAuth from '../hooks/useAuth'
 
 function Header() {
@@ -19,7 +19,7 @@ function Header() {
 
   const MessengerConnStatus = useSelector(selectMessengerConnStatus)
   const SessionNewMsgCount = useSelector(selectTotalNewMessages)
-  const { Address } = useSelector(state => state.User)
+  const Address = useSelector(selectUserAddress)
 
   return (
 
