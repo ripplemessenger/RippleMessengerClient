@@ -67,11 +67,15 @@ export function* UploadBulletin({ payload }) {
 // ==================== Avatar ====================
 
 export function* CheckAvatar({ payload }) {
-  const db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
-  if (db_avatar === null) {
-    yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, null, false))
-  } else if (db_avatar.is_saved === false && db_avatar.json !== null) {
-    yield call(RequestAvatarFile, { address: db_avatar.address, hash: db_avatar.hash })
+  try {
+    const db_avatar = yield call(() => dbAPI.getAvatarByAddress(payload.address))
+    if (db_avatar === null) {
+      yield call(() => dbAPI.addAvatar(payload.address, GenesisHash, 0, Epoch, Epoch, null, false))
+    } else if (db_avatar.is_saved === false && db_avatar.json !== null) {
+      yield call(RequestAvatarFile, { address: db_avatar.address, hash: db_avatar.hash })
+    }
+  } catch (e) {
+    Logger.error('[CheckAvatar] failed for', payload.address, e.message)
   }
 }
 

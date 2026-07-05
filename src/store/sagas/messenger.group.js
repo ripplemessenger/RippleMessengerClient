@@ -76,23 +76,27 @@ export function* LoadGroupSession({ payload }) {
 
 /** Encrypt and send a group message to a single member. */
 function* SendGroupMessageToMember(group_hash, self_address, member, msg_json, seed, timestamp) {
-  if (member === self_address) {
-    return
-  }
-  const tmp_msg_json = JSON.parse(JSON.stringify(msg_json))
-  const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, member)
-  const ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
-  if (ecdh === null) {
-    yield call(InitHandshake, { ecdh_sequence, pair_address: member })
-  } else if (ecdh.aes_key === null) {
-    yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
-  } else {
-    const encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
-    tmp_msg_json.Content = encrypt_content
-    delete tmp_msg_json["ObjectType"]
-    delete tmp_msg_json["GroupHash"]
-    const group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp))
-    yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
+  try {
+    if (member === self_address) {
+      return
+    }
+    const tmp_msg_json = JSON.parse(JSON.stringify(msg_json))
+    const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, member)
+    const ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+    if (ecdh === null) {
+      yield call(InitHandshake, { ecdh_sequence, pair_address: member })
+    } else if (ecdh.aes_key === null) {
+      yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
+    } else {
+      const encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
+      tmp_msg_json.Content = encrypt_content
+      delete tmp_msg_json["ObjectType"]
+      delete tmp_msg_json["GroupHash"]
+      const group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp))
+      yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
+    }
+  } catch (e) {
+    Logger.error('[SendGroupMessageToMember] failed for', member, e.message)
   }
 }
 
@@ -147,23 +151,31 @@ export function* SendGroupContent({ payload }) {
 }
 
 export function* ComposeMemberAdd({ payload }) {
-  const address = yield select(state => state.User.Address)
-  const old_list = yield select(state => state.Messenger.ComposeMemberList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(member => member !== payload.address)
-  new_list.unshift(payload.address)
-  new_list = new_list.filter(member => member !== address)
-  if (new_list.length > GroupMemberMax) {
-    new_list = new_list.slice(0, GroupMemberMax)
+  try {
+    const address = yield select(state => state.User.Address)
+    const old_list = yield select(state => state.Messenger.ComposeMemberList) || []
+    let new_list = [...old_list]
+    new_list = new_list.filter(member => member !== payload.address)
+    new_list.unshift(payload.address)
+    new_list = new_list.filter(member => member !== address)
+    if (new_list.length > GroupMemberMax) {
+      new_list = new_list.slice(0, GroupMemberMax)
+    }
+    yield put(setComposeMemberList(new_list))
+  } catch (e) {
+    Logger.error('[ComposeMemberAdd] failed:', e.message)
   }
-  yield put(setComposeMemberList(new_list))
 }
 
 export function* ComposeMemberDel({ payload }) {
-  const old_list = yield select(state => state.Messenger.ComposeMemberList)
-  let new_list = [...old_list]
-  new_list = new_list.filter(member => member !== payload.address)
-  yield put(setComposeMemberList(new_list))
+  try {
+    const old_list = yield select(state => state.Messenger.ComposeMemberList) || []
+    let new_list = [...old_list]
+    new_list = new_list.filter(member => member !== payload.address)
+    yield put(setComposeMemberList(new_list))
+  } catch (e) {
+    Logger.error('[ComposeMemberDel] failed:', e.message)
+  }
 }
 
 export function* CreateGroup(action) {

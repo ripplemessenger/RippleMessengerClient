@@ -635,6 +635,10 @@ function* handleECDHHandshakeObject(json, address, seed) {
         const timestamp = Date.now()
         const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+        if (!pair_key_pair.checkPublic()) {
+          Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve')
+          return
+        }
         const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
         const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
         yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
@@ -644,6 +648,10 @@ function* handleECDHHandshakeObject(json, address, seed) {
         const timestamp = Date.now()
         const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
+        if (!pair_key_pair.checkPublic()) {
+          Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve (update)')
+          return
+        }
         const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
         const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
         yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
@@ -902,6 +910,8 @@ function* handleObjectMessage(json, action, address, seed) {
 // ---------- WebSocket Listener ----------
 export function* WebsocketListener() {
   const channel = globalWsChannel
+  let cachedSeed = null
+  let cachedAddress = null
 
   try {
     while (true) {
@@ -912,36 +922,37 @@ export function* WebsocketListener() {
             Logger.info('!!!conn status change:', action)
             if (action.status === WebSocket.OPEN) {
               yield call(UpdateConnStatus, action)
-              const seed = yield select(state => state.User.Seed)
-              if (!seed) {
+              cachedSeed = yield select(state => state.User.Seed)
+              cachedAddress = yield select(state => state.User.Address)
+              if (!cachedSeed) {
                 continue
               }
-              const msg = yield call(() => mgAPI.genDeclare(seed))
+              const msg = yield call(() => mgAPI.genDeclare(cachedSeed))
               yield call(SendMessage, { key: action.key, msg: msg })
               yield call(AvatarRequest, { payload: { flag: true } })
               yield call(SubscribeFollow)
               yield call(FetchFollowBulletin)
             } else if (action.status === WebSocket.CLOSED) {
               yield call(UpdateConnStatus, action)
+              cachedSeed = null
+              cachedAddress = null
             } else if (action.status === 'error') {
               yield call(UpdateConnStatus, action)
             }
             break
           case 'message':
             Logger.debug('!!!received message: ', action)
-            const seed = yield select(state => state.User.Seed)
-            if (!seed) {
+            if (!cachedSeed) {
               continue
             }
-            const address = yield select(state => state.User.Address)
             if (action.isBinary) {
               yield call(handleBinaryMessage, action)
             } else {
               const json = action.data
-              if (json.Action && (json.To === undefined || json.To === address)) {
-                yield call(handleActionMessage, json, action, address, seed)
+              if (json.Action && (json.To === undefined || json.To === cachedAddress)) {
+                yield call(handleActionMessage, json, action, cachedAddress, cachedSeed)
               } else if (json.ObjectType) {
-                yield call(handleObjectMessage, json, action, address, seed)
+                yield call(handleObjectMessage, json, action, cachedAddress, cachedSeed)
               }
             }
             break

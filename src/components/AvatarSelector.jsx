@@ -10,7 +10,7 @@ const AvatarSelector = ({ avatars = [], defaultIndex = 0, onSelect, disableKeybo
       setSelectedIndex(defaultIndex)
       onSelect?.(avatars[defaultIndex]?.value)
     }
-  }, [defaultIndex])
+  }, [defaultIndex, selectedIndex, onSelect, avatars])
 
   const handleAvatarClick = useCallback((index) => {
     setSelectedIndex(index)

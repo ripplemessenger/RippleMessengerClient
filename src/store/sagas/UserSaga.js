@@ -3,6 +3,7 @@ import { all, call, fork, put, select, takeLatest } from 'redux-saga/effects'
 import { dbAPI } from '../../db'
 import Logger from '../../lib/Logger'
 import { disconnectAllWebsockets } from '../../lib/WebsocketUtil'
+import { clearMessageGenerator } from '../../lib/MessageGenerator'
 import { setFileRequestList, safeFork } from './messenger.core'
 import { PostAddress } from '../../lib/MessengerConst'
 import { SessionType } from '../../lib/AppConst'
@@ -73,6 +74,7 @@ function* handleLogout() {
     yield put(setSearchTagList([]))
     yield put(setBulletinAddress(null))
     setFileRequestList([])
+    clearMessageGenerator()
     yield call(disconnectAllWebsockets)
   } catch (e) {
     Logger.error('[handleLogout] failed:', e.message)

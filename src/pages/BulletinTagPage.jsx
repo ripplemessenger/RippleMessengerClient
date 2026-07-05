@@ -24,7 +24,7 @@ export default function BulletinTagPage() {
         dispatch(RequestTagBulletin({ tag: SearchTagList, page: 1 }))
       }
     }
-  }, [dispatch, Address, MessengerConnStatus])
+  }, [dispatch, Address, MessengerConnStatus, SearchTagList])
 
   const checkTag = (tag) => {
     const result = trimEndCommasAndValidate(tag)

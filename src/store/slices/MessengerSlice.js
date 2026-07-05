@@ -192,15 +192,13 @@ const MessengerSlice = createSlice({
       }
       state.GroupMemberMap = group_member_map
 
-      let total_member = []
-      for (let i = 0; i < group_list.length; i++) {
-        const group = group_list[i]
-        total_member.push(group.created_by)
-        total_member = [].concat(total_member, group.member)
-        total_member = total_member.filter(a => a !== action.payload.address)
-        total_member = [...new Set(total_member)]
+      const seen = new Set()
+      for (const group of group_list) {
+        seen.add(group.created_by)
+        for (const m of group.member) seen.add(m)
       }
-      state.TotalGroupMemberList = total_member
+      seen.delete(action.payload.address)
+      state.TotalGroupMemberList = [...seen]
     },
     setComposeMemberList: (state, action) => {
       state.ComposeMemberList = action.payload

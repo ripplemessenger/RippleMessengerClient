@@ -84,6 +84,9 @@ export function createMultiWsChannel(configs) {
     // Reset retry count on each fresh attempt so temporary flapping doesn't permanently kill the channel
     if (existing) {
       manager.channels.set(key, { ...existing, retryCount: 0 })
+    } else {
+      // No entry yet (e.g., first login or post-disconnect re-login) — create one
+      manager.channels.set(key, { ws: null, config: cfg, retryCount: 0, retryTimer: null })
     }
 
     let retryCount = 0

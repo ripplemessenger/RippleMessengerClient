@@ -160,15 +160,19 @@ User A                            User B
 
 Server 只存储密文 json，不计算也不存储 AES key。
 
-**群聊 Star Topology:**
+**群聊 Mesh Topology (全网状):**
 ```
-            Creator (A)
-           /   |   \
-       AES-K1 AES-K2 AES-K3
-          /     |      \
-         B      C       D
+         AES-A↔B     AES-B↔C
+      A ──────── B ──────── C
+       ╱    │      ╱    │
+      /     │     /     │
+  AES-A↔D  AES-A↔C AES-B↔D
+      \     │     \     │
+       ╲    │      ╲    │
+         D ──────────── E
+          AES-D↔E
 ```
-每个成员与 creator 独立 ECDH 链路，O(n) key 管理。最多 16 人。
+任意两个成员之间均有独立的 ECDH 握手 + AES 密钥。发送者向每个成员用自己的 pairwise AES key 加密消息后分别发送，接收方用与该发送者的 pairwise key 解密。O(n²) key 管理，最多 16 人。
 
 ### 私聊消息链
 

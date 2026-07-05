@@ -6,6 +6,19 @@ import { Sign } from './MessengerUtil'
 let mgInstance = null
 
 /**
+ * Clear the singleton MessageGenerator, zeroing out all cached keys.
+ * Call on logout to prevent private key residue in memory.
+ */
+export function clearMessageGenerator() {
+  if (mgInstance) {
+    mgInstance.Seed = null
+    mgInstance.PublicKey = null
+    mgInstance.PrivateKey = null
+    mgInstance = null
+  }
+}
+
+/**
  * Initialize a new MessageGenerator from a seed.
  * Derives the public/private keypair using the XRPL ripple-keypairs library.
  * @param {string} seed - XRPL seed string

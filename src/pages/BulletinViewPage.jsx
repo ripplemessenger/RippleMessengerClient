@@ -30,7 +30,7 @@ export default function BulletinViewPage() {
     if (DisplayBulletin?.hash === bulletin_hash) {
       dispatch(RequestReplyBulletin({ hash: DisplayBulletin.hash, page: 1 }))
     }
-  }, [dispatch, DisplayBulletin, bulletin_hash])
+  }, [dispatch, DisplayBulletin?.hash, bulletin_hash])
 
   useEffect(() => {
     dispatch(LoadBulletin({

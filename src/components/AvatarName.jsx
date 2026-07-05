@@ -1,27 +1,22 @@
-﻿import { useState, useEffect, memo } from 'react'
+﻿import { useMemo, memo } from 'react'
 import { useSelector } from 'react-redux'
 import { selectAvatarNameData } from '../selectors'
 
 const AvatarName = ({ address, classNames = '', short_flag = false }) => {
-  const [nickname, setNickname] = useState(address)
-  const [contactFlag, setContactFlag] = useState(false)
   const { Address, ContactMap } = useSelector(selectAvatarNameData)
 
-  useEffect(() => {
+  const { nickname, contactFlag } = useMemo(() => {
     if (address === Address) {
-      setNickname('Me')
-      setContactFlag(true)
+      return { nickname: 'Me', contactFlag: true }
     } else if (ContactMap[address]) {
-      setNickname(ContactMap[address])
-      setContactFlag(true)
+      return { nickname: ContactMap[address], contactFlag: true }
     } else {
-      if (short_flag) {
-        setNickname(address.slice(0, 4) + '...' + address.slice(address.length - 3))
-      } else {
-        setNickname(address)
-      }
+      const nickname = short_flag
+        ? address.slice(0, 4) + '...' + address.slice(address.length - 3)
+        : address
+      return { nickname, contactFlag: false }
     }
-  }, [ContactMap, address, Address])
+  }, [ContactMap, address, Address, short_flag])
 
   return (
     <div>

@@ -344,20 +344,27 @@ const decrypted = AesDecrypt(json.Content, ecdh.aes_key)
 
 **Server 的角色:** 收到 ObjectType.PrivateMessage → AJV Schema 验证 → EdDSA 签名验证 → `CachePrivateMessage()` 存密文 → 转发给 `json.To`。**Server 只存密文，不解密。**
 
-### 5.4 群聊 Star Topology
+### 5.4 群聊 Mesh Topology (全网状)
 
 ```
-            User A (creator)
-           /    │    │    \
-      AES-K1  AES-K2 AES-K3 AES-K4
-         /        │       │       \
-      User B    User C  User D   User E
+         AES-A↔B     AES-B↔C
+      A ──────── B ──────── C
+       ╱    │      ╱    │
+      /     │     /     │
+  AES-A↔D  AES-A↔C AES-B↔D
+      \     │     \     │
+       ╲    │      ╲    │
+         D ──────────── E
+          AES-D↔E
 ```
 
-- 每个成员与 creator 之间有一条独立的 ECDH 链路
-- 消息发送: sender 用 `sender↔creator` 的 AES key 加密 → Server 转发给所有成员 → 各成员用自己与 creator 的 AES key 解密
-- **O(n) key 管理** (不是 O(n²))，因为所有加密都通过 creator 作为中心
-- max 16 members: ECDH 握手数量和消息分发成本随人数线性增长，但 SQLite 查询复杂度上升
+对于 N 成员的群，每对成员之间均有一条独立的 ECDH 链路：
+
+- **握手:** 任意两个成员之间建立 ECDH 握手（与私聊相同的流程），通过 `DHSequence(timestamp, addrA, addrB)` 派生 AES 密钥。`handshakes` 表按 `(self_address, pair_address, partition, sequence)` 存储每对成员的 ECDH 状态
+- **消息发送:** 发送者向群中每个其他成员分别用自己与该成员的 pairwise AES key 加密消息后通过 WebSocket 发送（`SendGroupContent` → `SendGroupMessageToMember`，遍历 member list 并发 fork）。Server 收到后转发给 `json.To` 指定的目标成员
+- **消息接收:** 接收方用与**该消息的发送者**的 pairwise AES key 解密（`handleGroupMessageListObject`：查 `DHSequence(timestamp, self, sender)` → `getHandshake(self, sender)` → `AesDecrypt(content, ecdh.aes_key)`）
+- **O(n²) key 管理:** N 成员需 N×(N-1)/2 条 pairwise ECDH 链路（例如 4 人 = 6 条链路）。最多 16 人限制因此更严格——ECDH 握手数量、消息分发成本（每人发送需加密 15 次）、SQLite handshake 查询复杂度均随人数平方增长
+- **消息同步 (GroupMessageSync):** 当检测到链断裂时，双方逐对进行增量同步。与私聊 `PrivateMessageSync` 类似的机制，每个成员对其他成员的未读消息分别发起同步请求
 
 ### 5.5 群聊消息同步
 
