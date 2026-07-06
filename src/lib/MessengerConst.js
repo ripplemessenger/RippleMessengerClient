@@ -108,6 +108,50 @@ const MessageObjectType = {
   GroupChatFile: 103
 }
 
+// Control-plane MessageCode (7xx) — server-to-client notifications/errors.
+/** @type {{JsonSchemaInvalid: number, SignatureInvalid: number, TimestampInvalid: number, AddressMismatch: number, KickedByNewConn: number, ServerShutdown: number, SyncComplete: number, BulletinCached: number, PrivateMsgCached: number, HandshakeCached: number, FileChunkReceived: number, FileTransferComplete: number, FileTransferFailed: number}} */
+const MessageCode = {
+  // Error codes (701-704) — server reports validation failure -> FlashNotice warning
+  JsonSchemaInvalid: 701,
+  SignatureInvalid: 702,
+  TimestampInvalid: 703,
+  AddressMismatch: 704,
+
+  // Notification codes (710-712) — informational, may disconnect
+  KickedByNewConn: 710,
+  ServerShutdown: 711,
+  SyncComplete: 712,
+
+  // Cache success codes (720/721/723) — silent or subtle indicator
+  BulletinCached: 720,
+  PrivateMsgCached: 721,
+  HandshakeCached: 723,
+
+  // File transfer progress (730-732)
+  FileChunkReceived: 730,
+  FileTransferComplete: 731,
+  FileTransferFailed: 732
+}
+
+// Control-plane ActionCode extensions (8xx).
+/** @type {{ServerNotify: number, ServerNotifyAckReq: number, ClientAck: number}} */
+const ControlActionCode = {
+  ServerNotify: 800,           // Generic S->C notification (carries MessageCode)
+  ServerNotifyAckReq: 801,    // S->C notification requiring ACK
+  ClientAck: 810              // C->S acknowledgment response
+}
+
+// Error messages mapping for FlashNotice display.
+const ErrorMessageMap = {
+  [MessageCode.JsonSchemaInvalid]: 'Invalid message format',
+  [MessageCode.SignatureInvalid]: 'Message signature verification failed',
+  [MessageCode.TimestampInvalid]: 'Message timestamp out of range',
+  [MessageCode.AddressMismatch]: 'Address mismatch detected',
+  [MessageCode.KickedByNewConn]: 'Disconnected — new login detected',
+  [MessageCode.ServerShutdown]: 'Server is shutting down',
+  [MessageCode.SyncComplete]: 'Synchronization complete'
+}
+
 export {
   DefaultServer,
   Epoch,
@@ -123,5 +167,9 @@ export {
   ActionCode,
   ObjectType,
   FileRequestType,
-  MessageObjectType
+  MessageObjectType,
+
+  MessageCode,
+  ControlActionCode,
+  ErrorMessageMap
 }

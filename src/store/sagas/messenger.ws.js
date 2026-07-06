@@ -10,14 +10,15 @@ import { open, readFile, writeFile, remove, mkdir, SeekMode } from '@tauri-apps/
 import { cancelled, call, fork, put, select, take } from 'redux-saga/effects'
 
 import { dbAPI } from '../../db'
-import { AvatarDir, FileChunkSize, FileDir, FILE_REQUEST_TTL_MS, SessionType, DefaultPartition } from '../../lib/AppConst'
+import { AvatarDir, FileChunkSize, FileDir, FILE_REQUEST_TTL_MS, SessionType, DefaultPartition, FLASH_DURATION_MS } from '../../lib/AppConst'
 import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
-import { ActionCode, FileRequestType, GenesisHash, ObjectType, Epoch, DefaultServer, MessageObjectType } from '../../lib/MessengerConst'
+import { ActionCode, FileRequestType, GenesisHash, ObjectType, Epoch, DefaultServer, MessageObjectType, MessageCode, ControlActionCode, ErrorMessageMap } from '../../lib/MessengerConst'
 import { DHSequence, FileHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32, buildFileSubPath, buildFileFullPath } from '../../lib/MessengerUtil'
 import { globalWsChannel } from '../../lib/WebsocketUtil'
 import { setGroupRequestList, setServerAddressList, updateMessengerConnStatus, setDisplayBulletinReplyList, setTagBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
+import { setFlashNoticeMessage } from '../slices/CommonSlice'
 
 // Schema validators used by WS handlers
 import {
@@ -907,6 +908,59 @@ function* handleObjectMessage(json, action, address, seed) {
   }
 }
 
+/**
+ * Handle control-plane messages from server (ActionCode 800 ServerNotify).
+ * Routes MessageCode 7xx to appropriate UI response:
+ * - 701-704: Error → FlashNotice warning
+ * - 710-712: Notification → FlashNotice info
+ * - 720/721/723: Cache confirmation → silent (optional brief indicator)
+ * - 730-732: File transfer progress → FlashNotice update
+ */
+function handleControlMessage(json) {
+  const msgCode = json.MessageCode
+  const msgText = json.ErrorMessage || ErrorMessageMap[msgCode]
+
+  // Error codes (701-704): Show FlashNotice warning
+  if (msgCode >= 701 && msgCode <= 704) {
+    Logger.warn(`[ServerNotify] Error ${msgCode}: ${msgText}`, json)
+    return setFlashNoticeMessage({ message: msgText, duration: FLASH_DURATION_MS * 2 })
+  }
+
+  // Notification codes (710-712): Show FlashNotice info
+  if (msgCode >= 710 && msgCode <= 712) {
+    Logger.info(`[ServerNotify] Notification ${msgCode}: ${msgText}`, json)
+    return setFlashNoticeMessage({ message: msgText, duration: FLASH_DURATION_MS })
+  }
+
+  // Cache confirmation codes (720/721/723): Silent — server just confirming storage
+  if (msgCode === MessageCode.BulletinCached || msgCode === MessageCode.PrivateMsgCached || msgCode === MessageCode.HandshakeCached) {
+    Logger.debug(`[ServerNotify] Cache confirmation ${msgCode}`)
+    return null // No UI update needed
+  }
+
+  // File transfer progress codes (730-732)
+  if (msgCode >= 730 && msgCode <= 732) {
+    Logger.info(`[ServerNotify] File transfer ${msgCode}: ${json.Hash || 'unknown'}`, json)
+    let progressText = ''
+    if (msgCode === MessageCode.FileChunkReceived && json.ProgressInfo) {
+      const { ReceivedBytes, TotalBytes } = json.ProgressInfo
+      const pct = TotalBytes ? Math.round((ReceivedBytes / TotalBytes) * 100) : '?'
+      progressText = `Upload chunk: ${pct}% (${ReceivedBytes}/${TotalBytes} bytes)`
+    } else if (msgCode === MessageCode.FileTransferComplete) {
+      progressText = 'File transfer complete'
+    } else if (msgCode === MessageCode.FileTransferFailed) {
+      progressText = 'File transfer failed'
+    }
+    if (progressText) {
+      return setFlashNoticeMessage({ message: progressText, duration: FLASH_DURATION_MS })
+    }
+  }
+
+  // Unknown MessageCode
+  Logger.warn(`[ServerNotify] Unknown MessageCode: ${msgCode}`, json)
+  return null
+}
+
 // ---------- WebSocket Listener ----------
 export function* WebsocketListener() {
   const channel = globalWsChannel
@@ -949,7 +1003,17 @@ export function* WebsocketListener() {
               yield call(handleBinaryMessage, action)
             } else {
               const json = action.data
-              if (json.Action && (json.To === undefined || json.To === cachedAddress)) {
+              // Control-plane messages (ActionCode 8xx) — server notifications/errors
+              if (json.ActionCode === ControlActionCode.ServerNotify || json.ActionCode === ControlActionCode.ServerNotifyAckReq) {
+                const controlAction = handleControlMessage(json)
+                if (controlAction) {
+                  yield put(controlAction)
+                }
+                // If ServerNotifyAckReq, send ACK back
+                if (json.ActionCode === ControlActionCode.ServerNotifyAckReq) {
+                  yield call(SendMessage, { key: action.key, msg: JSON.stringify({ ActionCode: ControlActionCode.ClientAck, AckFor: json.MessageCode }) })
+                }
+              } else if (json.Action && (json.To === undefined || json.To === cachedAddress)) {
                 yield call(handleActionMessage, json, action, cachedAddress, cachedSeed)
               } else if (json.ObjectType) {
                 yield call(handleObjectMessage, json, action, cachedAddress, cachedSeed)

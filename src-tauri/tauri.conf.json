@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' asset: data: blob:; script-src 'self' asset: blob:; style-src 'self' asset: 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src 'self' ws: wss:;",
+      "csp": "default-src 'self' asset: data: blob:; script-src 'self' asset: blob: 'unsafe-eval'; style-src 'self' asset: 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src 'self' ws: wss:;",
       "assetProtocol": {
         "enable": true,
         "scope": [
