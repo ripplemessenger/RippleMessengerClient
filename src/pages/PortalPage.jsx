@@ -63,7 +63,6 @@ export default function PortalPage() {
         bulletinData={{ page: PortalBulletinPage, totalPage: PortalBulletinTotalPage }}
         pageListType={'LoadPortalBulletin'}
         pageListPayload={{}}
-        pageListPosition={'after'}
         showEmpty
         emptyIcon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
         emptyTitle="No bulletin yet"

@@ -21,7 +21,6 @@ import PageList from '../PageList'
  * @param {React.ReactNode} [props.emptyIcon] - Icon for EmptyState
  * @param {string} [props.emptyTitle] - Title text for EmptyState
  * @param {string} [props.emptyDescription] - Description text for EmptyState
- * @param {'before'|'after'} [props.pageListPosition] - 'before': PageList above content (default), 'after': below content
  * @param {'card'|'list'} [props.wrapperStyle] - 'list': bulletin-card-list div, 'card': max-w-full card div
  * @param {React.ReactNode} [props.extraContent] - Optional content between title and list (e.g. tag chips)
  * @param {boolean} [props.renderWrapper] - Whether to render bulletin-page-wrapper div (default: true). Set false when page wraps itself.
@@ -36,7 +35,6 @@ export default function BulletinListPage({
   emptyIcon,
   emptyTitle,
   emptyDescription,
-  pageListPosition = 'before',
   wrapperStyle = 'list',
   extraContent,
   renderWrapper = true,
@@ -71,15 +69,15 @@ export default function BulletinListPage({
 
   const innerContent = wrapperStyle === 'card' ? (
     <div className="max-w-full min-w-0 p-4 rounded-xl card">
-      {pageListPosition === 'before' && pageListElement}
+      {pageListElement}
       {listContent}
-      {pageListPosition === 'after' && pageListElement}
+      {pageListElement}
     </div>
   ) : (
     <div className="bulletin-card-list">
-      {pageListPosition === 'before' && pageListElement}
+      {pageListElement}
       {listContent}
-      {pageListPosition === 'after' && pageListElement}
+      {pageListElement}
     </div>
   )
 

@@ -63,6 +63,9 @@ export default function ServerAddressPage() {
               />
             )}
           </div>
+          {ServerAddressTotalPage > 1 && (
+            <PageList current_page={ServerAddressPage} total_page={ServerAddressTotalPage} dispatch_type={'RequestServerAddress'} payload={{}} />
+          )}
         </div>
       </div>
     </div>

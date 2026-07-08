@@ -2,12 +2,16 @@ import { IoArrowBackSharp, IoArrowForwardSharp, IoReloadSharp } from 'react-icon
 
 import ExternalLink from './ExternalLink'
 import InternalLink from './InternalLink'
+import packageJson from '../../package.json'
 
 export default function Footer() {
   return (
     <footer className="footer bar">
       <div className="mx-auto max-w-7xl flex justify-between items-center px-8">
-        <ExternalLink href={"https://github.com/RippleMessenger/RippleMessengerClient"} title={"RippleMessenger"} text_size={"text-base"} />
+        <div className="flex items-center gap-2">
+          <ExternalLink href={"https://github.com/RippleMessenger/RippleMessengerClient"} title={"RippleMessenger"} text_size={"text-base"} />
+          <span className="text-xs text-muted">v{packageJson.version}</span>
+        </div>
         <div className="flex items-center gap-1 bg-surface/20 dark:bg-dark-surface/20 rounded-lg p-1 backdrop-blur-sm">
           <button
             onClick={() => window.history.back()}

@@ -47,6 +47,10 @@ export default function BulletinViewPage() {
         <ErrorBoundary fallbackTitle="Bulletin View Error">
 {ShowPublishFlag && <BulletinPublish />}
       {ShowForwardFlag && <BulletinForward />}
+      {
+        DisplayBulletin && DisplayBulletinReplyTotalPage > 1 &&
+        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
+      }
       {DisplayBulletin && (
         <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />
       )}

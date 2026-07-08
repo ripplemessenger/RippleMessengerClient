@@ -6,8 +6,12 @@ const TextInput = forwardRef(({ label, type = "text", placeholder, autoComplete 
 
   // Password visibility toggle — replaces browser's native eye icon for consistent behavior
   const [showPassword, setShowPassword] = useState(false)
+  // CJK IME composition: browsers block IME on type="password".
+  // Temporarily switch to "text" while composing so Chinese/Japanese/Korean input works.
+  const [imeComposing, setImeComposing] = useState(false)
+
   const isPassword = type === 'password'
-  const inputType = isPassword && showPassword ? 'text' : type
+  const inputType = isPassword && (showPassword || imeComposing) ? 'text' : type
 
   return (
     <div className="justify-center flex flex-col">
@@ -25,6 +29,8 @@ const TextInput = forwardRef(({ label, type = "text", placeholder, autoComplete 
           onChange={onChange}
           onKeyDown={onKeyDown}
           onBlur={onBlur}
+          onCompositionStart={() => setImeComposing(true)}
+          onCompositionEnd={() => setImeComposing(false)}
           aria-invalid={!!error}
           className={`w-full px-3 py-2 border rounded-lg shadow-sm appearance-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${isPassword ? 'pr-10' : ''} ${error ? 'border-status-error/60 dark:border-status-error-dark/60' : (disabled ? 'input-hover-disabled' : 'input-hover border-primary/30 dark:border-primary/40')} input-color`}
         />
