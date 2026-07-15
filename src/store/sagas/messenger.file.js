@@ -24,23 +24,33 @@ export function* FetchBulletinFile({ payload }) {
     if (!seed) {
       return
     }
-    const file = yield call(() => dbAPI.getFileByHash(payload.hash))
-    if (file !== null && file.is_saved === false) {
-      const nonce = genFileNonce()
-      const tmp = {
-        Type: FileRequestType.File,
-        Nonce: nonce,
-        Hash: file.hash,
-        ChunkCursor: file.chunk_cursor + 1,
-        Timestamp: Date.now()
+    let file = yield call(() => dbAPI.getFileByHash(payload.hash))
+    if (file === null) {
+      if (!payload.size) {
+        return
       }
-      setFileRequestList(getFileRequestList().filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now() && r.Hash !== file.hash))
-      pushFileRequest(tmp)
-      const file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.File, file.hash, nonce, file.chunk_cursor + 1))
-      yield call(SendMessage, { msg: file_request })
+      const chunk_length = Math.ceil(payload.size / FileChunkSize)
+      yield call(() => dbAPI.addFile(payload.hash, payload.size, Date.now(), chunk_length, 0, false))
+      file = yield call(() => dbAPI.getFileByHash(payload.hash))
     }
+    if (file.is_saved) {
+      return
+    }
+    const nonce = genFileNonce()
+    const cursor = file.chunk_cursor + 1
+    const tmp = {
+      Type: FileRequestType.File,
+      Nonce: nonce,
+      Hash: file.hash,
+      ChunkCursor: cursor,
+      Timestamp: Date.now()
+    }
+    setFileRequestList(getFileRequestList().filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now() && r.Hash !== file.hash))
+    pushFileRequest(tmp)
+    const file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.File, file.hash, nonce, cursor))
+     yield call(SendMessage, { msg: file_request })
   } catch (e) {
-    Logger.error('[FetchBulletinFile] failed for', payload.hash, e.message)
+    Logger.error('[📥 FetchBulletinFile] FAILED for', payload.hash, e.message, e.stack)
   }
 }
 
@@ -64,12 +74,11 @@ export function* SaveBulletinFile({ payload }) {
       yield put(setFlashNoticeMessage({ message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from server...`, duration: 2000 }))
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     } else {
-      // file === null (DB missing record), will be created by FetchBulletinFile
       yield put(setFlashNoticeMessage({ message: 'file record not found, fetching from server...', duration: 2000 }))
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     }
   } catch (e) {
-    Logger.error('[SaveBulletinFile] failed:', e.message)
+    Logger.error('[SaveBulletinFile] FAILED:', e.message, e.stack)
   }
 }
 

@@ -41,7 +41,6 @@ export function* safeFork(sagaFn, ...args) {
  */
 export function* SendMessage(payload) {
   try {
-    Logger.debug('!!!send message: ', payload)
     if (payload.key) {
       yield call(sendToSingleConn, payload.key, payload.msg)
     } else if (payload.flag) {

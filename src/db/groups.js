@@ -160,6 +160,7 @@ export const api = {
       'INSERT INTO group_messages (hash, group_hash, address, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
       [hash, group_hash, address, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
     )
+    return true
   },
 
   async confirmGroupMessage(hash) {

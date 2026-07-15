@@ -169,6 +169,7 @@ export const api = {
       'INSERT INTO bulletins (hash, address, sequence, pre_hash, content, json, signed_at, is_marked) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
       [hash, address, sequence, pre_hash, content, JSON.stringify(json), signed_at, Bool2Int(false)]
     )
+    return true
   },
 
   async toggleBulletinMark(hash, is_marked) {

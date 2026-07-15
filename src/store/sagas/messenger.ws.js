@@ -121,6 +121,9 @@ function* handleBinaryBulletinFile(request, content) {
     yield call(() => mkdir(file_dir, { recursive: true }))
     const file_path = yield call(() => path.join(file_dir, request.Hash))
     const file = yield call(() => dbAPI.getFileByHash(request.Hash))
+    if (file === null) {
+      return
+    }
     yield call(receiveFileChunk, {
       filePath: file_path,
       content,
@@ -130,7 +133,7 @@ function* handleBinaryBulletinFile(request, content) {
       fetchNextPayload: { hash: request.Hash }
     })
   } catch (e) {
-    Logger.error('[handleBinaryBulletinFile] failed for', request.Hash, e.message)
+    Logger.error('[handleBinaryBulletinFile] failed for', request.Hash, e.message, e.stack)
   }
 }
 
@@ -191,9 +194,11 @@ function* handleBinaryMessage(action) {
     const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
     setFileRequestList(getFileRequestList().filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now()))
     const fileRequests = getFileRequestList()
+    let matched = false
     for (let i = 0; i < fileRequests.length; i++) {
       const request = fileRequests[i]
       if (request.Nonce === nonce) {
+        matched = true
         switch (request.Type) {
           case FileRequestType.Avatar:
             yield call(handleBinaryAvatar, request, new Uint8Array(action.data.slice(4)))
@@ -211,7 +216,7 @@ function* handleBinaryMessage(action) {
       }
     }
   } catch (e) {
-    Logger.error('[handleBinaryMessage] failed:', e.message)
+    Logger.error('[handleBinaryMessage] failed:', e.message, e.stack)
   }
 }
 
@@ -636,7 +641,7 @@ function* handleECDHHandshakeObject(json, address, seed) {
         const timestamp = Date.now()
         const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-        if (!pair_key_pair.checkPublic()) {
+        if (!pair_key_pair.validate().result) {
           Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve')
           return
         }
@@ -649,7 +654,7 @@ function* handleECDHHandshakeObject(json, address, seed) {
         const timestamp = Date.now()
         const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
-        if (!pair_key_pair.checkPublic()) {
+        if (!pair_key_pair.validate().result) {
           Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve (update)')
           return
         }
@@ -899,10 +904,10 @@ function* handleObjectMessage(json, action, address, seed) {
     } else if (json.ObjectType === ObjectType.GroupList) {
       yield call(handleGroupListObject, json, address)
     } else if (json.ObjectType === ObjectType.GroupMessageList) {
-        yield call(handleGroupMessageListObject, json, address, seed)
-      } else {
-        Logger.warn('[handleObjectMessage] unknown ObjectType', json.ObjectType)
-      }
+      yield call(handleGroupMessageListObject, json, address, seed)
+    } else {
+      Logger.warn('[handleObjectMessage] unknown ObjectType', json.ObjectType)
+    }
   } catch (e) {
     Logger.error('[handleObjectMessage] failed for ObjectType', json.ObjectType, e.message)
   }
@@ -992,6 +997,8 @@ export function* WebsocketListener() {
               cachedAddress = null
             } else if (action.status === 'error') {
               yield call(UpdateConnStatus, action)
+            } else if (action.status === 'retries_exhausted') {
+              Logger.warn(`[WS] Retries exhausted for ${action.key}, cleared declared state`)
             }
             break
           case 'message':
@@ -1017,6 +1024,8 @@ export function* WebsocketListener() {
                 yield call(handleActionMessage, json, action, cachedAddress, cachedSeed)
               } else if (json.ObjectType) {
                 yield call(handleObjectMessage, json, action, cachedAddress, cachedSeed)
+              } else {
+                Logger.warn('[WS] ❌ DROPPED text message — no Action/ObjectType/ActionCode', typeof json, 'keys:', Object.keys(json).slice(0, 8).join(','))
               }
             }
             break
