@@ -52,7 +52,7 @@ import { CacheBulletin, RequestNextBulletin, AvatarRequest, RequestAvatarFile, S
 import { FetchBulletinFile, FetchPrivateChatFile, FetchGroupChatFile } from './messenger.file'
 
 // Private chat
-import { SyncPrivateMessage, InitHandshake, RefreshPrivateMessageList } from './messenger.private'
+import { AutoSyncPrivateMessages, SyncPrivateMessage, InitHandshake, RefreshPrivateMessageList } from './messenger.private'
 
 // Group chat
 import { RefreshGroupMessageList, GroupSync } from './messenger.group'
@@ -988,6 +988,8 @@ export function* WebsocketListener() {
               }
               const msg = yield call(() => mgAPI.genDeclare(cachedSeed))
               yield call(SendMessage, { key: action.key, msg: msg })
+              // Background-sync private messages with ALL friends after Declare
+              yield fork(AutoSyncPrivateMessages)
               yield call(AvatarRequest, { payload: { flag: true } })
               yield call(SubscribeFollow)
               yield call(FetchFollowBulletin)

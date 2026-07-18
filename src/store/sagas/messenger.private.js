@@ -43,6 +43,37 @@ export function* SyncPrivateMessage({ payload }) {
   }
 }
 
+/**
+ * After Declare completes, silently sync private messages with ALL friends.
+ * Runs in the background via fork — does not block WebSocket listener.
+ */
+const AUTO_SYNC_IN_PROGRESS = { flag: false }
+export function* AutoSyncPrivateMessages() {
+  try {
+    const self_address = yield select(state => state.User.Address)
+    if (!self_address) {
+      return
+    }
+
+    const friends = yield call(() => dbAPI.getMyFriends(self_address))
+    if (!friends || friends.length === 0) {
+      return
+    }
+
+    Logger.info(`[AutoSyncPrivateMessages] syncing ${friends.length} contacts...`)
+    // Fork all syncs concurrently — they're fire-and-forget;
+    // incoming messages will be handled by processPrivateMessage normally.
+    yield all(friends.map(f => () => fork(SyncPrivateMessage, { payload: { local: self_address, remote: f.remote } })))
+
+    // Give server time to return synced messages (they arrive as normal WS messages)
+    // Then refresh session list so badges reflect newly received unread counts.
+    yield call(LoadSessionList)
+    Logger.info('[AutoSyncPrivateMessages] done')
+  } catch (e) {
+    Logger.error('[AutoSyncPrivateMessages] failed:', e.message)
+  }
+}
+
 /** Initiate an ECDH handshake with a peer. */
 export function* InitHandshake(payload) {
   try {
