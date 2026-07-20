@@ -11,6 +11,7 @@ import {
 	LoadFileManagementList,
 	DeleteFileItem,
 	BulkDeleteFiles,
+	SaveBulletinFile,
 } from '../../store/sagas/messenger.actions'
 
 function formatSize(bytes) {
@@ -93,6 +94,11 @@ export default function FileManagerPanel() {
 	const handleCloseRefModal = useCallback(() => {
 		setRefModal(prev => ({ ...prev, open: false }))
 	}, [])
+
+	// Handle file save/download - same logic as BulletinFileViewer
+	const handleSaveFile = useCallback((item) => {
+		dispatch(SaveBulletinFile({ hash: item.hash, size: item.size, name: item.file_name, ext: item.file_ext }))
+	}, [dispatch])
 
 	return (
 		<>
@@ -177,15 +183,17 @@ export default function FileManagerPanel() {
 											<span className="text-sm">{formatSize(item.size)}</span>
 										</td>
 										<td className="table-cell">
-											{item.is_saved ? (
-												<span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-													Saved
-												</span>
-											) : (
-												<span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
-													Pending
-												</span>
-											)}
+											<button
+												className={`text-xs px-2 py-0.5 rounded-full cursor-pointer transition-colors ${
+													item.is_saved
+														? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/50'
+														: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800/50'
+												}`}
+												title={item.is_saved ? 'Copy to download' : 'Download from server'}
+												onClick={() => handleSaveFile(item)}
+											>
+												{item.is_saved ? 'Saved' : 'Pending'}
+											</button>
 										</td>
 										<td className="table-cell">
 											<TextTimestamp timestamp={item.updated_at} />
