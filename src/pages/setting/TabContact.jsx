@@ -107,7 +107,7 @@ export default function TabContact() {
                     <th>Avatar</th>
                     <th>Follow</th>
                     <th>Friend</th>
-                    <th>Updated At</th>
+                    <th>Timestamp</th>
                     <th></th>
                   </tr>
                 </thead>

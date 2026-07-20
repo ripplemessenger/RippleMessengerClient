@@ -69,6 +69,17 @@ const MessengerSlice = createSlice({
 
     ComposeMemberList: [],
     GroupRequestList: [],
+
+    // storage management
+    StorageSummary: null,
+    BulletinManagementList: [],
+    BulletinManagementPage: 1,
+    BulletinManagementTotalPage: 1,
+    FileManagementList: [],
+    FileManagementPage: 1,
+    FileManagementTotalPage: 1,
+    FileManagementFileExt: '',
+    AllTagsList: [],
   },
   reducers: {
     updateMessengerConnStatus: (state, action) => {
@@ -206,6 +217,27 @@ const MessengerSlice = createSlice({
     setGroupRequestList: (state, action) => {
       state.GroupRequestList = action.payload
     },
+
+    // storage management
+    setStorageSummary: (state, action) => {
+      state.StorageSummary = action.payload
+    },
+    setBulletinManagementList: (state, action) => {
+      state.BulletinManagementPage = action.payload.Page
+      state.BulletinManagementTotalPage = action.payload.TotalPage
+      state.BulletinManagementList = action.payload.List
+    },
+    setFileManagementList: (state, action) => {
+      state.FileManagementPage = action.payload.Page
+      state.FileManagementTotalPage = action.payload.TotalPage
+      state.FileManagementList = action.payload.List
+      if (action.payload.fileExt !== undefined) {
+        state.FileManagementFileExt = action.payload.fileExt || ''
+      }
+    },
+    setAllTagsList: (state, action) => {
+      state.AllTagsList = action.payload
+    },
   }
 })
 
@@ -246,5 +278,11 @@ export const {
   setGroupList,
   setComposeMemberList,
   setGroupRequestList,
+
+  // storage management
+  setStorageSummary,
+  setBulletinManagementList,
+  setFileManagementList,
+  setAllTagsList,
 } = MessengerSlice.actions
 export default MessengerSlice.reducer

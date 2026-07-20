@@ -1,5 +1,5 @@
 import Elliptic from 'elliptic'
-import { call, fork, put, select } from 'redux-saga/effects'
+import { all, call, fork, put, select } from 'redux-saga/effects'
 
 // Module-level EC curve singleton — avoids re-initializing on every ECDH handshake.
 const ec = new Elliptic.ec('secp256k1')

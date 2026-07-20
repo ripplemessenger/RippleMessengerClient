@@ -13,12 +13,13 @@ const FileDir = 'file'
 const AvatarDir = 'avatar'
 
 // Settings page tab identifiers
-/** @type {{Me: string, Contact: string, Group: string, MessengerNetwork: string}} */
+/** @type {{Me: string, Contact: string, Group: string, MessengerNetwork: string, Storage: string}} */
 const SettingPageTab = {
   Me: 'Me',
   Contact: 'Contact',
   Group: 'Group',
   MessengerNetwork: 'Messenger Network',
+  Storage: 'Storage',
 }
 
 /** @type {number} Maximum bulletin cache entries; 0 means no caching */
@@ -61,12 +62,15 @@ const MessageInterval = 1000
 const MessagePageSize = 50
 
 // Confirm dialog content type identifiers
-/** @type {{RemoveAccount: string, DelContact: string, DelGroup: string, DelServer: string}} */
+/** @type {{RemoveAccount: string, DelContact: string, DelGroup: string, DelServer: string, DelBulletin: string, DelFile: string, ClearOrphanedFiles: string}} */
 const ConfirmContentOptions = {
   RemoveAccount: 'RemoveAccount',
   DelContact: 'DelContact',
   DelGroup: 'DelGroup',
   DelServer: 'DelServer',
+  DelBulletin: 'DelBulletin',
+  DelFile: 'DelFile',
+  ClearOrphanedFiles: 'ClearOrphanedFiles',
 }
 
 // UI timing

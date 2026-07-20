@@ -14,6 +14,7 @@ import { Epoch, FileRequestType, GenesisHash, ListItemMax, ObjectType } from '..
 import { calcTotalPage, FileHash, buildFileSubPath } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { setCurrentBulletinSequence, setPublishFileList, setPublishQuoteList, setFollowBulletinList, setPublishFlag, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setBookmarkBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
+import { deleteFile, statFile, getFileFullPath } from '../../services/fileService'
 
 // ==================== Bulletin Cache & Upload ====================
 
@@ -657,5 +658,208 @@ export function* SubscribeFollow() {
     yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
   } catch (e) {
     Logger.error('[SubscribeFollow] failed:', e.message)
+  }
+}
+
+// ==================== Bulletin Management ====================
+
+/**
+ * Load bulletin management list with filter support.
+ * filter: 'all' | 'mine' | 'bookmarked' | 'followed'
+ */
+export function* LoadBulletinManagement({ payload: { filter, page } }) {
+  try {
+    const address = yield select(state => state.User.Address)
+    const p = page || 1
+
+    let bulletins, total
+
+    switch (filter) {
+      case 'mine':
+        bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter: 'mine', address, page: p }))
+        total = yield call(() => dbAPI.getBulletinCountForManagement({ filter: 'mine', address }))
+        break
+      case 'followed':
+        bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter: 'followed', address, page: p }))
+        total = yield call(() => dbAPI.getBulletinCountForManagement({ filter: 'followed', address }))
+        break
+      case 'bookmarked':
+        bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter: 'bookmarked', address, page: p }))
+        total = yield call(() => dbAPI.getBulletinCountForManagement({ filter: 'bookmarked', address }))
+        break
+      default:
+        bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter: 'all', page: p }))
+        total = yield call(() => dbAPI.getBulletinCountForManagement({ filter: 'all' }))
+        break
+    }
+
+    const total_page = calcTotalPage(total, BulletinPageSize)
+
+    yield put(setPortalBulletinList({ List: bulletins, Page: p, TotalPage: total_page }))
+    yield put(setFlashNoticeMessage({ message: `Loaded ${bulletins.length} bulletins (total: ${total})`, duration: FLASH_DURATION_MS }))
+  } catch (e) {
+    Logger.error('[LoadBulletinManagement] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to load bulletin management list', duration: FLASH_DURATION_MS }))
+  }
+}
+
+/**
+ * Delete a single bulletin by hash.
+ */
+export function* DeleteBulletin({ payload: { hash, filter, page } }) {
+  try {
+    yield call(() => dbAPI.deleteBulletin(hash))
+    yield put(setFlashNoticeMessage({ message: `Bulletin ${hash.substring(0, 12)}... deleted`, duration: FLASH_DURATION_MS }))
+    yield call(LoadBulletinManagement, { payload: { filter, page } })
+  } catch (e) {
+    Logger.error('[DeleteBulletin] failed for', hash, e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to delete bulletin', duration: FLASH_DURATION_MS }))
+  }
+}
+
+/**
+ * Clear all cached bulletins from the local database.
+ */
+export function* ClearAllBulletins() {
+  try {
+    const count = yield call(() => dbAPI.clearAllBulletins())
+    yield put(setPortalBulletinList({ List: [], Page: 1, TotalPage: 0 }))
+    yield put(setFollowBulletinList({ List: [], Page: 1, TotalPage: 0 }))
+    yield put(setBookmarkBulletinList({ List: [], Page: 1, TotalPage: 0 }))
+    yield put(setAddressBulletinList({ List: [], Page: 1, TotalPage: 0 }))
+    yield put(setRandomBulletinList([]))
+    yield put(setDisplayBulletin(null))
+    yield put(setFlashNoticeMessage({ message: `Cleared ${count} bulletins`, duration: FLASH_DURATION_MS }))
+  } catch (e) {
+    Logger.error('[ClearAllBulletins] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to clear bulletins', duration: FLASH_DURATION_MS }))
+  }
+}
+
+// ==================== File Management ====================
+
+/**
+ * Load cached files list with on-disk verification.
+ * Batches file stat checks in groups of 50 for performance.
+ */
+export function* LoadCachedFiles({ payload: { page, category } }) {
+  try {
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    if (!base_dir) {
+      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      return
+    }
+
+    const p = page || 1
+    const cat = category || 'all'
+    const pageSize = BulletinPageSize
+
+    let files, categoryCounts
+
+    // Get paginated file records and category counts in parallel
+    ;[files, categoryCounts] = yield all([
+      call(() => dbAPI.getFilesForManagement({ category: cat, page: p, pageSize })),
+      call(() => dbAPI.getFileCountByCategory()),
+    ])
+
+    const total = yield call(() => dbAPI.getFileCountForManagement({ category: cat }))
+    const total_page = calcTotalPage(total, BulletinPageSize)
+
+    // Batch on-disk verification in groups of 50
+    const BATCH_SIZE = 50
+    let verifiedFiles = []
+    for (let start = 0; start < files.length; start += BATCH_SIZE) {
+      const batch = files.slice(start, start + BATCH_SIZE)
+      const results = yield all(
+        batch.map(file => call(async () => {
+          const filePath = await getFileFullPath(base_dir, file.hash)
+          return statFile(filePath)
+        }))
+      )
+      for (let i = 0; i < batch.length; i++) {
+        verifiedFiles.push({
+          ...batch[i],
+          on_disk: results[i]?.exists || false,
+          disk_size: results[i]?.size ?? null,
+        })
+      }
+    }
+
+    const fileTotalSize = yield call(() => dbAPI.getFileSizeSum())
+
+    yield put(setFlashNoticeMessage({ message: `Loaded ${verifiedFiles.length} cached files (total size: ${filesize_format(fileTotalSize)})`, duration: FLASH_DURATION_MS }))
+
+    // Return via portal list for reuse of existing UI infrastructure
+    yield put(setPortalBulletinList({ List: verifiedFiles, Page: p, TotalPage: total_page }))
+  } catch (e) {
+    Logger.error('[LoadCachedFiles] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to load cached files', duration: FLASH_DURATION_MS }))
+  }
+}
+
+/**
+ * Delete a cached file from both filesystem and database.
+ */
+export function* DeleteCachedFile({ payload: { hash, category, page } }) {
+  try {
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    if (!base_dir) {
+      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      return
+    }
+
+    // Remove from filesystem
+    const filePath = yield call(() => getFileFullPath(base_dir, hash))
+    yield call(deleteFile, filePath)
+
+    // Remove DB references then the file record itself
+    yield call(() => dbAPI.removeFileReferences(hash))
+    yield call(() => dbAPI.deleteFileRecord(hash))
+
+    yield put(setFlashNoticeMessage({ message: `File ${hash.substring(0, 12)}... deleted`, duration: FLASH_DURATION_MS }))
+
+    // Reload the file list
+    yield call(LoadCachedFiles, { payload: { category, page } })
+  } catch (e) {
+    Logger.error('[DeleteCachedFile] failed for', hash, e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to delete cached file', duration: FLASH_DURATION_MS }))
+  }
+}
+
+/**
+ * Clear orphaned files — those with no references in bulletin_files, private_chat_files, or group_chat_files.
+ */
+export function* ClearOrphanedFiles() {
+  try {
+    const base_dir = yield select(state => state.Common.AppBaseDir)
+    if (!base_dir) {
+      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      return
+    }
+
+    // Get orphaned file hashes
+    const orphanHashes = yield call(() => dbAPI.getOrphanedFileHashes())
+    let deletedCount = 0
+
+    for (const hash of orphanHashes) {
+      // Remove from filesystem
+      const filePath = yield call(() => getFileFullPath(base_dir, hash))
+      const removed = yield call(deleteFile, filePath)
+      if (removed) {
+        deletedCount++
+      }
+
+      // Remove DB references and file record
+      yield call(() => dbAPI.removeFileReferences(hash))
+      yield call(() => dbAPI.deleteFileRecord(hash))
+    }
+
+    yield put(setFlashNoticeMessage({ message: `Cleared ${deletedCount} orphaned files`, duration: FLASH_DURATION_MS }))
+
+    // Reload the file list
+    yield call(LoadCachedFiles, { payload: { page: 1 } })
+  } catch (e) {
+    Logger.error('[ClearOrphanedFiles] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: 'Failed to clear orphaned files', duration: FLASH_DURATION_MS }))
   }
 }

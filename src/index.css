@@ -249,7 +249,7 @@
   }
 
   .table-header-row {
-    @apply p-3 text-center font-semibold text-sm tracking-wider uppercase text-primary dark:text-dark-primary;
+    @apply p-3 text-center font-semibold text-sm tracking-wider text-primary dark:text-dark-primary;
     @apply border-b-2 border-b-primary/30;
   }
 

@@ -79,3 +79,26 @@ export const ContactAdd = createAction('ContactAdd')
 export const ContactDel = createAction('ContactDel')
 export const ContactToggleIsFollow = createAction('ContactToggleIsFollow')
 export const ContactToggleIsFriend = createAction('ContactToggleIsFriend')
+
+// ==================== Storage Management ====================
+export const LoadStorageSummary = createAction('LoadStorageSummary')
+export const LoadBulletinManagementList = createAction('LoadBulletinManagementList')
+export const DeleteBulletinItem = createAction('DeleteBulletinItem')
+export const BulkDeleteBulletins = createAction('BulkDeleteBulletins')
+export const SearchBulletinManagementList = createAction('SearchBulletinManagementList')
+export const LoadBulletinManagementByTag = createAction('LoadBulletinManagementByTag')
+export const LoadAllTags = createAction('LoadAllTags')
+export const LoadFileManagementList = createAction('LoadFileManagementList')
+export const DeleteFileItem = createAction('DeleteFileItem')
+export const ClearOrphanedFiles = createAction('ClearOrphanedFiles')
+export const BulkDeleteFiles = createAction('BulkDeleteFiles')
+export const ClearAvatarCache = createAction('ClearAvatarCache')
+
+// ==================== Bulletin Management ====================
+export const LoadBulletinManagement = createAction('LoadBulletinManagement')
+export const DeleteBulletin = createAction('DeleteBulletin')
+export const ClearAllBulletins = createAction('ClearAllBulletins')
+
+// ==================== File Management ====================
+export const LoadCachedFiles = createAction('LoadCachedFiles')
+export const DeleteCachedFile = createAction('DeleteCachedFile')

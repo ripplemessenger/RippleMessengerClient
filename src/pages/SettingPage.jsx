@@ -10,12 +10,14 @@ const TabContact = lazy(() => import('./setting/TabContact'))
 const TabGroup = lazy(() => import('./setting/TabGroup'))
 const TabMe = lazy(() => import('./setting/TabMe'))
 const TabMessengerNetwork = lazy(() => import('./setting/TabMessengerNetwork'))
+const TabStorage = lazy(() => import('./setting/TabStorage'))
 
 const tabContentMap = {
   [SettingPageTab.Me]: TabMe,
   [SettingPageTab.Contact]: TabContact,
   [SettingPageTab.Group]: TabGroup,
   [SettingPageTab.MessengerNetwork]: TabMessengerNetwork,
+  [SettingPageTab.Storage]: TabStorage,
 }
 
 export default function SettingPage() {
@@ -26,7 +28,7 @@ export default function SettingPage() {
   const tabItems = useMemo(() => Object.keys(tabContentMap), [])
 
   return (
-    <div className="p-4 mt-2 w-full max-w-4xl mx-auto">
+    <div className="p-4 mt-2 w-full max-w-full mx-auto">
       <div className="rounded-xl card p-5">
         <div className="flex border-b border-primary/20 dark:border-primary/30 -mx-2 -mb-4">
           {tabItems.map((name) => (

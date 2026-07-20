@@ -49,6 +49,23 @@ import {
   CreateGroup,
   DeleteGroup,
   AcceptGroupRequest,
+  LoadStorageSummary,
+  LoadBulletinManagementList,
+  DeleteBulletinItem,
+  BulkDeleteBulletins,
+  SearchBulletinManagementList,
+  LoadBulletinManagementByTag,
+  LoadAllTags,
+  LoadFileManagementList,
+  DeleteFileItem,
+  ClearOrphanedFiles,
+  BulkDeleteFiles,
+  ClearAvatarCache,
+  LoadBulletinManagement,
+  DeleteBulletin,
+  ClearAllBulletins,
+  LoadCachedFiles,
+  DeleteCachedFile,
 } from './messenger.actions'
 
 // Bulletin & avatar
@@ -96,6 +113,31 @@ import { ShowForwardBulletin as ShowForwardBulletinHandler, ForwardBulletin as F
 
 // Group chat
 import { ComposeMemberAdd as ComposeMemberAddHandler, ComposeMemberDel as ComposeMemberDelHandler, CreateGroup as CreateGroupHandler, DeleteGroup as DeleteGroupHandler } from './messenger.group'
+
+// Storage management
+import {
+  LoadStorageSummary as LoadStorageSummaryHandler,
+  LoadBulletinManagementList as LoadBulletinManagementListHandler,
+  DeleteBulletinItem as DeleteBulletinItemHandler,
+  BulkDeleteBulletins as BulkDeleteBulletinsHandler,
+  SearchBulletinManagementList as SearchBulletinManagementListHandler,
+  LoadBulletinManagementByTag as LoadBulletinManagementByTagHandler,
+  LoadAllTags as LoadAllTagsHandler,
+  LoadFileManagementList as LoadFileManagementListHandler,
+  DeleteFileItem as DeleteFileItemHandler,
+  ClearOrphanedFiles as ClearOrphanedFilesHandler,
+  BulkDeleteFiles as BulkDeleteFilesHandler,
+  ClearAvatarCache as ClearAvatarCacheHandler,
+} from './messenger.storage'
+
+// Bulletin & File management (simpler API)
+import {
+  LoadBulletinManagement as LoadBulletinManagementHandler,
+  DeleteBulletin as DeleteBulletinHandler,
+  ClearAllBulletins as ClearAllBulletinsHandler,
+  LoadCachedFiles as LoadCachedFilesHandler,
+  DeleteCachedFile as DeleteCachedFileHandler,
+} from './messenger.bulletin'
 
 // Server management & session dispatchers (defined in MessengerSaga.js)
 import { LoadServerList, ServerAdd as ServerAddHandler, ServerDel as ServerDelHandler, ServerSetDefault as ServerSetDefaultHandler, ServerToggle as ServerToggleHandler, LoadCurrentSession as LoadCurrentSessionHandler, SendContent as SendContentHandler, AcceptGroupRequest as AcceptGroupRequestHandler } from './MessengerSaga'
@@ -170,4 +212,28 @@ export function* watchMessenger() {
   yield takeLatest(CreateGroup.type, CreateGroupHandler)
   yield takeLatest(DeleteGroup.type, DeleteGroupHandler)
   yield takeLatest(AcceptGroupRequest.type, AcceptGroupRequestHandler)
+
+  // Storage management
+  yield takeLatest(LoadStorageSummary.type, LoadStorageSummaryHandler)
+  yield takeLatest(LoadBulletinManagementList.type, LoadBulletinManagementListHandler)
+  yield takeLatest(DeleteBulletinItem.type, DeleteBulletinItemHandler)
+  yield takeLatest(BulkDeleteBulletins.type, BulkDeleteBulletinsHandler)
+  yield takeLatest(SearchBulletinManagementList.type, SearchBulletinManagementListHandler)
+  yield takeLatest(LoadBulletinManagementByTag.type, LoadBulletinManagementByTagHandler)
+  yield takeLatest(LoadAllTags.type, LoadAllTagsHandler)
+  yield takeLatest(LoadFileManagementList.type, LoadFileManagementListHandler)
+  yield takeLatest(DeleteFileItem.type, DeleteFileItemHandler)
+  yield takeLatest(ClearOrphanedFiles.type, ClearOrphanedFilesHandler)
+  yield takeLatest(BulkDeleteFiles.type, BulkDeleteFilesHandler)
+  yield takeLatest(ClearAvatarCache.type, ClearAvatarCacheHandler)
+
+  // Bulletin management
+  yield takeEvery(LoadBulletinManagement.type, LoadBulletinManagementHandler)
+  yield takeLatest(DeleteBulletin.type, DeleteBulletinHandler)
+  yield takeLatest(ClearAllBulletins.type, ClearAllBulletinsHandler)
+
+  // File management
+  yield takeEvery(LoadCachedFiles.type, LoadCachedFilesHandler)
+  yield takeLatest(DeleteCachedFile.type, DeleteCachedFileHandler)
 }
+

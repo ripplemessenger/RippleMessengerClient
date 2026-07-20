@@ -82,4 +82,28 @@ export const api = {
       [Bool2Int(is_saved), updated_at, address]
     )
   },
+
+  // Management: get total avatar storage size
+  async getAvatarStorageSize() {
+    const dbInstance = await getDB()
+    const [result] = await dbInstance.select(
+      'SELECT COUNT(address) AS count, COALESCE(SUM(size), 0) AS totalSize FROM avatar_files'
+    )
+    return result ? { count: result.count, totalSize: result.totalSize } : { count: 0, totalSize: 0 }
+  },
+
+  // Management: delete avatar record from DB (NOT disk file)
+  async deleteAvatarRecord(address) {
+    const db = await getDB()
+    await db.execute('DELETE FROM avatar_files WHERE address = $1', [address])
+  },
+
+  // Management: clear all avatar records from DB
+  async clearAllAvatarRecords() {
+    const db = await getDB()
+    const [result] = await db.select('SELECT COUNT(address) AS count FROM avatar_files')
+    const count = result ? result.count : 0
+    await db.execute('DELETE FROM avatar_files')
+    return count
+  },
 }

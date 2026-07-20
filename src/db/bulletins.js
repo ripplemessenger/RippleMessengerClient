@@ -1,4 +1,4 @@
-import { Bool2Int } from '../lib/AppUtil'
+import { Bool2Int, Int2Bool } from '../lib/AppUtil'
 import { BulletinPageSize } from '../lib/AppConst'
 import { bulletin2Display } from '../lib/MessengerUtil'
 import { getDB } from './core'
@@ -270,5 +270,240 @@ export const api = {
   async addTag(name) {
     const db = await getDB()
     await db.execute("INSERT OR IGNORE INTO tags (name) VALUES ($1)", [name])
+  },
+
+  // Management: delete a single bulletin by hash (CASCADE handles replies/tags/files)
+  async deleteBulletin(hash) {
+    const db = await getDB()
+    await db.execute('DELETE FROM bulletins WHERE hash = $1', [hash])
+  },
+
+  // Management: bulk delete bulletins by hash array
+  async deleteBulletinsByHashes(hashes) {
+    if (!Array.isArray(hashes) || hashes.length === 0) return 0
+    const db = await getDB()
+    let deleted = 0
+    for (const hash of hashes) {
+      await db.execute('DELETE FROM bulletins WHERE hash = $1', [hash])
+      deleted++
+    }
+    return deleted
+  },
+
+  // Management: get all bulletins for management view with filter
+  // filter: 'all' | 'mine' | 'followed' | 'bookmarked'
+  // sortOrder: 'desc' (default) | 'asc'
+  async getBulletinsForManagement({ filter, address, page = 1, pageSize = BulletinPageSize, sortOrder = 'desc' }) {
+    const db = await getDB()
+    const offset = (page - 1) * pageSize
+    const sortDir = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC'
+    let query, params
+
+    switch (filter) {
+      case 'mine':
+        query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+        params = [address, pageSize, offset]
+        break
+      case 'followed':
+        query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+        params = [address, pageSize, offset]
+        break
+      case 'bookmarked':
+        query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+        params = [Bool2Int(true), pageSize, offset]
+        break
+      default:
+        query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+        params = [address, pageSize, offset]
+        break
+    }
+
+    const rows = await db.select(query, params)
+    return rows.map(r => ({
+      ...r,
+      is_marked: Int2Bool(r.is_marked),
+      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false,
+    }))
+  },
+
+  // Management: get count of bulletins matching filter
+  async getBulletinCountForManagement({ filter, address }) {
+    const db = await getDB()
+    let query, params
+
+    switch (filter) {
+      case 'mine':
+        query = `SELECT COUNT(hash) AS count FROM bulletins WHERE address = $1`
+        params = [address]
+        break
+      case 'followed':
+        query = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1`
+        params = [address]
+        break
+      case 'bookmarked':
+        query = `SELECT COUNT(hash) AS count FROM bulletins WHERE is_marked = $1`
+        params = [Bool2Int(true)]
+        break
+      default:
+        query = `SELECT COUNT(hash) AS count FROM bulletins`
+        params = []
+        break
+    }
+
+    const [result] = await db.select(query, params)
+    return result ? result.count : 0
+  },
+
+  // Management: search bulletins with LIKE query and filter
+  async searchBulletinsForManagement({ query, filter, address, page = 1, pageSize = BulletinPageSize }) {
+    const db = await getDB()
+    const offset = (page - 1) * pageSize
+    let querySql, params
+
+    const hasSearch = query && query.trim().length > 0
+    const likePattern = `%${query.trim()}%`
+
+    switch (filter) {
+      case 'mine':
+        if (hasSearch) {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
+          params = [address, likePattern, pageSize, offset]
+        } else {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
+          params = [address, pageSize, offset]
+        }
+        break
+      case 'followed':
+        if (hasSearch) {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
+          params = [address, likePattern, pageSize, offset]
+        } else {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
+          params = [address, pageSize, offset]
+        }
+        break
+      case 'bookmarked':
+        if (hasSearch) {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
+          params = [Bool2Int(true), likePattern, pageSize, offset]
+        } else {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
+          params = [Bool2Int(true), pageSize, offset]
+        }
+        break
+      default: // 'all'
+        if (hasSearch) {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
+          params = [address, likePattern, pageSize, offset]
+        } else {
+          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
+          params = [address, pageSize, offset]
+        }
+        break
+    }
+
+    const rows = await db.select(querySql, params)
+    return rows.map(r => ({
+      ...r,
+      is_marked: Int2Bool(r.is_marked),
+      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false,
+    }))
+  },
+
+  // Management: get bulletins associated with a specific tag
+  async getBulletinsByTag({ tagName, page = 1, pageSize = BulletinPageSize }) {
+    const db = await getDB()
+    const offset = (page - 1) * pageSize
+    const querySql = `
+      SELECT b.hash, b.address, b.sequence, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, LENGTH(b.json) AS estimated_size
+      FROM bulletins b
+      INNER JOIN bulletin_tags bt ON b.hash = bt.bulletin_hash
+      INNER JOIN tags t ON bt.tag_id = t.id
+      WHERE t.name = $1
+      ORDER BY b.signed_at DESC
+      LIMIT $2 OFFSET $3
+    `
+    const rows = await db.select(querySql, [tagName, pageSize, offset])
+    return rows.map(r => ({
+      ...r,
+      is_marked: Int2Bool(r.is_marked),
+    }))
+  },
+
+  // Management: get all distinct tag names for dropdown selection
+  async getAllTags() {
+    const db = await getDB()
+    const rows = await db.select(`SELECT DISTINCT name FROM tags ORDER BY name`)
+    return rows.map(r => r.name)
+  },
+
+  // Management: count bulletins matching search query + filter (for pagination)
+  async getBulletinSearchCountForManagement({ query, filter, address }) {
+    const db = await getDB()
+    const hasSearch = query && query.trim().length > 0
+    const likePattern = `%${query.trim()}%`
+
+    let querySql, params
+
+    switch (filter) {
+      case 'mine':
+        if (hasSearch) {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE address = $1 AND content LIKE $2`
+          params = [address, likePattern]
+        } else {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE address = $1`
+          params = [address]
+        }
+        break
+      case 'followed':
+        if (hasSearch) {
+          querySql = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1 AND b.content LIKE $2`
+          params = [address, likePattern]
+        } else {
+          querySql = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1`
+          params = [address]
+        }
+        break
+      case 'bookmarked':
+        if (hasSearch) {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE is_marked = $1 AND content LIKE $2`
+          params = [Bool2Int(true), likePattern]
+        } else {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE is_marked = $1`
+          params = [Bool2Int(true)]
+        }
+        break
+      default:
+        if (hasSearch) {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE content LIKE $1`
+          params = [likePattern]
+        } else {
+          querySql = `SELECT COUNT(hash) AS count FROM bulletins`
+          params = []
+        }
+        break
+    }
+
+    const [result] = await db.select(querySql, params)
+    return result ? result.count : 0
+  },
+
+  // Management: delete all bulletins (CASCADE handles replies/tags/linking tables)
+  async clearAllBulletins() {
+    const db = await getDB()
+    const [result] = await db.select('SELECT COUNT(hash) AS count FROM bulletins')
+    const count = result ? result.count : 0
+    await db.execute('DELETE FROM bulletins')
+    return count
+  },
+
+  // Management: find all bulletins that reference a given file hash
+  async getBulletinsByFileHash(file_hash) {
+    const dbInstance = await getDB()
+    const rows = await dbInstance.select(
+      `SELECT b.hash, b.address, b.sequence, SUBSTR(b.content, 1, 80) AS content_preview, b.signed_at, bf.file_name, bf.file_ext FROM bulletins b INNER JOIN bulletin_files bf ON b.hash = bf.bulletin_hash WHERE bf.file_hash = $1 ORDER BY b.signed_at DESC`,
+      [file_hash]
+    )
+    return rows
   },
 }

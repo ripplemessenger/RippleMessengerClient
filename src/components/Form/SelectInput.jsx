@@ -15,8 +15,8 @@ const SelectInput = ({ label, options, selectedOption, onChange, disabled }) => 
           onChange={onChange}
           disabled={disabled}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value} className="font-mono">
+          {options.map((option, idx) => (
+            <option key={`opt-${idx}`} value={option.value} className="font-mono">
               {option.label}
             </option>
           ))}

@@ -92,7 +92,7 @@ const AvatarSelector = ({ avatars = [], defaultIndex = 0, onSelect, disableKeybo
 
           return (
             <div
-              key={id.value}
+              key={`avatar-${index}`}
               style={style}
               onClick={() => handleAvatarClick(index)}
               className="cursor-pointer"

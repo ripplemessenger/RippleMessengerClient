@@ -277,6 +277,33 @@ export const selectTabContactData = createSelector(
   })
 )
 
+// Leaf-level field accessors for storage management
+const selectStorageSummary = state => state.Messenger.StorageSummary
+const selectBulletinManagementList = state => state.Messenger.BulletinManagementList
+const selectBulletinManagementPage = state => state.Messenger.BulletinManagementPage
+const selectBulletinManagementTotalPage = state => state.Messenger.BulletinManagementTotalPage
+const selectFileManagementList = state => state.Messenger.FileManagementList
+const selectFileManagementPage = state => state.Messenger.FileManagementPage
+const selectFileManagementTotalPage = state => state.Messenger.FileManagementTotalPage
+const selectAllTagsList = state => state.Messenger.AllTagsList
+
+export { selectAllTagsList }
+
+// Storage summary
+export { selectStorageSummary }
+
+// Bulletin management data with pagination
+export const selectBulletinManagementData = createSelector(
+  [selectBulletinManagementList, selectBulletinManagementPage, selectBulletinManagementTotalPage],
+  (list, page, totalPage) => ({ list: list || [], page: page || 1, totalPage: totalPage || 1 })
+)
+
+// File management data with pagination
+export const selectFileManagementData = createSelector(
+  [selectFileManagementList, selectFileManagementPage, selectFileManagementTotalPage],
+  (list, page, totalPage) => ({ list: list || [], page: page || 1, totalPage: totalPage || 1 })
+)
+
 // OpenPage — IsAuth + AccountList + Seed
 export const selectOpenPageData = createSelector(
   [selectUserIsAuth, selectUserAccountList, selectUserSeed],
