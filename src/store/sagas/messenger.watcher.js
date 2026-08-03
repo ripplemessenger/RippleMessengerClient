@@ -56,6 +56,7 @@ import {
   SearchBulletinManagementList,
   LoadBulletinManagementByTag,
   LoadAllTags,
+  LoadAllBulletinAddresses,
   LoadFileManagementList,
   DeleteFileItem,
   ClearOrphanedFiles,
@@ -123,6 +124,7 @@ import {
   SearchBulletinManagementList as SearchBulletinManagementListHandler,
   LoadBulletinManagementByTag as LoadBulletinManagementByTagHandler,
   LoadAllTags as LoadAllTagsHandler,
+  LoadAllBulletinAddresses as LoadAllBulletinAddressesHandler,
   LoadFileManagementList as LoadFileManagementListHandler,
   DeleteFileItem as DeleteFileItemHandler,
   ClearOrphanedFiles as ClearOrphanedFilesHandler,
@@ -221,6 +223,7 @@ export function* watchMessenger() {
   yield takeLatest(SearchBulletinManagementList.type, SearchBulletinManagementListHandler)
   yield takeLatest(LoadBulletinManagementByTag.type, LoadBulletinManagementByTagHandler)
   yield takeLatest(LoadAllTags.type, LoadAllTagsHandler)
+  yield takeLatest(LoadAllBulletinAddresses.type, LoadAllBulletinAddressesHandler)
   yield takeLatest(LoadFileManagementList.type, LoadFileManagementListHandler)
   yield takeLatest(DeleteFileItem.type, DeleteFileItemHandler)
   yield takeLatest(ClearOrphanedFiles.type, ClearOrphanedFilesHandler)

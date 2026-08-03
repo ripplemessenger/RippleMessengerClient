@@ -7,7 +7,7 @@ import { FileDir, FLASH_DURATION_MS } from '../../lib/AppConst'
 import Logger from '../../lib/Logger'
 import { buildFileFullPath, calcTotalPage } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
-import { setStorageSummary, setBulletinManagementList, setFileManagementList, setAllTagsList } from '../slices/MessengerSlice'
+import { setStorageSummary, setBulletinManagementList, setFileManagementList, setAllTagsList, setAllBulletinAddressesList } from '../slices/MessengerSlice'
 
 const StorageManagementPageSize = 20
 
@@ -61,10 +61,10 @@ export function* LoadStorageSummary() {
 export function* LoadBulletinManagementList({ payload }) {
   try {
     const address = yield select(state => state.User.Address)
-    const { filter, page = 1 } = payload
+    const { filter, page = 1, addressFilter } = payload
 
-    const bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter, address, page, pageSize: StorageManagementPageSize }))
-    const total = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address }))
+    const bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter, address, page, pageSize: StorageManagementPageSize, addressFilter }))
+    const total = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address, addressFilter }))
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
     yield put(setBulletinManagementList({ List: bulletins, Page: page, TotalPage: totalPage }))
@@ -81,12 +81,13 @@ export function* DeleteBulletinItem({ payload }) {
     const currentPage = yield select(state => state.Messenger.BulletinManagementPage)
     const address = yield select(state => state.User.Address)
     const filter = payload.filter || 'all'
-    const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address }))
+    const addressFilter = payload.addressFilter
+    const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address, addressFilter }))
     const totalPages = calcTotalPage(totalAfter, StorageManagementPageSize)
 
     // If current page exceeds total pages after deletion, go to last available page
     const refreshPage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage
-    yield call(LoadBulletinManagementList, { payload: { filter, page: refreshPage } })
+    yield call(LoadBulletinManagementList, { payload: { filter, page: refreshPage, addressFilter } })
     yield put(setFlashNoticeMessage({ message: 'bulletin deleted', duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteBulletinItem] failed:', e.message)
@@ -96,17 +97,17 @@ export function* DeleteBulletinItem({ payload }) {
 
 export function* BulkDeleteBulletins({ payload }) {
   try {
-    const { hashes, filter } = payload
+    const { hashes, filter, addressFilter } = payload
     if (!Array.isArray(hashes) || hashes.length === 0) return
 
     yield call(() => dbAPI.deleteBulletinsByHashes(hashes))
 
     // Refresh the list from page 1
     const address = yield select(state => state.User.Address)
-    const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter: filter || 'all', address }))
+    const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter: filter || 'all', address, addressFilter }))
     const totalPages = calcTotalPage(totalAfter, StorageManagementPageSize)
 
-    yield call(LoadBulletinManagementList, { payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages) } })
+    yield call(LoadBulletinManagementList, { payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages), addressFilter } })
     yield put(setFlashNoticeMessage({ message: `${hashes.length} bulletins deleted`, duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[BulkDeleteBulletins] failed:', e.message)
@@ -199,10 +200,10 @@ export function* ClearOrphanedFiles() {
 export function* SearchBulletinManagementList({ payload }) {
   try {
     const address = yield select(state => state.User.Address)
-    const { query, filter, page = 1 } = payload
+    const { query, filter, page = 1, addressFilter } = payload
 
-    const bulletins = yield call(() => dbAPI.searchBulletinsForManagement({ query: query || '', filter, address, page, pageSize: StorageManagementPageSize }))
-    const total = yield call(() => dbAPI.getBulletinSearchCountForManagement({ query: query || '', filter, address }))
+    const bulletins = yield call(() => dbAPI.searchBulletinsForManagement({ query: query || '', filter, address, page, pageSize: StorageManagementPageSize, addressFilter }))
+    const total = yield call(() => dbAPI.getBulletinSearchCountForManagement({ query: query || '', filter, address, addressFilter }))
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
     yield put(setBulletinManagementList({ List: bulletins, Page: page, TotalPage: totalPage }))
@@ -231,6 +232,15 @@ export function* LoadAllTags() {
     yield put(setAllTagsList(tags))
   } catch (e) {
     Logger.error('[LoadAllTags] failed:', e.message)
+  }
+}
+
+export function* LoadAllBulletinAddresses() {
+  try {
+    const addresses = yield call(() => dbAPI.getAllBulletinAddresses())
+    yield put(setAllBulletinAddressesList(addresses))
+  } catch (e) {
+    Logger.error('[LoadAllBulletinAddresses] failed:', e.message)
   }
 }
 

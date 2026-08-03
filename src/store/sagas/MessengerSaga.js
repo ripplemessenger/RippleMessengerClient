@@ -87,6 +87,8 @@ export {
   LoadFileManagementList,
   DeleteFileItem,
   ClearOrphanedFiles,
+  LoadAllTags,
+  LoadAllBulletinAddresses,
 } from './messenger.storage'
 
 // Core messaging (needed by LoadServerList below)

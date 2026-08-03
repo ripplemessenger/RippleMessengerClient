@@ -286,8 +286,9 @@ const selectFileManagementList = state => state.Messenger.FileManagementList
 const selectFileManagementPage = state => state.Messenger.FileManagementPage
 const selectFileManagementTotalPage = state => state.Messenger.FileManagementTotalPage
 const selectAllTagsList = state => state.Messenger.AllTagsList
+const selectAllBulletinAddressesList = state => state.Messenger.AllBulletinAddressesList
 
-export { selectAllTagsList }
+export { selectAllTagsList, selectAllBulletinAddressesList }
 
 // Storage summary
 export { selectStorageSummary }

@@ -4,7 +4,7 @@ import { useNavigate, createSearchParams } from 'react-router-dom'
 import { MdOutlineArticle } from 'react-icons/md'
 import TextTimestamp from '../../components/TextTimestamp'
 import EmptyState from '../../components/EmptyState'
-import { selectBulletinManagementData, selectAllTagsList, selectUserAddress } from '../../selectors'
+import { selectBulletinManagementData, selectAllTagsList, selectUserAddress, selectAllBulletinAddressesList } from '../../selectors'
 import { setBulletinAddress } from '../../store/slices/MessengerSlice'
 import {
   LoadBulletinManagementList,
@@ -13,6 +13,7 @@ import {
   SearchBulletinManagementList,
   LoadBulletinManagementByTag,
   LoadAllTags,
+  LoadAllBulletinAddresses,
 } from '../../store/sagas/messenger.actions'
 
 const filterOptions = [
@@ -27,11 +28,13 @@ export default function BulletinManagerPanel() {
   const navigate = useNavigate()
   const { list, page, totalPage } = useSelector(selectBulletinManagementData)
   const allTags = useSelector(selectAllTagsList)
+  const allAddresses = useSelector(selectAllBulletinAddressesList)
   const userAddress = useSelector(selectUserAddress)
   const [currentFilter, setCurrentFilter] = useState('all')
   const [selectedHashes, setSelectedHashes] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
+  const [selectedAddress, setSelectedAddress] = useState('')
   const searchTimer = useRef(null)
 
   // Filters where every visible item is protected from deletion
@@ -49,18 +52,20 @@ export default function BulletinManagerPanel() {
 
   useEffect(() => {
     dispatch(LoadAllTags())
+    dispatch(LoadAllBulletinAddresses())
   }, [dispatch])
 
   const handleSearch = useCallback((q) => {
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => {
-      dispatch(SearchBulletinManagementList({ query: q, filter: currentFilter }))
+      dispatch(SearchBulletinManagementList({ query: q, filter: currentFilter, addressFilter: selectedAddress }))
     }, 300)
-  }, [dispatch, currentFilter])
+  }, [dispatch, currentFilter, selectedAddress])
 
   useEffect(() => {
     setSearchQuery('')
     setSelectedTag('')
+    setSelectedAddress('')
     dispatch(LoadBulletinManagementList({ filter: currentFilter, page: 1 }))
     setSelectedHashes([])
   }, [currentFilter])
@@ -71,9 +76,9 @@ export default function BulletinManagerPanel() {
 
   const handlePageChange = useCallback((newPage) => {
     if (newPage < 1 || newPage > totalPage) return
-    dispatch(LoadBulletinManagementList({ filter: currentFilter, page: newPage }))
+    dispatch(LoadBulletinManagementList({ filter: currentFilter, page: newPage, addressFilter: selectedAddress }))
     setSelectedHashes([])
-  }, [dispatch, currentFilter, totalPage])
+  }, [dispatch, currentFilter, selectedAddress, totalPage])
 
   const toggleSelect = useCallback((hash) => {
     const item = list.find(i => i.hash === hash)
@@ -94,14 +99,14 @@ export default function BulletinManagerPanel() {
   }, [list, isProtected, selectedHashes])
 
   const handleDeleteSingle = useCallback((hash) => {
-    dispatch(DeleteBulletinItem({ hash, filter: currentFilter }))
-  }, [dispatch, currentFilter])
+    dispatch(DeleteBulletinItem({ hash, filter: currentFilter, addressFilter: selectedAddress }))
+  }, [dispatch, currentFilter, selectedAddress])
 
   const handleBulkDelete = useCallback(() => {
     if (selectedHashes.length === 0) return
-    dispatch(BulkDeleteBulletins({ hashes: selectedHashes, filter: currentFilter }))
+    dispatch(BulkDeleteBulletins({ hashes: selectedHashes, filter: currentFilter, addressFilter: selectedAddress }))
     setSelectedHashes([])
-  }, [dispatch, selectedHashes, currentFilter])
+  }, [dispatch, selectedHashes, currentFilter, selectedAddress])
 
   const gotoAddress = useCallback((address) => {
     dispatch(setBulletinAddress(address))
@@ -118,11 +123,20 @@ export default function BulletinManagerPanel() {
   const handleTagChange = useCallback((tagName) => {
     setSelectedTag(tagName)
     setSearchQuery('')
+    setSelectedAddress('')
     if (tagName) {
       dispatch(LoadBulletinManagementByTag({ tagName, page: 1 }))
     } else {
       dispatch(LoadBulletinManagementList({ filter: currentFilter, page: 1 }))
     }
+    setSelectedHashes([])
+  }, [dispatch, currentFilter])
+
+  const handleAddressChange = useCallback((addressVal) => {
+    setSelectedAddress(addressVal)
+    setSearchQuery('')
+    setSelectedTag('')
+    dispatch(LoadBulletinManagementList({ filter: currentFilter, page: 1, addressFilter: addressVal }))
     setSelectedHashes([])
   }, [dispatch, currentFilter])
 
@@ -140,6 +154,20 @@ export default function BulletinManagerPanel() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+
+          {/* Address filter dropdown */}
+          {allAddresses.length > 0 && (
+            <select
+              value={selectedAddress}
+              onChange={(e) => handleAddressChange(e.target.value)}
+              className="px-3 py-1.5 text-sm border rounded-lg bg-white dark:bg-gray-900 border-primary/20 dark:border-primary/30 text-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-primary/40"
+            >
+              <option value="">All Addresses</option>
+              {allAddresses.map(addr => (
+                <option key={addr.address} value={addr.address}>{addr.nickname || addr.address.substring(0, 6) + '...' + addr.address.substring(addr.address.length - 4)} ({addr.cnt})</option>
+              ))}
+            </select>
+          )}
 
           {/* Tag filter dropdown */}
           {allTags.length > 0 && (

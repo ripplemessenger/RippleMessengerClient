@@ -80,6 +80,7 @@ const MessengerSlice = createSlice({
     FileManagementTotalPage: 1,
     FileManagementFileExt: '',
     AllTagsList: [],
+    AllBulletinAddressesList: [],
   },
   reducers: {
     updateMessengerConnStatus: (state, action) => {
@@ -238,6 +239,9 @@ const MessengerSlice = createSlice({
     setAllTagsList: (state, action) => {
       state.AllTagsList = action.payload
     },
+    setAllBulletinAddressesList: (state, action) => {
+      state.AllBulletinAddressesList = action.payload
+    },
   }
 })
 
@@ -284,5 +288,6 @@ export const {
   setBulletinManagementList,
   setFileManagementList,
   setAllTagsList,
+  setAllBulletinAddressesList,
 } = MessengerSlice.actions
 export default MessengerSlice.reducer
