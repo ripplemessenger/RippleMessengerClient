@@ -7,6 +7,10 @@
 **项目矩阵:** [Client](https://github.com/ripplemessenger/RippleMessengerClient) · [Server](https://github.com/ripplemessenger/RippleMessengerServer) · [Site](https://github.com/ripplemessenger/RippleMessengerSite)
 
 ---
+## 介绍视频
+[ripple messenger philosophy](https://www.youtube.com/watch?v=Fy3wt3KSgKY)  
+[ripple messenger bulletin](https://www.youtube.com/watch?v=soVPwZRp-QU)  
+[ripple messenger chat](https://www.youtube.com/watch?v=58ZbO-kGTU4)  
 
 ## 快速开始
 
