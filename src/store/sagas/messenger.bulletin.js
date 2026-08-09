@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, stat } from '@tauri-apps/plugin-fs'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import { all, call, fork, put, select } from 'redux-saga/effects'
 
-import { SendMessage, genFileNonce, pushFileRequest, safeFork } from './messenger.core'
+import { SendMessage, genFileNonce, pushFileRequest, safeFork, getFileRequestList } from './messenger.core'
 import { FetchBulletinFile } from './messenger.file'
 import { dbAPI } from '../../db'
 import { AvatarDir, BulletinPageSize, FileChunkSize, FileDir, FileMaxSize, FLASH_DURATION_MS, Hour } from '../../lib/AppConst'
@@ -33,14 +33,19 @@ export function* CacheBulletin(bulletin_json) {
           yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, new_bulletin_hash, bulletin_json.Timestamp))
         }
         if (bulletin_json.File) {
+          const pendingHashes = new Set(getFileRequestList().map(r => r.Hash))
           for (let i = 0; i < bulletin_json.File.length; i++) {
             const f = bulletin_json.File[i]
             const chunk_length = Math.ceil(f.Size / FileChunkSize)
-            const file = yield call(() => dbAPI.getFileByHash(f.Hash))
+            let file = yield call(() => dbAPI.getFileByHash(f.Hash))
             if (file === null) {
               yield call(() => dbAPI.addFile(f.Hash, f.Size, Date.now(), chunk_length, 0, false))
+              file = { is_saved: false }
             }
-            yield fork(safeFork, FetchBulletinFile, { payload: { hash: f.Hash } })
+            // Skip fork if file is already saved or an active fetch request already exists for this hash
+            if (!file.is_saved && !pendingHashes.has(f.Hash)) {
+              yield fork(safeFork, FetchBulletinFile, { payload: { hash: f.Hash } })
+            }
           }
           yield call(() => dbAPI.addFilesToBulletin(new_bulletin_hash, bulletin_json.File))
         }

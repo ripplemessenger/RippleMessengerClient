@@ -1,4 +1,4 @@
-import { eventChannel } from 'redux-saga'
+import { eventChannel, buffers } from 'redux-saga'
 import Logger from './Logger'
 
 const manager = {
@@ -11,10 +11,12 @@ const manager = {
 
 let globalEmitter = null
 /** Redux-Saga event channel that receives all WebSocket messages and status events. */
-export const globalWsChannel = eventChannel(emitter => {
+export const globalWsChannel = eventChannel((emitter) => {
   globalEmitter = emitter
-  return () => { globalEmitter = null }
-})
+  return () => {
+    globalEmitter = null
+  }
+}, buffers.expanding())
 
 /**
  * Push an action (message or status event) into the global Redux-Saga event channel.
@@ -32,9 +34,9 @@ function emitToGlobal(action) {
  */
 export function cleanupRemovedConnections(configs) {
   const currentKeys = new Set(manager.channels.keys())
-  const keepKeys = new Set(configs.map(c => c.key))
+  const keepKeys = new Set(configs.map((c) => c.key))
 
-  currentKeys.forEach(key => {
+  currentKeys.forEach((key) => {
     if (!keepKeys.has(key)) {
       const entry = manager.channels.get(key)
       if (entry && entry.retryTimer) {
@@ -121,14 +123,14 @@ export function createMultiWsChannel(configs) {
           Logger.info(`[WS] Reconnecting ${key} in ${manager.RETRY_DELAY / 1000}s (attempt ${retryCount})`)
         } else if (retryCount >= manager.MAX_RETRIES) {
           Logger.warn(`[WS] Retries exhausted for ${key} -- pausing (will retry on next createMultiWsChannel call)`)
-          ws.onclose = null;
-          ws.onerror = null;
-          ws.onmessage = null;
+          ws.onclose = null
+          ws.onerror = null
+          ws.onmessage = null
           if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-            ws.close(1000, 'Retries exhausted');
+            ws.close(1000, 'Retries exhausted')
           }
           emitToGlobal({ type: 'status', key, status: 'retries_exhausted', code: ev.code })
-          manager.channels.delete(key);
+          manager.channels.delete(key)
         } else {
           emitToGlobal({ type: 'status', key, status: WebSocket.CLOSED, code: ev.code, wasClean: ev.wasClean })
           manager.channels.delete(key)
@@ -157,14 +159,14 @@ export function createMultiWsChannel(configs) {
         }
 
         emitToGlobal({ type: 'message', key, data, isBinary })
-        manager.messageSubscribers.forEach(cb => cb(key, data, isBinary))
+        manager.messageSubscribers.forEach((cb) => cb(key, data, isBinary))
       }
     }
 
     connect()
   })
 
-  return eventChannel(() => () => { })
+  return eventChannel(() => () => {})
 }
 
 /**

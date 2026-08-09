@@ -10,14 +10,55 @@ import { open, readFile, writeFile, remove, mkdir, SeekMode } from '@tauri-apps/
 import { cancelled, call, fork, put, select, take } from 'redux-saga/effects'
 
 import { dbAPI } from '../../db'
-import { AvatarDir, FileChunkSize, FileDir, FILE_REQUEST_TTL_MS, SessionType, DefaultPartition, FLASH_DURATION_MS } from '../../lib/AppConst'
-import { AesDecrypt, AesDecryptBuffer, AesEncrypt, AesEncryptBuffer, genAESKey, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
+import {
+  AvatarDir,
+  FileChunkSize,
+  FileDir,
+  FILE_REQUEST_TTL_MS,
+  SessionType,
+  DefaultPartition,
+  FLASH_DURATION_MS
+} from '../../lib/AppConst'
+import {
+  AesDecrypt,
+  AesDecryptBuffer,
+  AesEncrypt,
+  AesEncryptBuffer,
+  genAESKey,
+  HalfSHA512,
+  QuarterSHA512Message
+} from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
-import { ActionCode, FileRequestType, GenesisHash, ObjectType, Epoch, DefaultServer, MessageObjectType, MessageCode, ControlActionCode, ErrorMessageMap } from '../../lib/MessengerConst'
-import { DHSequence, FileHash, Uint32ToBuffer, VerifyJsonSignature, getMemberIndex, getMemberByIndex, ArrayBufferToUint32, buildFileSubPath, buildFileFullPath } from '../../lib/MessengerUtil'
+import {
+  ActionCode,
+  FileRequestType,
+  GenesisHash,
+  ObjectType,
+  Epoch,
+  MessageObjectType,
+  MessageCode,
+  ControlActionCode,
+  ErrorMessageMap
+} from '../../lib/MessengerConst'
+import {
+  DHSequence,
+  FileHash,
+  Uint32ToBuffer,
+  VerifyJsonSignature,
+  getMemberIndex,
+  getMemberByIndex,
+  ArrayBufferToUint32,
+  buildFileSubPath,
+  buildFileFullPath
+} from '../../lib/MessengerUtil'
 import { globalWsChannel } from '../../lib/WebsocketUtil'
-import { setGroupRequestList, setServerAddressList, updateMessengerConnStatus, setDisplayBulletinReplyList, setTagBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
+import {
+  setServerAddressList,
+  setDisplayBulletinReplyList,
+  setTagBulletinList,
+  setRandomBulletinList
+} from '../slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 
 // Schema validators used by WS handlers
@@ -39,20 +80,32 @@ import {
   checkTagBulletinListSchema,
   checkAvatarListSchema,
   checkRandomBulletinListSchema,
-  checkServerAddressListSchema,
+  checkServerAddressListSchema
 } from '../../lib/MessageSchemaVerifier'
 
 // Core messaging
 import { SendMessage, getFileRequestList, setFileRequestList, safeFork } from './messenger.core'
 
 // Bulletin & avatar
-import { CacheBulletin, RequestNextBulletin, AvatarRequest, RequestAvatarFile, SubscribeFollow, FetchFollowBulletin } from './messenger.bulletin'
+import {
+  CacheBulletin,
+  RequestNextBulletin,
+  AvatarRequest,
+  RequestAvatarFile,
+  SubscribeFollow,
+  FetchFollowBulletin
+} from './messenger.bulletin'
 
 // File transfer
 import { FetchBulletinFile, FetchPrivateChatFile, FetchGroupChatFile } from './messenger.file'
 
 // Private chat
-import { AutoSyncPrivateMessages, SyncPrivateMessage, InitHandshake, RefreshPrivateMessageList } from './messenger.private'
+import {
+  AutoSyncPrivateMessages,
+  SyncPrivateMessage,
+  InitHandshake,
+  RefreshPrivateMessageList
+} from './messenger.private'
 
 // Group chat
 import { RefreshGroupMessageList, GroupSync } from './messenger.group'
@@ -95,7 +148,7 @@ function* handleBinaryAvatar(request, content) {
 function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchNextPayload }) {
   if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
     yield call(() => writeFile(filePath, content, { append: true }))
-    setFileRequestList(getFileRequestList().filter(r => r.Nonce !== request.Nonce))
+    setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
     const current_chunk_cursor = file.chunk_cursor + 1
     yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
     if (current_chunk_cursor < file.chunk_length) {
@@ -105,11 +158,22 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
       if (hash === request.Hash) {
         yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
       } else {
+        console.warn(`[receiveFileChunk] Hash mismatch for ${request.Hash}: expected=${request.Hash} got=${hash}`)
         yield call(() => remove(filePath))
         yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
         yield call(fetchNext, { payload: fetchNextPayload })
       }
     }
+  } else if (file.chunk_cursor + 1 !== request.ChunkCursor) {
+    // Out-of-order chunk — re-request the expected cursor instead of silently dropping
+    console.warn(
+      `[receiveFileChunk] Unexpected chunk order for ${request.Hash}: db_cursor=${file.chunk_cursor}, received_chunk=${request.ChunkCursor}`
+    )
+    setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
+    yield call(fetchNext, { payload: fetchNextPayload }) // Re-request expected chunk
+  } else {
+    // File already fully fetched — no-op (silent success)
+    setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
   }
 }
 
@@ -192,7 +256,7 @@ function* handleBinaryGroupFile(request, content, action) {
 function* handleBinaryMessage(action) {
   try {
     const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
-    setFileRequestList(getFileRequestList().filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now()))
+    setFileRequestList(getFileRequestList().filter((r) => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now()))
     const fileRequests = getFileRequestList()
     let matched = false
     for (let i = 0; i < fileRequests.length; i++) {
@@ -245,39 +309,70 @@ function* handleAvatarRequestAction(json, action) {
 
 function* handleBulletinRequestAction(json, action, address, seed) {
   try {
-    if (checkBulletinRequestSchema(json) && VerifyJsonSignature(json)) {
-      let bulletin = null
-      if (json.Hash) {
-        bulletin = yield call(() => dbAPI.getBulletinByHash(json.Hash))
-      } else {
-        bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
-      }
-      if (bulletin !== null) {
-        yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
-      } else if (json.Address === address) {
-        const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
-        if (last_bulletin === null) {
-          if (json.Sequence > 1) {
-            const msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
-            yield call(SendMessage, { key: action.key, msg: msg })
-          }
-        } else if (last_bulletin.sequence + 1 < json.Sequence) {
-          yield call(RequestNextBulletin, { key: action.key, payload: { address: address } })
+    Logger.info(
+      `[handleBulletinRequestAction] Received: Address=${json.Address}, Sequence=${json.Sequence}, Hash=${json.Hash}`
+    )
+    const schemaOk = checkBulletinRequestSchema(json)
+    Logger.info(`[handleBulletinRequestAction] Schema check: ${schemaOk}`)
+    if (!schemaOk) {
+      Logger.warn('[handleBulletinRequestAction] Schema validation FAILED, dropping message')
+      return
+    }
+    const sigOk = VerifyJsonSignature(json)
+    Logger.info(
+      `[handleBulletinRequestAction] Signature verify: ${sigOk}, PublicKey=${json.PublicKey?.substring(0, 20)}...`
+    )
+    if (!sigOk) {
+      Logger.warn('[handleBulletinRequestAction] Signature verification FAILED, dropping message')
+      return
+    }
+    let bulletin = null
+    if (json.Hash) {
+      bulletin = yield call(() => dbAPI.getBulletinByHash(json.Hash))
+    } else {
+      bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
+    }
+    Logger.info(
+      `[handleBulletinRequestAction] DB query result: ${bulletin ? 'FOUND' : 'NULL'}, address=${json.Address}, seq=${json.Sequence}`
+    )
+    if (bulletin !== null) {
+      Logger.info(
+        `[handleBulletinRequestAction] Sending bulletin back, hash=${bulletin.hash}, File count=${bulletin.json?.File?.length || 0}`
+      )
+      yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
+    } else if (json.Address === address) {
+      const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
+      Logger.info(
+        `[handleBulletinRequestAction] Bulletin not found, last_bulletin=${last_bulletin ? last_bulletin.sequence : 'NULL'}`
+      )
+      if (last_bulletin === null) {
+        if (json.Sequence > 1) {
+          const msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
+          yield call(SendMessage, { key: action.key, msg: msg })
         }
+      } else if (last_bulletin.sequence + 1 < json.Sequence) {
+        yield call(RequestNextBulletin, { key: action.key, payload: { address: address } })
       }
+    } else {
+      Logger.info(
+        `[handleBulletinRequestAction] json.Address(${json.Address}) !== cachedAddress(${address}), not our bulletin`
+      )
     }
   } catch (e) {
-    Logger.error('[handleBulletinRequestAction] failed:', e.message)
+    Logger.error('[handleBulletinRequestAction] failed:', e.message, e.stack)
   }
 }
 
 function* handleFileRequestAction(json, action, address, ob_address) {
   try {
-    if (checkFileRequestSchema(json) && VerifyJsonSignature(json)) {
+    const schemaOk = checkFileRequestSchema(json)
+    const sigOk = VerifyJsonSignature(json)
+    Logger.info(`[handleFileRequest] Hash=${json.Hash}, FileType=${json.FileType}, schema=${schemaOk}, sig=${sigOk}`)
+    if (schemaOk && sigOk) {
       if (json.FileType === FileRequestType.Avatar) {
         const avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
         if (avatar !== null) {
-          const base_dir = yield select(state => state.Common.AppBaseDir)
+          const base_dir = yield select((state) => state.Common.AppBaseDir)
           const avatar_path = yield call(() => path.join(base_dir, `/${AvatarDir}/${avatar.address}.png`))
           const content = yield call(() => readFile(avatar_path))
           const nonce = Uint32ToBuffer(json.Nonce)
@@ -285,8 +380,11 @@ function* handleFileRequestAction(json, action, address, ob_address) {
         }
       } else if (json.FileType === FileRequestType.File) {
         const file = yield call(() => dbAPI.getFileByHash(json.Hash))
+        Logger.info(
+          `[handleFileRequest] DB lookup for ${json.Hash}: file=${file ? 'found' : 'null'}, is_saved=${file?.is_saved}`
+        )
         if (file !== null && file.is_saved) {
-          const base_dir = yield select(state => state.Common.AppBaseDir)
+          const base_dir = yield select((state) => state.Common.AppBaseDir)
           const file_path = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, json.Hash)))
           const nonce = Uint32ToBuffer(json.Nonce)
           if (file.size <= FileChunkSize) {
@@ -314,7 +412,7 @@ function* handleFileRequestAction(json, action, address, ob_address) {
         if (private_chat_file !== null) {
           const file = yield call(() => dbAPI.getFileByHash(private_chat_file.hash))
           if (file !== undefined && file.is_saved) {
-            const base_dir = yield select(state => state.Common.AppBaseDir)
+            const base_dir = yield select((state) => state.Common.AppBaseDir)
             const file_path = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, file.hash)))
             const nonce = Uint32ToBuffer(json.Nonce)
             if (file.size <= FileChunkSize) {
@@ -336,7 +434,9 @@ function* handleFileRequestAction(json, action, address, ob_address) {
                 if (bytesRead > 0) {
                   const chunk = buffer.slice(0, bytesRead)
                   const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
-                  const ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence))
+                  const ecdh = yield call(() =>
+                    dbAPI.getHandshake(address, ob_address, DefaultPartition, ecdh_sequence)
+                  )
                   if (ecdh?.aes_key) {
                     const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
                     yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, encrypted_chunk]) })
@@ -349,7 +449,7 @@ function* handleFileRequestAction(json, action, address, ob_address) {
           }
         }
       } else if (json.FileType === FileRequestType.GroupChatFile) {
-        const group_member_map = yield select(state => state.Messenger.GroupMemberMap)
+        const group_member_map = yield select((state) => state.Messenger.GroupMemberMap)
         if (group_member_map[json.GroupHash] && group_member_map[json.GroupHash].includes(ob_address)) {
           let index = getMemberIndex(group_member_map[json.GroupHash], address)
           const index_u32 = Uint32ToBuffer(index)
@@ -357,7 +457,7 @@ function* handleFileRequestAction(json, action, address, ob_address) {
           if (group_chat_file !== null) {
             const file = yield call(() => dbAPI.getFileByHash(group_chat_file.hash))
             if (file !== undefined && file.is_saved) {
-              const base_dir = yield select(state => state.Common.AppBaseDir)
+              const base_dir = yield select((state) => state.Common.AppBaseDir)
               const file_path = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, file.hash)))
               const nonce = Uint32ToBuffer(json.Nonce)
               const ecdh_sequence = DHSequence(DefaultPartition, json.Timestamp, address, ob_address)
@@ -366,7 +466,10 @@ function* handleFileRequestAction(json, action, address, ob_address) {
                 const content = yield call(() => readFile(file_path))
                 if (ecdh?.aes_key) {
                   const encrypted_content = AesEncryptBuffer(content, ecdh.aes_key)
-                  yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_content]) })
+                  yield call(SendMessage, {
+                    key: action.key,
+                    msg: Buffer.concat([nonce, index_u32, encrypted_content])
+                  })
                 }
               } else {
                 const fileHandle = yield call(() => open(file_path, { read: true }))
@@ -380,7 +483,10 @@ function* handleFileRequestAction(json, action, address, ob_address) {
                     const chunk = buffer.slice(0, bytesRead)
                     if (ecdh?.aes_key) {
                       const encrypted_chunk = AesEncryptBuffer(chunk, ecdh.aes_key)
-                      yield call(SendMessage, { key: action.key, msg: Buffer.concat([nonce, index_u32, encrypted_chunk]) })
+                      yield call(SendMessage, {
+                        key: action.key,
+                        msg: Buffer.concat([nonce, index_u32, encrypted_chunk])
+                      })
                     }
                   }
                 } finally {
@@ -402,7 +508,9 @@ function* handlePrivateMessageSyncAction(json, action, address, ob_address) {
     if (checkPrivateMessageSyncSchema(json) && VerifyJsonSignature(json)) {
       const friend = yield call(() => dbAPI.getFriend(address, ob_address))
       if (friend !== null) {
-        const unsyncMessageList = yield call(() => dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence))
+        const unsyncMessageList = yield call(() =>
+          dbAPI.getUnsyncPrivateSession(address, ob_address, json.PairSequence, json.SelfSequence)
+        )
         for (let i = 0; i < unsyncMessageList.length; i++) {
           const msg = unsyncMessageList[i]
           yield call(SendMessage, { key: action.key, msg: msg.json })
@@ -417,7 +525,7 @@ function* handlePrivateMessageSyncAction(json, action, address, ob_address) {
 function* handleGroupSyncAction(json, action) {
   try {
     if (checkGroupSyncSchema(json) && VerifyJsonSignature(json)) {
-      const group_list = yield select(state => state.Messenger.GroupList)
+      const group_list = yield select((state) => state.Messenger.GroupList)
       let tmp_list = []
       for (let i = 0; i < group_list.length; i++) {
         const group = group_list[i]
@@ -460,7 +568,9 @@ function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) 
           if (json.Sequence === 0) {
             tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, Epoch))
           } else {
-            const current_msg = yield call(() => dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence))
+            const current_msg = yield call(() =>
+              dbAPI.getGroupMessageBySequence(json.Hash, json.Address, json.Sequence)
+            )
             if (current_msg !== null) {
               tmp_msg_list = yield call(() => dbAPI.getUnsyncGroupSession(json.Hash, current_msg.signed_at))
             } else {
@@ -469,7 +579,9 @@ function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) 
               if (last_group_member_msg !== null) {
                 group_member_sequence = last_group_member_msg.sequence
               }
-              const group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.Hash, json.Address, group_member_sequence, json.Address))
+              const group_msg_sync_request = yield call(() =>
+                mgAPI.genGroupMessageSync(seed, json.Hash, json.Address, group_member_sequence, json.Address)
+              )
               yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_sync_request) })
             }
           }
@@ -480,11 +592,13 @@ function* handleGroupMessageSyncAction(json, action, address, ob_address, seed) 
               let tmp_msg_json = JSON.parse(tmp_msg.json)
               let encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
               tmp_msg_json.Content = encrypt_content
-              delete tmp_msg_json["ObjectType"]
-              delete tmp_msg_json["GroupHash"]
+              delete tmp_msg_json['ObjectType']
+              delete tmp_msg_json['GroupHash']
               list.push(tmp_msg_json)
             }
-            const group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, json.Hash, ob_address, list, timestamp))
+            const group_msg_list_json = yield call(() =>
+              mgAPI.genGroupMessageList(seed, json.Hash, ob_address, list, timestamp)
+            )
             yield call(SendMessage, { key: action.key, msg: JSON.stringify(group_msg_list_json) })
           }
         }
@@ -533,8 +647,8 @@ function* handleBulletinObject(json) {
     if (!checkBulletinSchema(json) || !VerifyJsonSignature(json)) return null
     const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
     const bulletin = yield call(CacheBulletin, json)
-    const address = yield select(state => state.User.Address)
-    const follow_list = yield select(state => state.User.FollowList)
+    const address = yield select((state) => state.User.Address)
+    const follow_list = yield select((state) => state.User.FollowList)
     if (follow_list.includes(ob_address) || ob_address === address) {
       yield fork(RequestNextBulletin, { key: null, payload: { address: ob_address } })
     }
@@ -574,8 +688,9 @@ function* processBulletinList(json, schemaCheck, dispatchAction) {
 
 function* handleReplyBulletinListObject(json) {
   try {
-    yield call(processBulletinList, json, checkReplyBulletinListSchema,
-      (list, j) => setDisplayBulletinReplyList({ List: list, Page: j.Page, TotalPage: j.TotalPage }))
+    yield call(processBulletinList, json, checkReplyBulletinListSchema, (list, j) =>
+      setDisplayBulletinReplyList({ List: list, Page: j.Page, TotalPage: j.TotalPage })
+    )
   } catch (e) {
     Logger.error('[handleReplyBulletinListObject] failed:', e.message)
   }
@@ -583,8 +698,9 @@ function* handleReplyBulletinListObject(json) {
 
 function* handleTagBulletinListObject(json) {
   try {
-    yield call(processBulletinList, json, checkTagBulletinListSchema,
-      (list, j) => setTagBulletinList({ List: list, Page: j.Page, TotalPage: j.TotalPage }))
+    yield call(processBulletinList, json, checkTagBulletinListSchema, (list, j) =>
+      setTagBulletinList({ List: list, Page: j.Page, TotalPage: j.TotalPage })
+    )
   } catch (e) {
     Logger.error('[handleTagBulletinListObject] failed:', e.message)
   }
@@ -592,8 +708,7 @@ function* handleTagBulletinListObject(json) {
 
 function* handleRandomBulletinListObject(json) {
   try {
-    yield call(processBulletinList, json, checkRandomBulletinListSchema,
-      (list) => setRandomBulletinList(list))
+    yield call(processBulletinList, json, checkRandomBulletinListSchema, (list) => setRandomBulletinList(list))
   } catch (e) {
     Logger.error('[handleRandomBulletinListObject] failed:', e.message)
   }
@@ -610,9 +725,21 @@ function* handleAvatarListObject(json) {
         if (db_avatar !== null) {
           if (db_avatar.signed_at < avatar.Timestamp) {
             if (db_avatar.hash === avatar.Hash) {
-              yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, true))
+              yield call(() =>
+                dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, true)
+              )
             } else {
-              yield call(() => dbAPI.updateAvatar(avatar_address, avatar.Hash, avatar.Size, avatar.Timestamp, Date.now(), avatar, false))
+              yield call(() =>
+                dbAPI.updateAvatar(
+                  avatar_address,
+                  avatar.Hash,
+                  avatar.Size,
+                  avatar.Timestamp,
+                  Date.now(),
+                  avatar,
+                  false
+                )
+              )
               yield call(RequestAvatarFile, { key: null, address: avatar_address, hash: avatar.Hash })
             }
           } else if (db_avatar.signed_at === avatar.Timestamp && db_avatar.is_saved === false) {
@@ -631,7 +758,7 @@ function* handleECDHHandshakeObject(json, address, seed) {
     if (!checkECDHHandshakeSchema(json) || json.To !== address || !VerifyJsonSignature(json)) return
     const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
     const friend = yield call(() => dbAPI.getFriend(address, ob_address))
-    const total_member_list = yield select(state => state.Messenger.TotalGroupMemberList)
+    const total_member_list = yield select((state) => state.Messenger.TotalGroupMemberList)
     if (friend !== null || total_member_list.includes(ob_address)) {
       const ecdh = yield call(() => dbAPI.getHandshake(address, ob_address, DefaultPartition, json.Sequence))
       if (ecdh === null) {
@@ -639,7 +766,9 @@ function* handleECDHHandshakeObject(json, address, seed) {
         const self_key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
         const ecdh_pk = self_key_pair.getPublic('hex')
         const timestamp = Date.now()
-        const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp))
+        const self_json = yield call(() =>
+          mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh_pk, json.Self, ob_address, timestamp)
+        )
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
         if (!pair_key_pair.validate().result) {
           Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve')
@@ -647,12 +776,34 @@ function* handleECDHHandshakeObject(json, address, seed) {
         }
         const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
         const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-        yield call(() => dbAPI.initHandshakeFromRemote(address, ob_address, DefaultPartition, json.Sequence, aes_key, ecdh_sk, ecdh_pk, self_json, json))
+        yield call(() =>
+          dbAPI.initHandshakeFromRemote(
+            address,
+            ob_address,
+            DefaultPartition,
+            json.Sequence,
+            aes_key,
+            ecdh_sk,
+            ecdh_pk,
+            self_json,
+            json
+          )
+        )
         yield call(SendMessage, { msg: JSON.stringify(self_json) })
       } else {
         const self_key_pair = ec.keyFromPrivate(ecdh.private_key, 'hex')
         const timestamp = Date.now()
-        const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, json.Sequence, ecdh.public_key, json.Self, ob_address, timestamp))
+        const self_json = yield call(() =>
+          mgAPI.genECDHHandshake(
+            seed,
+            DefaultPartition,
+            json.Sequence,
+            ecdh.public_key,
+            json.Self,
+            ob_address,
+            timestamp
+          )
+        )
         const pair_key_pair = ec.keyFromPublic(json.Self, 'hex')
         if (!pair_key_pair.validate().result) {
           Logger.error('[handleECDHHandshakeObject] Remote ECDH public key not on secp256k1 curve (update)')
@@ -660,8 +811,10 @@ function* handleECDHHandshakeObject(json, address, seed) {
         }
         const shared_key = self_key_pair.derive(pair_key_pair.getPublic()).toString('hex')
         const aes_key = genAESKey(shared_key, address, ob_address, json.Sequence)
-        yield call(() => dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json))
-        if (json.Pair === "") {
+        yield call(() =>
+          dbAPI.updateHandshake(address, ob_address, DefaultPartition, json.Sequence, aes_key, self_json, json)
+        )
+        if (json.Pair === '') {
           yield call(SendMessage, { msg: JSON.stringify(self_json) })
         }
       }
@@ -685,7 +838,7 @@ function* handlePrivateMessageObject(json, address) {
 
 function* processPrivateMessage(json, address, ob_address) {
   try {
-    const is_self = (ob_address === address)
+    const is_self = ob_address === address
     const remote = is_self ? json.To : ob_address
 
     const friend = yield call(() => dbAPI.getFriend(address, remote))
@@ -709,33 +862,60 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     if (typeof content === 'object' && content.ObjectType === MessageObjectType.PrivateChatFile) {
-      yield fork(safeFork, FetchPrivateChatFile, { payload: { remote: remote, hash: content.Hash, size: content.Size } })
+      yield fork(safeFork, FetchPrivateChatFile, {
+        payload: { remote: remote, hash: content.Hash, size: content.Size }
+      })
     }
 
-    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     let is_readed = false
     if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
       is_readed = true
     }
 
     const session_msgs = yield call(() => dbAPI.getPrivateSession(address, remote))
-    let last_msg = (session_msgs && session_msgs.length > 0) ? session_msgs.reduce((a, b) => a.sequence > b.sequence ? a : b) : null
+    let last_msg =
+      session_msgs && session_msgs.length > 0 ? session_msgs.reduce((a, b) => (a.sequence > b.sequence ? a : b)) : null
     let add_result = false
     if (last_msg === null || json.Sequence === 1) {
       if (json.Sequence === 1 && json.PreHash === GenesisHash) {
-        add_result = yield call(() => dbAPI.addPrivateMessage(
-          QuarterSHA512Message(json), ob_address, json.To, json.Sequence, json.PreHash,
-          content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
-        ))
+        add_result = yield call(() =>
+          dbAPI.addPrivateMessage(
+            QuarterSHA512Message(json),
+            ob_address,
+            json.To,
+            json.Sequence,
+            json.PreHash,
+            content,
+            json,
+            json.Timestamp,
+            false,
+            false,
+            is_readed,
+            typeof content === 'object'
+          )
+        )
       } else if (last_msg !== null) {
         yield call(SyncPrivateMessage, { payload: { key: null, local: address, remote: remote } })
       }
     } else {
       if (last_msg.sequence + 1 === json.Sequence && last_msg.hash === json.PreHash) {
-        add_result = yield call(() => dbAPI.addPrivateMessage(
-          QuarterSHA512Message(json), ob_address, json.To, json.Sequence, json.PreHash,
-          content, json, json.Timestamp, false, false, is_readed, typeof content === 'object'
-        ))
+        add_result = yield call(() =>
+          dbAPI.addPrivateMessage(
+            QuarterSHA512Message(json),
+            ob_address,
+            json.To,
+            json.Sequence,
+            json.PreHash,
+            content,
+            json,
+            json.Timestamp,
+            false,
+            false,
+            is_readed,
+            typeof content === 'object'
+          )
+        )
       } else if (last_msg.sequence + 1 < json.Sequence) {
         yield call(SyncPrivateMessage, { payload: { key: null, local: address, remote: remote } })
       }
@@ -763,11 +943,31 @@ function* handleGroupListObject(json, address) {
         if (db_g === null) {
           const created_by = rippleKeyPairs.deriveAddress(group_json.PublicKey)
           if (created_by === address) {
-            yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, true))
+            yield call(() =>
+              dbAPI.createGroup(
+                group_json.Hash,
+                group_json.Name,
+                created_by,
+                group_json.Member,
+                group_json.Timestamp,
+                group_json,
+                true
+              )
+            )
             yield call(LoadSessionList)
             yield call(LoadGroupList)
           } else if (group_json.Member.includes(address)) {
-            yield call(() => dbAPI.createGroup(group_json.Hash, group_json.Name, created_by, group_json.Member, group_json.Timestamp, group_json, false))
+            yield call(() =>
+              dbAPI.createGroup(
+                group_json.Hash,
+                group_json.Name,
+                created_by,
+                group_json.Member,
+                group_json.Timestamp,
+                group_json,
+                false
+              )
+            )
             yield call(LoadGroupRequestList)
           }
         }
@@ -837,26 +1037,48 @@ function* handleGroupMessageListObject(json, address, seed) {
         Signature: group_msg.Signature
       }
       if (verify_json.Confirm === undefined) {
-        delete verify_json["Confirm"]
+        delete verify_json['Confirm']
       }
 
       if (!VerifyJsonSignature(verify_json)) continue
 
       const hash = QuarterSHA512Message(verify_json)
-      if (typeof verify_json.Content === 'object' && verify_json.Content.ObjectType === MessageObjectType.GroupChatFile) {
-        yield call(FetchGroupChatFile, { payload: { key: null, group_hash: json.GroupHash, hash: verify_json.Content.Hash, size: verify_json.Content.Size } })
+      if (
+        typeof verify_json.Content === 'object' &&
+        verify_json.Content.ObjectType === MessageObjectType.GroupChatFile
+      ) {
+        yield call(FetchGroupChatFile, {
+          payload: {
+            key: null,
+            group_hash: json.GroupHash,
+            hash: verify_json.Content.Hash,
+            size: verify_json.Content.Size
+          }
+        })
       }
 
       let is_readed = false
-      const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+      const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
       if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
         is_readed = true
       }
 
-      const add_result = yield call(() => dbAPI.addGroupMessage(
-        hash, json.GroupHash, msg_address, verify_json.Sequence, verify_json.PreHash,
-        verify_json.Content, verify_json, verify_json.Timestamp, false, false, is_readed, typeof verify_json.Content === 'object'
-      ))
+      const add_result = yield call(() =>
+        dbAPI.addGroupMessage(
+          hash,
+          json.GroupHash,
+          msg_address,
+          verify_json.Sequence,
+          verify_json.PreHash,
+          verify_json.Content,
+          verify_json,
+          verify_json.Timestamp,
+          false,
+          false,
+          is_readed,
+          typeof verify_json.Content === 'object'
+        )
+      )
       if (add_result) {
         if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
           yield call(RefreshGroupMessageList)
@@ -874,7 +1096,9 @@ function* handleGroupMessageListObject(json, address, seed) {
       if (last_msg !== null) {
         sequence = last_msg.sequence
       }
-      const group_msg_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, sequence, ob_address))
+      const group_msg_sync_request = yield call(() =>
+        mgAPI.genGroupMessageSync(seed, json.GroupHash, msg_address, sequence, ob_address)
+      )
       yield call(SendMessage, { msg: JSON.stringify(group_msg_sync_request) })
     }
   } catch (e) {
@@ -938,7 +1162,11 @@ function handleControlMessage(json) {
   }
 
   // Cache confirmation codes (720/721/723): Silent — server just confirming storage
-  if (msgCode === MessageCode.BulletinCached || msgCode === MessageCode.PrivateMsgCached || msgCode === MessageCode.HandshakeCached) {
+  if (
+    msgCode === MessageCode.BulletinCached ||
+    msgCode === MessageCode.PrivateMsgCached ||
+    msgCode === MessageCode.HandshakeCached
+  ) {
     Logger.debug(`[ServerNotify] Cache confirmation ${msgCode}`)
     return null // No UI update needed
   }
@@ -981,8 +1209,8 @@ export function* WebsocketListener() {
             Logger.info('!!!conn status change:', action)
             if (action.status === WebSocket.OPEN) {
               yield call(UpdateConnStatus, action)
-              cachedSeed = yield select(state => state.User.Seed)
-              cachedAddress = yield select(state => state.User.Address)
+              cachedSeed = yield select((state) => state.User.Seed)
+              cachedAddress = yield select((state) => state.User.Address)
               if (!cachedSeed) {
                 continue
               }
@@ -1012,22 +1240,44 @@ export function* WebsocketListener() {
               yield call(handleBinaryMessage, action)
             } else {
               const json = action.data
+              Logger.info(`[WS] Received text message, keys: ${Object.keys(json).join(',')}`)
               // Control-plane messages (ActionCode 8xx) — server notifications/errors
-              if (json.ActionCode === ControlActionCode.ServerNotify || json.ActionCode === ControlActionCode.ServerNotifyAckReq) {
+              if (
+                json.ActionCode === ControlActionCode.ServerNotify ||
+                json.ActionCode === ControlActionCode.ServerNotifyAckReq
+              ) {
                 const controlAction = handleControlMessage(json)
                 if (controlAction) {
                   yield put(controlAction)
                 }
                 // If ServerNotifyAckReq, send ACK back
                 if (json.ActionCode === ControlActionCode.ServerNotifyAckReq) {
-                  yield call(SendMessage, { key: action.key, msg: JSON.stringify({ ActionCode: ControlActionCode.ClientAck, AckFor: json.MessageCode }) })
+                  yield call(SendMessage, {
+                    key: action.key,
+                    msg: JSON.stringify({ ActionCode: ControlActionCode.ClientAck, AckFor: json.MessageCode })
+                  })
                 }
               } else if (json.Action && (json.To === undefined || json.To === cachedAddress)) {
+                Logger.info(
+                  `[WS] Routing to handleActionMessage, Action=${json.Action}, To=${json.To}, cachedAddress=${cachedAddress}`
+                )
                 yield call(handleActionMessage, json, action, cachedAddress, cachedSeed)
               } else if (json.ObjectType) {
+                Logger.info(`[WS] Routing to handleObjectMessage, ObjectType=${json.ObjectType}`)
                 yield call(handleObjectMessage, json, action, cachedAddress, cachedSeed)
               } else {
-                Logger.warn('[WS] ❌ DROPPED text message — no Action/ObjectType/ActionCode', typeof json, 'keys:', Object.keys(json).slice(0, 8).join(','))
+                Logger.warn(
+                  '[WS] ❌ DROPPED text message — no Action/ObjectType/ActionCode',
+                  typeof json,
+                  'keys:',
+                  Object.keys(json).slice(0, 8).join(','),
+                  'Action:',
+                  json.Action,
+                  'To:',
+                  json.To,
+                  'cachedAddress:',
+                  cachedAddress
+                )
               }
             }
             break
@@ -1042,4 +1292,3 @@ export function* WebsocketListener() {
     }
   }
 }
-
