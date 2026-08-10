@@ -1,6 +1,6 @@
 [package]
 name = "RippleMessenger"
-version = "0.1.19"
+version = "0.1.20"
 description = "RippleMessenger"
 authors = ["rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS"]
 edition = "2021"
