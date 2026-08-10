@@ -99,6 +99,9 @@ import {
 // File transfer
 import { FetchBulletinFile, FetchPrivateChatFile, FetchGroupChatFile } from './messenger.file'
 
+// Storage management (to refresh UI after file download completes)
+import { LoadFileManagementList as LoadFileManagementListAction } from './messenger.actions'
+
 // Private chat
 import {
   AutoSyncPrivateMessages,
@@ -146,39 +149,71 @@ function* handleBinaryAvatar(request, content) {
  * @param {object} opts.fetchNextPayload - payload to pass to fetchNext
  */
 function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchNextPayload }) {
+  Logger.info(
+    '[📥 receiveFileChunk] START hash=' +
+      request.Hash +
+      ' nonce=' +
+      request.Nonce +
+      ' cursor=' +
+      request.ChunkCursor +
+      ' db_cursor=' +
+      file.chunk_cursor +
+      '/' +
+      file.chunk_length
+  )
   if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
+    Logger.info('[📥 receiveFileChunk] Writing chunk to disk, path=' + filePath + ', contentLen=' + content.length)
     yield call(() => writeFile(filePath, content, { append: true }))
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
     const current_chunk_cursor = file.chunk_cursor + 1
     yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
+    Logger.info('[📥 receiveFileChunk] Updated cursor to ' + current_chunk_cursor + '/' + file.chunk_length)
     if (current_chunk_cursor < file.chunk_length) {
+      Logger.info('[📥 receiveFileChunk] More chunks needed, requesting next...')
       yield call(fetchNext, { payload: fetchNextPayload })
     } else {
+      Logger.info('[📥 receiveFileChunk] All chunks received, verifying hash...')
       const hash = FileHash(yield call(() => readFile(filePath)))
       if (hash === request.Hash) {
+        Logger.info('[📥 receiveFileChunk] ✅ Hash verified, marking file as saved')
         yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+        // Refresh the file management UI so Pending → Saved updates immediately
+        Logger.info('[📥 receiveFileChunk] Dispatching LoadFileManagementList to refresh UI')
+        yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
       } else {
-        console.warn(`[receiveFileChunk] Hash mismatch for ${request.Hash}: expected=${request.Hash} got=${hash}`)
+        Logger.error(
+          '[📥 receiveFileChunk] ❌ Hash mismatch for ' + request.Hash + ': expected=' + request.Hash + ' got=' + hash
+        )
         yield call(() => remove(filePath))
         yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+        Logger.info('[📥 receiveFileChunk] Reset cursor to 0, re-requesting...')
         yield call(fetchNext, { payload: fetchNextPayload })
       }
     }
   } else if (file.chunk_cursor + 1 !== request.ChunkCursor) {
     // Out-of-order chunk — re-request the expected cursor instead of silently dropping
-    console.warn(
-      `[receiveFileChunk] Unexpected chunk order for ${request.Hash}: db_cursor=${file.chunk_cursor}, received_chunk=${request.ChunkCursor}`
+    Logger.warn(
+      `[📥 receiveFileChunk] Unexpected chunk order for ${request.Hash}: db_cursor=${file.chunk_cursor}, received_chunk=${request.ChunkCursor}`
     )
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
     yield call(fetchNext, { payload: fetchNextPayload }) // Re-request expected chunk
   } else {
     // File already fully fetched — no-op (silent success)
+    Logger.info('[📥 receiveFileChunk] File already fully fetched, skipping. nonce=' + request.Nonce)
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
   }
 }
 
 function* handleBinaryBulletinFile(request, content) {
   try {
+    Logger.info(
+      '[📥 handleBinaryBulletinFile] START hash=' +
+        request.Hash +
+        ' nonce=' +
+        request.Nonce +
+        ' chunkCursor=' +
+        request.ChunkCursor
+    )
     const base_dir = yield call(() => path.resourceDir())
     const hash_subpath = buildFileSubPath(request.Hash)
     const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
@@ -186,8 +221,17 @@ function* handleBinaryBulletinFile(request, content) {
     const file_path = yield call(() => path.join(file_dir, request.Hash))
     const file = yield call(() => dbAPI.getFileByHash(request.Hash))
     if (file === null) {
+      Logger.warn('[📥 handleBinaryBulletinFile] File record not found in DB for hash=' + request.Hash)
       return
     }
+    Logger.info(
+      '[📥 handleBinaryBulletinFile] DB file: cursor=' +
+        file.chunk_cursor +
+        '/' +
+        file.chunk_length +
+        ', is_saved=' +
+        file.is_saved
+    )
     yield call(receiveFileChunk, {
       filePath: file_path,
       content,
@@ -256,13 +300,16 @@ function* handleBinaryGroupFile(request, content, action) {
 function* handleBinaryMessage(action) {
   try {
     const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
+    Logger.info('[📥 handleBinaryMessage] Binary msg received, nonce=' + nonce + ', dataLen=' + action.data.byteLength)
     setFileRequestList(getFileRequestList().filter((r) => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now()))
     const fileRequests = getFileRequestList()
+    Logger.info('[📥 handleBinaryMessage] FileRequestList size after TTL cleanup: ' + fileRequests.length)
     let matched = false
     for (let i = 0; i < fileRequests.length; i++) {
       const request = fileRequests[i]
       if (request.Nonce === nonce) {
         matched = true
+        Logger.info('[📥 handleBinaryMessage] Nonce matched! type=' + request.Type + ' hash=' + (request.Hash || 'N/A'))
         switch (request.Type) {
           case FileRequestType.Avatar:
             yield call(handleBinaryAvatar, request, new Uint8Array(action.data.slice(4)))
@@ -278,6 +325,9 @@ function* handleBinaryMessage(action) {
             break
         }
       }
+    }
+    if (!matched) {
+      Logger.warn('[📥 handleBinaryMessage] ❌ Nonce ' + nonce + ' NOT matched in FileRequestList!')
     }
   } catch (e) {
     Logger.error('[handleBinaryMessage] failed:', e.message, e.stack)

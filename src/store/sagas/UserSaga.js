@@ -7,11 +7,56 @@ import { clearMessageGenerator } from '../../lib/MessageGenerator'
 import { setFileRequestList, safeFork } from './messenger.core'
 import { PostAddress } from '../../lib/MessengerConst'
 import { SessionType } from '../../lib/AppConst'
-import { setCurrentSession, setGroupList, setSessionList, setPortalBulletinList, setRandomBulletinList, setAddressBulletinList, setFollowBulletinList, setBookmarkBulletinList, setDisplayBulletin, setDisplayBulletinReplyList, setPublishTagList, setPublishQuoteList, setPublishFileList, setForwardBulletin, setServerAddressList, setTagBulletinList, setSearchTagList, setBulletinAddress } from '../slices/MessengerSlice'
-import { loadAccountListStart, loadAccountListSuccess, loginStart, loginSuccess, logoutStart, setContactList, setFollowList, setFriendList, setUserError } from '../slices/UserSlice'
-import { AccountAdd as AccountAddAction, AccountDel as AccountDelAction, ContactAdd as ContactAddAction, ContactDel as ContactDelAction, ContactToggleIsFollow as ContactToggleIsFollowAction, ContactToggleIsFriend as ContactToggleIsFriendAction, LoadContactList as LoadContactListAction } from './messenger.actions'
-import { LoadGroupList, LoadGroupRequestList, LoadMineBulletinSequence, LoadServerList, RefreshPortalBulletin, SubscribeFollow } from './MessengerSaga'
+import {
+  setCurrentSession,
+  setGroupList,
+  setSessionList,
+  setPortalBulletinList,
+  setRandomBulletinList,
+  setAddressBulletinList,
+  setFollowBulletinList,
+  setBookmarkBulletinList,
+  setDisplayBulletin,
+  setDisplayBulletinReplyList,
+  setPublishTagList,
+  setPublishQuoteList,
+  setPublishFileList,
+  setForwardBulletin,
+  setServerAddressList,
+  setTagBulletinList,
+  setSearchTagList,
+  setBulletinAddress
+} from '../slices/MessengerSlice'
+import {
+  loadAccountListStart,
+  loadAccountListSuccess,
+  loginStart,
+  loginSuccess,
+  logoutStart,
+  setContactList,
+  setFollowList,
+  setFriendList,
+  setUserError
+} from '../slices/UserSlice'
+import {
+  AccountAdd as AccountAddAction,
+  AccountDel as AccountDelAction,
+  ContactAdd as ContactAddAction,
+  ContactDel as ContactDelAction,
+  ContactToggleIsFollow as ContactToggleIsFollowAction,
+  ContactToggleIsFriend as ContactToggleIsFriendAction,
+  LoadContactList as LoadContactListAction
+} from './messenger.actions'
+import {
+  LoadGroupList,
+  LoadGroupRequestList,
+  LoadMineBulletinSequence,
+  LoadServerList,
+  RefreshPortalBulletin,
+  SubscribeFollow
+} from './MessengerSaga'
 import { LoadSessionList } from './messenger.session'
+import { FetchFollowBulletin } from './messenger.bulletin'
 
 function* handleLogin({ payload }) {
   try {
@@ -28,14 +73,14 @@ function* handleLogin({ payload }) {
       call(loadContactList),
       call(LoadMineBulletinSequence),
       call(RefreshPortalBulletin),
-      call(LoadGroupRequestList),
+      call(LoadGroupRequestList)
     ])
 
     // LoadGroupList must complete before LoadSessionList (reads GroupList from store)
     yield call(LoadGroupList)
     yield call(LoadSessionList)
 
-    const contact_list = yield select(state => state.User.ContactList)
+    const contact_list = yield select((state) => state.User.ContactList)
     if (contact_list.length === 0) {
       yield call(addContact, { payload: { address: PostAddress, nickname: 'London' } })
       yield call(toggleContactFollow, { payload: { contact_address: PostAddress } })
@@ -120,7 +165,7 @@ function* delAccount({ payload }) {
 // Contact
 function* loadContactList() {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
 
     let tmp_contact_list = yield call(() => dbAPI.getAllContacts())
     let tmp_follow_list = yield call(() => dbAPI.getMyFollows(address))
@@ -131,8 +176,8 @@ function* loadContactList() {
     let follow_list = []
     let friend_list = []
 
-    const followSet = new Set(tmp_follow_list.map(f => f.remote))
-    const friendSet = new Set(tmp_friend_list.map(f => f.remote))
+    const followSet = new Set(tmp_follow_list.map((f) => f.remote))
+    const friendSet = new Set(tmp_friend_list.map((f) => f.remote))
 
     for (let i = 0; i < tmp_contact_list.length; i++) {
       let contact = tmp_contact_list[i]
@@ -183,15 +228,21 @@ function* delContact({ payload }) {
 
 function* toggleContactFollow({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const contact_address = payload.contact_address
     const follow = yield call(() => dbAPI.getFollow(address, contact_address))
+    let didAddFollow = false
     if (follow !== null) {
       yield call(() => dbAPI.deleteFollow(address, contact_address))
     } else {
       yield call(() => dbAPI.addFollow(address, contact_address, Date.now()))
+      didAddFollow = true
     }
     yield call(loadContactList)
+    // After adding a follow, fetch that user's bulletins immediately
+    if (didAddFollow) {
+      yield fork(safeFork, FetchFollowBulletin)
+    }
   } catch (e) {
     Logger.error('[toggleContactFollow] failed:', e.message)
   }
@@ -199,16 +250,21 @@ function* toggleContactFollow({ payload }) {
 
 function* toggleContactFriend({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
-    const session_list_old = yield select(state => state.Messenger.SessionList)
+    const address = yield select((state) => state.User.Address)
+    const session_list_old = yield select((state) => state.Messenger.SessionList)
     const contact_address = payload.contact_address
     const friend = yield call(() => dbAPI.getFriend(address, contact_address))
     if (friend !== null) {
       yield call(() => dbAPI.deleteFriend(address, contact_address))
-      yield put(setSessionList(session_list_old.filter(s => s.address !== contact_address)))
+      yield put(setSessionList(session_list_old.filter((s) => s.address !== contact_address)))
     } else {
       yield call(() => dbAPI.addFriend(address, contact_address, Date.now()))
-      yield put(setSessionList([...session_list_old, { type: SessionType.Private, address: contact_address, updated_at: Date.now() }]))
+      yield put(
+        setSessionList([
+          ...session_list_old,
+          { type: SessionType.Private, address: contact_address, updated_at: Date.now() }
+        ])
+      )
     }
     yield call(loadContactList)
     yield call(LoadSessionList)
