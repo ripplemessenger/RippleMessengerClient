@@ -62,11 +62,14 @@ import {
   ClearOrphanedFiles,
   BulkDeleteFiles,
   ClearAvatarCache,
+  LoadBulletinFileList,
+  DeleteOthersFileReferences,
+  BulkDeleteOthersFileReferences,
   LoadBulletinManagement,
   DeleteBulletin,
   ClearAllBulletins,
   LoadCachedFiles,
-  DeleteCachedFile,
+  DeleteCachedFile
 } from './messenger.actions'
 
 // Bulletin & avatar
@@ -92,7 +95,7 @@ import {
   BulletinQuote as BulletinQuoteHandler,
   BulletinFileAdd as BulletinFileAddHandler,
   BulletinFileDel as BulletinFileDelHandler,
-  BulletinMarkToggle as BulletinMarkToggleHandler,
+  BulletinMarkToggle as BulletinMarkToggleHandler
 } from './messenger.bulletin'
 
 // Session management
@@ -106,14 +109,22 @@ import {
   FetchGroupChatFile as FetchGroupChatFileHandler,
   FetchChatFile as FetchChatFileHandler,
   SaveChatFile as SaveChatFileHandler,
-  SendFile as SendFileHandler,
+  SendFile as SendFileHandler
 } from './messenger.file'
 
 // Private chat
-import { ShowForwardBulletin as ShowForwardBulletinHandler, ForwardBulletin as ForwardBulletinHandler } from './messenger.private'
+import {
+  ShowForwardBulletin as ShowForwardBulletinHandler,
+  ForwardBulletin as ForwardBulletinHandler
+} from './messenger.private'
 
 // Group chat
-import { ComposeMemberAdd as ComposeMemberAddHandler, ComposeMemberDel as ComposeMemberDelHandler, CreateGroup as CreateGroupHandler, DeleteGroup as DeleteGroupHandler } from './messenger.group'
+import {
+  ComposeMemberAdd as ComposeMemberAddHandler,
+  ComposeMemberDel as ComposeMemberDelHandler,
+  CreateGroup as CreateGroupHandler,
+  DeleteGroup as DeleteGroupHandler
+} from './messenger.group'
 
 // Storage management
 import {
@@ -130,6 +141,9 @@ import {
   ClearOrphanedFiles as ClearOrphanedFilesHandler,
   BulkDeleteFiles as BulkDeleteFilesHandler,
   ClearAvatarCache as ClearAvatarCacheHandler,
+  LoadBulletinFileList as LoadBulletinFileListHandler,
+  DeleteOthersFileReferences as DeleteOthersFileReferencesHandler,
+  BulkDeleteOthersFileReferences as BulkDeleteOthersFileReferencesHandler
 } from './messenger.storage'
 
 // Bulletin & File management (simpler API)
@@ -138,11 +152,20 @@ import {
   DeleteBulletin as DeleteBulletinHandler,
   ClearAllBulletins as ClearAllBulletinsHandler,
   LoadCachedFiles as LoadCachedFilesHandler,
-  DeleteCachedFile as DeleteCachedFileHandler,
+  DeleteCachedFile as DeleteCachedFileHandler
 } from './messenger.bulletin'
 
 // Server management & session dispatchers (defined in MessengerSaga.js)
-import { LoadServerList, ServerAdd as ServerAddHandler, ServerDel as ServerDelHandler, ServerSetDefault as ServerSetDefaultHandler, ServerToggle as ServerToggleHandler, LoadCurrentSession as LoadCurrentSessionHandler, SendContent as SendContentHandler, AcceptGroupRequest as AcceptGroupRequestHandler } from './MessengerSaga'
+import {
+  LoadServerList,
+  ServerAdd as ServerAddHandler,
+  ServerDel as ServerDelHandler,
+  ServerSetDefault as ServerSetDefaultHandler,
+  ServerToggle as ServerToggleHandler,
+  LoadCurrentSession as LoadCurrentSessionHandler,
+  SendContent as SendContentHandler,
+  AcceptGroupRequest as AcceptGroupRequestHandler
+} from './MessengerSaga'
 
 export { WebsocketListener } from './messenger.ws'
 
@@ -230,6 +253,11 @@ export function* watchMessenger() {
   yield takeLatest(BulkDeleteFiles.type, BulkDeleteFilesHandler)
   yield takeLatest(ClearAvatarCache.type, ClearAvatarCacheHandler)
 
+  // Bulletin file ownership management
+  yield takeLatest(LoadBulletinFileList.type, LoadBulletinFileListHandler)
+  yield takeLatest(DeleteOthersFileReferences.type, DeleteOthersFileReferencesHandler)
+  yield takeLatest(BulkDeleteOthersFileReferences.type, BulkDeleteOthersFileReferencesHandler)
+
   // Bulletin management
   yield takeEvery(LoadBulletinManagement.type, LoadBulletinManagementHandler)
   yield takeLatest(DeleteBulletin.type, DeleteBulletinHandler)
@@ -239,4 +267,3 @@ export function* watchMessenger() {
   yield takeEvery(LoadCachedFiles.type, LoadCachedFilesHandler)
   yield takeLatest(DeleteCachedFile.type, DeleteCachedFileHandler)
 }
-

@@ -79,8 +79,9 @@ const MessengerSlice = createSlice({
     FileManagementPage: 1,
     FileManagementTotalPage: 1,
     FileManagementFileExt: '',
+    FileManagementOwnership: 'others', // default to others' files (the deletable cache)
     AllTagsList: [],
-    AllBulletinAddressesList: [],
+    AllBulletinAddressesList: []
   },
   reducers: {
     updateMessengerConnStatus: (state, action) => {
@@ -235,13 +236,16 @@ const MessengerSlice = createSlice({
       if (action.payload.fileExt !== undefined) {
         state.FileManagementFileExt = action.payload.fileExt || ''
       }
+      if (action.payload.ownership !== undefined) {
+        state.FileManagementOwnership = action.payload.ownership || 'others'
+      }
     },
     setAllTagsList: (state, action) => {
       state.AllTagsList = action.payload
     },
     setAllBulletinAddressesList: (state, action) => {
       state.AllBulletinAddressesList = action.payload
-    },
+    }
   }
 })
 
@@ -288,6 +292,6 @@ export const {
   setBulletinManagementList,
   setFileManagementList,
   setAllTagsList,
-  setAllBulletinAddressesList,
+  setAllBulletinAddressesList
 } = MessengerSlice.actions
 export default MessengerSlice.reducer

@@ -7,7 +7,13 @@ import { FileDir, FLASH_DURATION_MS } from '../../lib/AppConst'
 import Logger from '../../lib/Logger'
 import { buildFileFullPath, calcTotalPage } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
-import { setStorageSummary, setBulletinManagementList, setFileManagementList, setAllTagsList, setAllBulletinAddressesList } from '../slices/MessengerSlice'
+import {
+  setStorageSummary,
+  setBulletinManagementList,
+  setFileManagementList,
+  setAllTagsList,
+  setAllBulletinAddressesList
+} from '../slices/MessengerSlice'
 
 const StorageManagementPageSize = 20
 
@@ -20,12 +26,12 @@ export function* LoadStorageSummary() {
       call(() => dbAPI.getFileCount()),
       call(() => dbAPI.getPrivateMessageCount()),
       call(() => dbAPI.getGroupMessageCount()),
-      call(() => dbAPI.getAvatarCount()),
+      call(() => dbAPI.getAvatarCount())
     ])
 
     const [fileSizeSum, avatarSizeSum] = yield all([
       call(() => dbAPI.getFileSizeSum()),
-      call(() => dbAPI.getAvatarSizeSum()),
+      call(() => dbAPI.getAvatarSizeSum())
     ])
 
     // Get DB file size on disk
@@ -39,18 +45,20 @@ export function* LoadStorageSummary() {
       Logger.warn('[LoadStorageSummary] could not read DB file size:', dbErr.message)
     }
 
-    yield put(setStorageSummary({
-      bulletinCount,
-      fileCount,
-      privateMsgCount,
-      groupMsgCount,
-      avatarCount,
-      fileSizeSum,
-      avatarSizeSum,
-      dbFileSize,
-      totalDbRecords: bulletinCount + privateMsgCount + groupMsgCount + fileCount + avatarCount,
-      totalSizeSum: fileSizeSum + avatarSizeSum,
-    }))
+    yield put(
+      setStorageSummary({
+        bulletinCount,
+        fileCount,
+        privateMsgCount,
+        groupMsgCount,
+        avatarCount,
+        fileSizeSum,
+        avatarSizeSum,
+        dbFileSize,
+        totalDbRecords: bulletinCount + privateMsgCount + groupMsgCount + fileCount + avatarCount,
+        totalSizeSum: fileSizeSum + avatarSizeSum
+      })
+    )
   } catch (e) {
     Logger.error('[LoadStorageSummary] failed:', e.message)
   }
@@ -60,10 +68,12 @@ export function* LoadStorageSummary() {
 
 export function* LoadBulletinManagementList({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const { filter, page = 1, addressFilter } = payload
 
-    const bulletins = yield call(() => dbAPI.getBulletinsForManagement({ filter, address, page, pageSize: StorageManagementPageSize, addressFilter }))
+    const bulletins = yield call(() =>
+      dbAPI.getBulletinsForManagement({ filter, address, page, pageSize: StorageManagementPageSize, addressFilter })
+    )
     const total = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address, addressFilter }))
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
@@ -78,8 +88,8 @@ export function* DeleteBulletinItem({ payload }) {
     yield call(() => dbAPI.deleteBulletin(payload.hash))
 
     // Refresh the current list page
-    const currentPage = yield select(state => state.Messenger.BulletinManagementPage)
-    const address = yield select(state => state.User.Address)
+    const currentPage = yield select((state) => state.Messenger.BulletinManagementPage)
+    const address = yield select((state) => state.User.Address)
     const filter = payload.filter || 'all'
     const addressFilter = payload.addressFilter
     const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter, address, addressFilter }))
@@ -103,11 +113,15 @@ export function* BulkDeleteBulletins({ payload }) {
     yield call(() => dbAPI.deleteBulletinsByHashes(hashes))
 
     // Refresh the list from page 1
-    const address = yield select(state => state.User.Address)
-    const totalAfter = yield call(() => dbAPI.getBulletinCountForManagement({ filter: filter || 'all', address, addressFilter }))
+    const address = yield select((state) => state.User.Address)
+    const totalAfter = yield call(() =>
+      dbAPI.getBulletinCountForManagement({ filter: filter || 'all', address, addressFilter })
+    )
     const totalPages = calcTotalPage(totalAfter, StorageManagementPageSize)
 
-    yield call(LoadBulletinManagementList, { payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages), addressFilter } })
+    yield call(LoadBulletinManagementList, {
+      payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages), addressFilter }
+    })
     yield put(setFlashNoticeMessage({ message: `${hashes.length} bulletins deleted`, duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[BulkDeleteBulletins] failed:', e.message)
@@ -121,13 +135,31 @@ export function* LoadFileManagementList({ payload }) {
   try {
     const { category, fileExt, page = 1 } = payload
 
-    const files = yield call(() => dbAPI.getFilesForManagement({ category, fileExt, page, pageSize: StorageManagementPageSize }))
+    const files = yield call(() =>
+      dbAPI.getFilesForManagement({ category, fileExt, page, pageSize: StorageManagementPageSize })
+    )
     const total = yield call(() => dbAPI.getFileCountForManagement({ category, fileExt }))
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
     yield put(setFileManagementList({ List: files, Page: page, TotalPage: totalPage, fileExt }))
   } catch (e) {
     Logger.error('[LoadFileManagementList] failed:', e.message)
+  }
+}
+
+export function* LoadBulletinFileList({ payload }) {
+  try {
+    const { ownership, fileExt, page = 1 } = payload
+
+    const files = yield call(() =>
+      dbAPI.getBulletinFilesWithOwnership({ ownership, fileExt, page, pageSize: StorageManagementPageSize })
+    )
+    const total = yield call(() => dbAPI.getBulletinFileCountWithOwnership({ ownership, fileExt }))
+    const totalPage = calcTotalPage(total, StorageManagementPageSize)
+
+    yield put(setFileManagementList({ List: files, Page: page, TotalPage: totalPage, fileExt, ownership }))
+  } catch (e) {
+    Logger.error('[LoadBulletinFileList] failed:', e.message)
   }
 }
 
@@ -139,7 +171,7 @@ export function* DeleteFileItem({ payload }) {
 
     if (!hasChatRef) {
       try {
-        const base_dir = yield select(state => state.Common.AppBaseDir)
+        const base_dir = yield select((state) => state.Common.AppBaseDir)
         const filePath = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, hash)))
         yield call(() => remove(filePath))
       } catch (diskErr) {
@@ -149,13 +181,17 @@ export function* DeleteFileItem({ payload }) {
       Logger.warn('[DeleteFileItem] file still referenced by chat, skipping disk/files deletion for', hash)
     }
 
-    const currentPage = yield select(state => state.Messenger.FileManagementPage)
-    const currentFileExt = yield select(state => state.Messenger.FileManagementFileExt)
-    const totalAfter = yield call(() => dbAPI.getFileCountForManagement({ category: 'bulletin', fileExt: currentFileExt }))
+    const currentPage = yield select((state) => state.Messenger.FileManagementPage)
+    const currentFileExt = yield select((state) => state.Messenger.FileManagementFileExt)
+    const totalAfter = yield call(() =>
+      dbAPI.getFileCountForManagement({ category: 'bulletin', fileExt: currentFileExt })
+    )
     const totalPages = calcTotalPage(totalAfter, StorageManagementPageSize)
     const refreshPage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage
 
-    yield call(LoadFileManagementList, { payload: { category: 'bulletin', fileExt: currentFileExt, page: refreshPage }})
+    yield call(LoadFileManagementList, {
+      payload: { category: 'bulletin', fileExt: currentFileExt, page: refreshPage }
+    })
     yield put(setFlashNoticeMessage({ message: 'file deleted', duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteFileItem] failed:', e.message)
@@ -166,10 +202,12 @@ export function* DeleteFileItem({ payload }) {
 export function* ClearOrphanedFiles() {
   try {
     // First, get all orphaned file hashes so we can also clean disk
-    const orphanedFiles = yield call(() => dbAPI.getFilesForManagement({ category: 'orphan', page: 1, pageSize: 10000 }))
+    const orphanedFiles = yield call(() =>
+      dbAPI.getFilesForManagement({ category: 'orphan', page: 1, pageSize: 10000 })
+    )
 
     // Remove each orphan from disk
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
     for (const file of orphanedFiles) {
       try {
         const filePath = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, file.hash)))
@@ -188,7 +226,9 @@ export function* ClearOrphanedFiles() {
     // Also refresh storage summary
     yield call(LoadStorageSummary)
 
-    yield put(setFlashNoticeMessage({ message: `${orphanedFiles.length} orphaned files cleared`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({ message: `${orphanedFiles.length} orphaned files cleared`, duration: FLASH_DURATION_MS })
+    )
   } catch (e) {
     Logger.error('[ClearOrphanedFiles] failed:', e.message)
     yield put(setFlashNoticeMessage({ message: 'failed to clear orphaned files', duration: FLASH_DURATION_MS }))
@@ -199,11 +239,22 @@ export function* ClearOrphanedFiles() {
 
 export function* SearchBulletinManagementList({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const { query, filter, page = 1, addressFilter } = payload
 
-    const bulletins = yield call(() => dbAPI.searchBulletinsForManagement({ query: query || '', filter, address, page, pageSize: StorageManagementPageSize, addressFilter }))
-    const total = yield call(() => dbAPI.getBulletinSearchCountForManagement({ query: query || '', filter, address, addressFilter }))
+    const bulletins = yield call(() =>
+      dbAPI.searchBulletinsForManagement({
+        query: query || '',
+        filter,
+        address,
+        page,
+        pageSize: StorageManagementPageSize,
+        addressFilter
+      })
+    )
+    const total = yield call(() =>
+      dbAPI.getBulletinSearchCountForManagement({ query: query || '', filter, address, addressFilter })
+    )
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
     yield put(setBulletinManagementList({ List: bulletins, Page: page, TotalPage: totalPage }))
@@ -252,7 +303,7 @@ export function* BulkDeleteFiles({ payload }) {
     if (!Array.isArray(hashes) || hashes.length === 0) return
 
     const results = yield call(() => dbAPI.deleteBulletinFilesSafe(hashes))
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
 
     for (let i = 0; i < hashes.length; i++) {
       if (!results[i]?.hasChatRef) {
@@ -265,13 +316,97 @@ export function* BulkDeleteFiles({ payload }) {
       }
     }
 
-    const currentFileExt = yield select(state => state.Messenger.FileManagementFileExt)
-    yield call(LoadFileManagementList, { payload: { category: 'bulletin', fileExt: currentFileExt, page: 1 }})
+    const currentFileExt = yield select((state) => state.Messenger.FileManagementFileExt)
+    yield call(LoadFileManagementList, { payload: { category: 'bulletin', fileExt: currentFileExt, page: 1 } })
     yield call(LoadStorageSummary)
     yield put(setFlashNoticeMessage({ message: `${hashes.length} files deleted`, duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[BulkDeleteFiles] failed:', e.message)
     yield put(setFlashNoticeMessage({ message: 'failed to delete files', duration: FLASH_DURATION_MS }))
+  }
+}
+
+// ==================== Bulletin File Ownership Delete ====================
+
+export function* DeleteOthersFileReferences({ payload }) {
+  try {
+    const { hash } = payload
+
+    // Step 1: Delete only the "others" bulletin_files references
+    const { deletedRefs, remainingRefs } = yield call(() => dbAPI.deleteOthersReferences(hash))
+
+    if (remainingRefs === 0) {
+      // No more references — clean up files record and disk file
+      yield call(() => dbAPI.deleteFileRecord(hash))
+      try {
+        const base_dir = yield select((state) => state.Common.AppBaseDir)
+        const filePath = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, hash)))
+        yield call(() => remove(filePath))
+      } catch (diskErr) {
+        Logger.warn('[DeleteOthersFileReferences] disk removal skipped for', hash, diskErr.message)
+      }
+    }
+
+    // Refresh the current list
+    const currentPage = yield select((state) => state.Messenger.FileManagementPage)
+    const currentFileExt = yield select((state) => state.Messenger.FileManagementFileExt)
+    const currentOwnership = yield select((state) => state.Messenger.FileManagementOwnership)
+    const totalAfter = yield call(() =>
+      dbAPI.getBulletinFileCountWithOwnership({ ownership: currentOwnership, fileExt: currentFileExt })
+    )
+    const totalPages = calcTotalPage(totalAfter, StorageManagementPageSize)
+    const refreshPage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage
+
+    yield call(LoadBulletinFileList, {
+      payload: { ownership: currentOwnership, fileExt: currentFileExt, page: refreshPage }
+    })
+    yield put(setFlashNoticeMessage({ message: "others' references deleted", duration: FLASH_DURATION_MS }))
+  } catch (e) {
+    Logger.error('[DeleteOthersFileReferences] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: "failed to delete others' references", duration: FLASH_DURATION_MS }))
+  }
+}
+
+export function* BulkDeleteOthersFileReferences({ payload }) {
+  try {
+    const { hashes } = payload
+    if (!Array.isArray(hashes) || hashes.length === 0) return
+
+    let cleanedCount = 0
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
+
+    for (const hash of hashes) {
+      try {
+        const { remainingRefs } = yield call(() => dbAPI.deleteOthersReferences(hash))
+        if (remainingRefs === 0) {
+          yield call(() => dbAPI.deleteFileRecord(hash))
+          try {
+            const filePath = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, hash)))
+            yield call(() => remove(filePath))
+          } catch (diskErr) {
+            Logger.warn('[BulkDeleteOthersFileReferences] disk removal skipped for', hash, diskErr.message)
+          }
+          cleanedCount++
+        }
+      } catch (e) {
+        Logger.error('[BulkDeleteOthersFileReferences] error for', hash, e.message)
+      }
+    }
+
+    // Refresh the list from page 1
+    const currentFileExt = yield select((state) => state.Messenger.FileManagementFileExt)
+    const currentOwnership = yield select((state) => state.Messenger.FileManagementOwnership)
+    yield call(LoadBulletinFileList, { payload: { ownership: currentOwnership, fileExt: currentFileExt, page: 1 } })
+    yield call(LoadStorageSummary)
+    yield put(
+      setFlashNoticeMessage({
+        message: `${hashes.length} others' references deleted, ${cleanedCount} files fully removed`,
+        duration: FLASH_DURATION_MS
+      })
+    )
+  } catch (e) {
+    Logger.error('[BulkDeleteOthersFileReferences] failed:', e.message)
+    yield put(setFlashNoticeMessage({ message: "failed to delete others' references", duration: FLASH_DURATION_MS }))
   }
 }
 

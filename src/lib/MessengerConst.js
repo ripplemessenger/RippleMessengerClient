@@ -136,9 +136,9 @@ const MessageCode = {
 // Control-plane ActionCode extensions (8xx).
 /** @type {{ServerNotify: number, ServerNotifyAckReq: number, ClientAck: number}} */
 const ControlActionCode = {
-  ServerNotify: 800,           // Generic S->C notification (carries MessageCode)
-  ServerNotifyAckReq: 801,    // S->C notification requiring ACK
-  ClientAck: 810              // C->S acknowledgment response
+  ServerNotify: 800, // Generic S->C notification (carries MessageCode)
+  ServerNotifyAckReq: 801, // S->C notification requiring ACK
+  ClientAck: 810 // C->S acknowledgment response
 }
 
 // Error messages mapping for FlashNotice display.
@@ -157,18 +157,15 @@ export {
   Epoch,
   GenesisAddress,
   GenesisHash,
-
   MasterAddress,
   PostAddress,
   ListItemMax,
   GroupMemberMin,
   GroupMemberMax,
-
   ActionCode,
   ObjectType,
   FileRequestType,
   MessageObjectType,
-
   MessageCode,
   ControlActionCode,
   ErrorMessageMap

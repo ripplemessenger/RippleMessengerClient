@@ -103,3 +103,8 @@ export const ClearAllBulletins = createAction('ClearAllBulletins')
 // ==================== File Management ====================
 export const LoadCachedFiles = createAction('LoadCachedFiles')
 export const DeleteCachedFile = createAction('DeleteCachedFile')
+
+// ==================== Bulletin File Ownership ====================
+export const LoadBulletinFileList = createAction('LoadBulletinFileList')
+export const DeleteOthersFileReferences = createAction('DeleteOthersFileReferences')
+export const BulkDeleteOthersFileReferences = createAction('BulkDeleteOthersFileReferences')

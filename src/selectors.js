@@ -1,87 +1,84 @@
 import { createSelector } from '@reduxjs/toolkit'
 
 // Root slice accessors
-export const selectMessenger = state => state.Messenger
-export const selectUser = state => state.User
-export const selectCommon = state => state.Common
-export const selectUserAddress = state => state.User.Address
+export const selectMessenger = (state) => state.Messenger
+export const selectUser = (state) => state.User
+export const selectCommon = (state) => state.Common
+export const selectUserAddress = (state) => state.User.Address
 
 // ── Leaf-level field accessors (Messenger slice) ──
 // Each selector only invalidates when its own field changes.
-const selectMessengerConnStatusField = state => state.Messenger.MessengerConnStatus
-const selectConnsStatus = state => state.Messenger.ConnsStatus
-const selectPortalBulletinList = state => state.Messenger.PortalBulletinList
-const selectPortalBulletinPage = state => state.Messenger.PortalBulletinPage
-const selectPortalBulletinTotalPage = state => state.Messenger.PortalBulletinTotalPage
-const selectShowPublishFlag = state => state.Messenger.ShowPublishFlag
-const selectShowForwardFlag = state => state.Messenger.ShowForwardFlag
-const selectShowPasteFlag = state => state.Messenger.ShowPasteFlag
-const selectFollowBulletinList = state => state.Messenger.FollowBulletinList
-const selectFollowBulletinPage = state => state.Messenger.FollowBulletinPage
-const selectFollowBulletinTotalPage = state => state.Messenger.FollowBulletinTotalPage
-const selectBookmarkBulletinList = state => state.Messenger.BookmarkBulletinList
-const selectBookmarkBulletinPage = state => state.Messenger.BookmarkBulletinPage
-const selectBookmarkBulletinTotalPage = state => state.Messenger.BookmarkBulletinTotalPage
-const selectTagBulletinList = state => state.Messenger.TagBulletinList
-const selectTagBulletinPage = state => state.Messenger.TagBulletinPage
-const selectTagBulletinTotalPage = state => state.Messenger.TagBulletinTotalPage
+const selectMessengerConnStatusField = (state) => state.Messenger.MessengerConnStatus
+const selectConnsStatus = (state) => state.Messenger.ConnsStatus
+const selectPortalBulletinList = (state) => state.Messenger.PortalBulletinList
+const selectPortalBulletinPage = (state) => state.Messenger.PortalBulletinPage
+const selectPortalBulletinTotalPage = (state) => state.Messenger.PortalBulletinTotalPage
+const selectShowPublishFlag = (state) => state.Messenger.ShowPublishFlag
+const selectShowForwardFlag = (state) => state.Messenger.ShowForwardFlag
+const selectShowPasteFlag = (state) => state.Messenger.ShowPasteFlag
+const selectFollowBulletinList = (state) => state.Messenger.FollowBulletinList
+const selectFollowBulletinPage = (state) => state.Messenger.FollowBulletinPage
+const selectFollowBulletinTotalPage = (state) => state.Messenger.FollowBulletinTotalPage
+const selectBookmarkBulletinList = (state) => state.Messenger.BookmarkBulletinList
+const selectBookmarkBulletinPage = (state) => state.Messenger.BookmarkBulletinPage
+const selectBookmarkBulletinTotalPage = (state) => state.Messenger.BookmarkBulletinTotalPage
+const selectTagBulletinList = (state) => state.Messenger.TagBulletinList
+const selectTagBulletinPage = (state) => state.Messenger.TagBulletinPage
+const selectTagBulletinTotalPage = (state) => state.Messenger.TagBulletinTotalPage
 // Exported for SearchTagItem; used internally by selectTagBulletins
-export const selectSearchTagList = state => state.Messenger.SearchTagList
-const selectAddressBulletinList = state => state.Messenger.AddressBulletinList
-const selectAddressBulletinPage = state => state.Messenger.AddressBulletinPage
-const selectAddressBulletinTotalPage = state => state.Messenger.AddressBulletinTotalPage
-const selectBulletinAddress = state => state.Messenger.BulletinAddress
-const selectCurrentSessionMessageList = state => state.Messenger.CurrentSessionMessageList
+export const selectSearchTagList = (state) => state.Messenger.SearchTagList
+const selectAddressBulletinList = (state) => state.Messenger.AddressBulletinList
+const selectAddressBulletinPage = (state) => state.Messenger.AddressBulletinPage
+const selectAddressBulletinTotalPage = (state) => state.Messenger.AddressBulletinTotalPage
+const selectBulletinAddress = (state) => state.Messenger.BulletinAddress
+const selectCurrentSessionMessageList = (state) => state.Messenger.CurrentSessionMessageList
 
 // Display bulletin + reply data
-const selectDisplayBulletin = state => state.Messenger.DisplayBulletin
-const selectDisplayBulletinReplyList = state => state.Messenger.DisplayBulletinReplyList
-const selectDisplayBulletinReplyPage = state => state.Messenger.DisplayBulletinReplyPage
-const selectDisplayBulletinReplyTotalPage = state => state.Messenger.DisplayBulletinReplyTotalPage
+const selectDisplayBulletin = (state) => state.Messenger.DisplayBulletin
+const selectDisplayBulletinReplyList = (state) => state.Messenger.DisplayBulletinReplyList
+const selectDisplayBulletinReplyPage = (state) => state.Messenger.DisplayBulletinReplyPage
+const selectDisplayBulletinReplyTotalPage = (state) => state.Messenger.DisplayBulletinReplyTotalPage
 
 // Server address page data
-const selectServerAddressPage = state => state.Messenger.ServerAddressPage
-const selectServerAddressTotalPage = state => state.Messenger.ServerAddressTotalPage
-const selectServerAddressList = state => state.Messenger.ServerAddressList
+const selectServerAddressPage = (state) => state.Messenger.ServerAddressPage
+const selectServerAddressTotalPage = (state) => state.Messenger.ServerAddressTotalPage
+const selectServerAddressList = (state) => state.Messenger.ServerAddressList
 
 // Group tab fields
-const selectGroupRequestList = state => state.Messenger.GroupRequestList
-const selectComposeMemberList = state => state.Messenger.ComposeMemberList
-const selectGroupList = state => state.Messenger.GroupList
+const selectGroupRequestList = (state) => state.Messenger.GroupRequestList
+const selectComposeMemberList = (state) => state.Messenger.ComposeMemberList
+const selectGroupList = (state) => state.Messenger.GroupList
 
 // Server list + connections — TabMessengerNetwork
-const selectServerList = state => state.Messenger.ServerList
+const selectServerList = (state) => state.Messenger.ServerList
 
 // ── Leaf-level field accessors (User slice) ──
-const selectUserIsAuth = state => state.User.IsAuth
-const selectUserNickname = state => state.User.Nickname
-const selectUserSeed = state => state.User.Seed
-const selectUserAccountList = state => state.User.AccountList
-const selectActiveTabSettingField = state => state.User.activeTabSetting
-const selectContactList = state => state.User.ContactList
-const selectContactMap = state => state.User.ContactMap
+const selectUserIsAuth = (state) => state.User.IsAuth
+const selectUserNickname = (state) => state.User.Nickname
+const selectUserSeed = (state) => state.User.Seed
+const selectUserAccountList = (state) => state.User.AccountList
+const selectActiveTabSettingField = (state) => state.User.activeTabSetting
+const selectContactList = (state) => state.User.ContactList
+const selectContactMap = (state) => state.User.ContactMap
 
 // ── Leaf-level field accessors (Common slice) ──
-const selectFlashNoticeMessage = state => state.Common.FlashNoticeMessage
-const selectFlashNoticeDuration = state => state.Common.FlashNoticeDuration
-const selectDisplayJsonField = state => state.Common.DisplayJson
+const selectFlashNoticeMessage = (state) => state.Common.FlashNoticeMessage
+const selectFlashNoticeDuration = (state) => state.Common.FlashNoticeDuration
+const selectDisplayJsonField = (state) => state.Common.DisplayJson
 // Exported directly — single-leaf selector, no need for createSelector wrapper
-export const selectDisplayJsonOption = state => state.Common.DisplayJsonOption
+export const selectDisplayJsonOption = (state) => state.Common.DisplayJsonOption
 
 // Connection status — used by Header, ConnectionStatusBanner, useBulletinLoad
-export const selectMessengerConnStatus = state => state.Messenger.MessengerConnStatus
+export const selectMessengerConnStatus = (state) => state.Messenger.MessengerConnStatus
 
 // Connected server count derived from ConnsStatus — used by TabMessengerNetwork
-export const selectConnectedServerCount = createSelector(
-  [selectConnsStatus],
-  (conns) => {
-    if (!conns) return 0
-    return Object.values(conns).filter(status => status === WebSocket.OPEN).length
-  }
-)
+export const selectConnectedServerCount = createSelector([selectConnsStatus], (conns) => {
+  if (!conns) return 0
+  return Object.values(conns).filter((status) => status === WebSocket.OPEN).length
+})
 
 // Total new message count — leaf accessor already gives us the number
-export const selectTotalNewMessages = state => state.Messenger.SessionNewMsgCount || 0
+export const selectTotalNewMessages = (state) => state.Messenger.SessionNewMsgCount || 0
 
 // Portal bulletin list with pagination — most visited page
 export const selectPortalBulletins = createSelector(
@@ -89,7 +86,7 @@ export const selectPortalBulletins = createSelector(
   (list, page, totalPage) => ({
     list: list || [],
     page: page || 1,
-    totalPage: totalPage || 1,
+    totalPage: totalPage || 1
   })
 )
 
@@ -99,7 +96,7 @@ export const selectPublishFlags = createSelector(
   (showPublish, showForward, showPaste) => ({
     showPublish,
     showForward,
-    showPaste,
+    showPaste
   })
 )
 
@@ -109,7 +106,7 @@ export const selectFollowBulletins = createSelector(
   (list, page, totalPage) => ({
     list: list || [],
     page: page || 1,
-    totalPage: totalPage || 1,
+    totalPage: totalPage || 1
   })
 )
 
@@ -119,7 +116,7 @@ export const selectBookmarkBulletins = createSelector(
   (list, page, totalPage) => ({
     list: list || [],
     page: page || 1,
-    totalPage: totalPage || 1,
+    totalPage: totalPage || 1
   })
 )
 
@@ -130,7 +127,7 @@ export const selectTagBulletins = createSelector(
     list: list || [],
     page: page || 1,
     totalPage: totalPage || 1,
-    searchTags: searchTags || [],
+    searchTags: searchTags || []
   })
 )
 
@@ -141,25 +138,25 @@ export const selectAddressBulletins = createSelector(
     list: list || [],
     page: page || 1,
     totalPage: totalPage || 1,
-    address,
+    address
   })
 )
 
 // Random bulletin list
-export const selectRandomBulletins = state => state.Messenger.RandomBulletinList || []
+export const selectRandomBulletins = (state) => state.Messenger.RandomBulletinList || []
 
 // Chat session data — simple field accessors
-export const selectChatSessions = state => state.Messenger.SessionList || []
-export const selectCurrentSession = state => state.Messenger.CurrentSession
-export const selectCurrentSessionMessages = state => state.Messenger.CurrentSessionMessageList || []
-export const selectGroupMembers = state => state.Messenger.GroupMemberMap || {}
+export const selectChatSessions = (state) => state.Messenger.SessionList || []
+export const selectCurrentSession = (state) => state.Messenger.CurrentSession
+export const selectCurrentSessionMessages = (state) => state.Messenger.CurrentSessionMessageList || []
+export const selectGroupMembers = (state) => state.Messenger.GroupMemberMap || {}
 
 // Flash notice state — used by MainLayout
 export const selectFlashNotice = createSelector(
   [selectFlashNoticeMessage, selectFlashNoticeDuration],
   (message, duration) => ({
     message,
-    duration: duration || 0,
+    duration: duration || 0
   })
 )
 
@@ -168,7 +165,7 @@ export const selectDisplayJson = createSelector(
   [selectDisplayJsonField, selectDisplayJsonOption],
   (json, isExpand) => ({
     json,
-    isExpand,
+    isExpand
   })
 )
 
@@ -176,8 +173,15 @@ export const selectDisplayJson = createSelector(
 
 // BulletinAddressPage — address bulletins + publish/forward flags + connection status + bulletin address
 export const selectBulletinAddressData = createSelector(
-  [selectAddressBulletinList, selectAddressBulletinTotalPage, selectAddressBulletinPage,
-    selectBulletinAddress, selectShowPublishFlag, selectShowForwardFlag, selectMessengerConnStatusField],
+  [
+    selectAddressBulletinList,
+    selectAddressBulletinTotalPage,
+    selectAddressBulletinPage,
+    selectBulletinAddress,
+    selectShowPublishFlag,
+    selectShowForwardFlag,
+    selectMessengerConnStatusField
+  ],
   (list, totalPage, page, address, showPublish, showForward, connStatus) => ({
     AddressBulletinList: list || [],
     AddressBulletinTotalPage: totalPage || 0,
@@ -185,18 +189,23 @@ export const selectBulletinAddressData = createSelector(
     BulletinAddress: address,
     ShowPublishFlag: showPublish,
     ShowForwardFlag: showForward,
-    MessengerConnStatus: connStatus,
+    MessengerConnStatus: connStatus
   })
 )
 
 // BulletinViewPage — display bulletin + replies with pagination
 export const selectDisplayBulletins = createSelector(
-  [selectDisplayBulletin, selectDisplayBulletinReplyList, selectDisplayBulletinReplyPage, selectDisplayBulletinReplyTotalPage],
+  [
+    selectDisplayBulletin,
+    selectDisplayBulletinReplyList,
+    selectDisplayBulletinReplyPage,
+    selectDisplayBulletinReplyTotalPage
+  ],
   (bulletin, replyList, replyPage, replyTotalPage) => ({
     DisplayBulletin: bulletin,
     DisplayBulletinReplyList: replyList || [],
     DisplayBulletinReplyPage: replyPage || 1,
-    DisplayBulletinReplyTotalPage: replyTotalPage || 0,
+    DisplayBulletinReplyTotalPage: replyTotalPage || 0
   })
 )
 
@@ -206,18 +215,15 @@ export const selectGroupData = createSelector(
   (requests, composeMembers, groups) => ({
     GroupRequestList: requests || [],
     ComposeMemberList: composeMembers || [],
-    GroupList: groups || [],
+    GroupList: groups || []
   })
 )
 
 // TabGroup — user profile fields needed by group tab (Address + ContactList)
-export const selectUserTabGroup = createSelector(
-  [selectUserAddress, selectContactList],
-  (address, contacts) => ({
-    Address: address,
-    ContactList: contacts || [],
-  })
-)
+export const selectUserTabGroup = createSelector([selectUserAddress, selectContactList], (address, contacts) => ({
+  Address: address,
+  ContactList: contacts || []
+}))
 
 // TabMe — user profile fields (includes activeTabSetting since TabMe reads it too)
 export const selectUserTabMe = createSelector(
@@ -227,7 +233,7 @@ export const selectUserTabMe = createSelector(
     Nickname: nickname,
     Seed: seed,
     AccountList: accounts || [],
-    activeTabSetting: activeTab,
+    activeTabSetting: activeTab
   })
 )
 
@@ -237,33 +243,27 @@ export const selectServerAddressData = createSelector(
   (list, page, totalPage) => ({
     ServerAddressList: list || [],
     ServerAddressPage: page || 1,
-    ServerAddressTotalPage: totalPage || 0,
+    ServerAddressTotalPage: totalPage || 0
   })
 )
 
 // SettingPage — active tab for settings sub-navigation
-export const selectActiveTabSetting = state => state.User.activeTabSetting
+export const selectActiveTabSetting = (state) => state.User.activeTabSetting
 
 // TabMessengerNetwork — server list + connection statuses
-export const selectServerNetworkData = createSelector(
-  [selectServerList, selectConnsStatus],
-  (servers, conns) => ({
-    ServerList: servers || [],
-    ConnsStatus: conns || {},
-  })
-)
+export const selectServerNetworkData = createSelector([selectServerList, selectConnsStatus], (servers, conns) => ({
+  ServerList: servers || [],
+  ConnsStatus: conns || {}
+}))
 
 // AvatarName — Address + ContactMap for nickname lookup
-export const selectAvatarNameData = createSelector(
-  [selectUserAddress, selectContactMap],
-  (address, contactMap) => ({
-    Address: address,
-    ContactMap: contactMap || {},
-  })
-)
+export const selectAvatarNameData = createSelector([selectUserAddress, selectContactMap], (address, contactMap) => ({
+  Address: address,
+  ContactMap: contactMap || {}
+}))
 
 // AuthProvider — IsAuth only
-export const selectIsAuth = state => state.User.IsAuth
+export const selectIsAuth = (state) => state.User.IsAuth
 
 // BulletinForward — SessionList
 // (selectChatSessions already exists and returns SessionList)
@@ -273,20 +273,21 @@ export const selectTabContactData = createSelector(
   [selectContactList, selectActiveTabSettingField],
   (contacts, activeTab) => ({
     ContactList: contacts || [],
-    activeTabSetting: activeTab,
+    activeTabSetting: activeTab
   })
 )
 
 // Leaf-level field accessors for storage management
-const selectStorageSummary = state => state.Messenger.StorageSummary
-const selectBulletinManagementList = state => state.Messenger.BulletinManagementList
-const selectBulletinManagementPage = state => state.Messenger.BulletinManagementPage
-const selectBulletinManagementTotalPage = state => state.Messenger.BulletinManagementTotalPage
-const selectFileManagementList = state => state.Messenger.FileManagementList
-const selectFileManagementPage = state => state.Messenger.FileManagementPage
-const selectFileManagementTotalPage = state => state.Messenger.FileManagementTotalPage
-const selectAllTagsList = state => state.Messenger.AllTagsList
-const selectAllBulletinAddressesList = state => state.Messenger.AllBulletinAddressesList
+const selectStorageSummary = (state) => state.Messenger.StorageSummary
+const selectBulletinManagementList = (state) => state.Messenger.BulletinManagementList
+const selectBulletinManagementPage = (state) => state.Messenger.BulletinManagementPage
+const selectBulletinManagementTotalPage = (state) => state.Messenger.BulletinManagementTotalPage
+const selectFileManagementList = (state) => state.Messenger.FileManagementList
+const selectFileManagementPage = (state) => state.Messenger.FileManagementPage
+const selectFileManagementTotalPage = (state) => state.Messenger.FileManagementTotalPage
+const selectFileManagementOwnership = (state) => state.Messenger.FileManagementOwnership
+const selectAllTagsList = (state) => state.Messenger.AllTagsList
+const selectAllBulletinAddressesList = (state) => state.Messenger.AllBulletinAddressesList
 
 export { selectAllTagsList, selectAllBulletinAddressesList }
 
@@ -299,10 +300,15 @@ export const selectBulletinManagementData = createSelector(
   (list, page, totalPage) => ({ list: list || [], page: page || 1, totalPage: totalPage || 1 })
 )
 
-// File management data with pagination
+// File management data with pagination + ownership filter
 export const selectFileManagementData = createSelector(
-  [selectFileManagementList, selectFileManagementPage, selectFileManagementTotalPage],
-  (list, page, totalPage) => ({ list: list || [], page: page || 1, totalPage: totalPage || 1 })
+  [selectFileManagementList, selectFileManagementPage, selectFileManagementTotalPage, selectFileManagementOwnership],
+  (list, page, totalPage, ownership) => ({
+    list: list || [],
+    page: page || 1,
+    totalPage: totalPage || 1,
+    ownership: ownership || 'others'
+  })
 )
 
 // OpenPage — IsAuth + AccountList + Seed
@@ -311,6 +317,6 @@ export const selectOpenPageData = createSelector(
   (isAuth, accounts, seed) => ({
     IsAuth: isAuth,
     AccountList: accounts || [],
-    Seed: seed,
+    Seed: seed
   })
 )

@@ -71,7 +71,6 @@ class MessageGenerator {
   }
 }
 
-
 /**
  * Facade for generating signed RMS protocol messages.
  * Each function takes a seed, derives the keypair, and returns a JSON-stringified signed message.
@@ -317,13 +316,13 @@ export const mgAPI = {
       PublicKey: mg.PublicKey
     }
     if (tag === null || tag.length === 0) {
-      delete tmp_json["Tag"]
+      delete tmp_json['Tag']
     }
     if (quote === null || quote.length === 0) {
-      delete tmp_json["Quote"]
+      delete tmp_json['Quote']
     }
     if (file === null || file.length === 0) {
-      delete tmp_json["File"]
+      delete tmp_json['File']
     }
     return mg.signJson(tmp_json)
   },
@@ -388,7 +387,7 @@ export const mgAPI = {
       PairSequence: pair_sequence,
       SelfSequence: self_sequence,
       Timestamp: Date.now(),
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     return JSON.stringify(mg.signJson(json))
   },
@@ -414,10 +413,10 @@ export const mgAPI = {
       Content: content,
       To: dest_address,
       Timestamp: timestamp,
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     if (confirm === null) {
-      delete json["Confirm"]
+      delete json['Confirm']
     }
     return mg.signJson(json)
   },
@@ -433,7 +432,7 @@ export const mgAPI = {
     let json = {
       Action: ActionCode.GroupSync,
       Timestamp: Date.now(),
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     return mg.signJson(json)
   },
@@ -454,7 +453,7 @@ export const mgAPI = {
       Name: name,
       Member: member,
       Timestamp: Date.now(),
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     return mg.signJson(json)
   },
@@ -471,7 +470,7 @@ export const mgAPI = {
       ObjectType: ObjectType.GroupDelete,
       Hash: hash,
       Timestamp: Date.now(),
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     return mg.signJson(json)
   },
@@ -494,7 +493,7 @@ export const mgAPI = {
       Sequence: sequence,
       To: to,
       Timestamp: Date.now(),
-      PublicKey: mg.PublicKey,
+      PublicKey: mg.PublicKey
     }
     return mg.signJson(json)
   },
@@ -523,7 +522,7 @@ export const mgAPI = {
       PublicKey: mg.PublicKey
     }
     if (confirm === null) {
-      delete tmp["Confirm"]
+      delete tmp['Confirm']
     }
     tmp = mg.signJson(tmp)
     tmp.Content = content
