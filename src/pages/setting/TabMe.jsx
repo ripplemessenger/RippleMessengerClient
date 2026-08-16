@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readFile } from '@tauri-apps/plugin-fs'
-
 import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
 import TextInput from '../../components/Form/TextInput'
+import { readFile } from '@tauri-apps/plugin-fs'
+
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { selectUserTabMe } from '../../selectors'
 import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
@@ -30,13 +30,13 @@ export default function TabMe() {
   }, [activeTabSetting, Nickname])
 
   useEffect(() => {
-    setShowRemoveButton(AccountList.some(a => a.address === Address))
+    setShowRemoveButton(AccountList.some((a) => a.address === Address))
   }, [AccountList, Address])
 
   const browseAvatarSource = async () => {
     const file = await open({
       multiple: false,
-      directory: false,
+      directory: false
     })
 
     if (file) {
@@ -78,7 +78,13 @@ export default function TabMe() {
       dispatch(AccountDel({ address: Address }))
       dispatch(setConfirmPopup(null))
     }
-  }, [confirmPopup?.Content, confirmPopup?.Result, dispatch, Address])
+    if (confirmPopup?.Content === ConfirmContentOptions.CopySeed && confirmPopup?.Result) {
+      navigator.clipboard.writeText(Seed).then(() => {
+        dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: FLASH_DURATION_MS }))
+      })
+      dispatch(setConfirmPopup(null))
+    }
+  }, [confirmPopup?.Content, confirmPopup?.Result, dispatch, Address, Seed])
 
   useEffect(() => {
     return () => {
@@ -89,12 +95,23 @@ export default function TabMe() {
   }, [])
 
   const confirmDelAccount = (address) => {
-    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.RemoveAccount, Result: false }))
+    dispatch(
+      setConfirmPopup({
+        Content: ConfirmContentOptions.RemoveAccount,
+        Message: 'Remove this account? All local data will be deleted.',
+        Result: false
+      })
+    )
   }
 
-  const copySeed = async () => {
-    await navigator.clipboard.writeText(Seed)
-    dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: FLASH_DURATION_MS }))
+  const confirmCopySeed = () => {
+    dispatch(
+      setConfirmPopup({
+        Content: ConfirmContentOptions.CopySeed,
+        Message: 'Copy your account seed to clipboard?',
+        Result: false
+      })
+    )
   }
 
   return (
@@ -113,16 +130,18 @@ export default function TabMe() {
           <TextInput
             label={'Nickname:'}
             value={displayNickname}
-            autoComplete={"off"}
-            placeholder={"Alice"}
+            autoComplete={'off'}
+            placeholder={'Alice'}
             onChange={(e) => updateNickname(e.target.value)}
           />
-          {imageSrc && (
-            <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
-          )}
-          <button onClick={() => copySeed()} className="btn-primary btn-yellow">Copy Seed</button>
+          {imageSrc && <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />}
+          <button onClick={() => confirmCopySeed()} className="btn-primary btn-yellow">
+            Copy Seed
+          </button>
           {showRemoveButton && (
-            <button onClick={() => confirmDelAccount()} className="btn-primary btn-red">Remove Account</button>
+            <button onClick={() => confirmDelAccount()} className="btn-primary btn-red">
+              Remove Account
+            </button>
           )}
         </div>
       </div>

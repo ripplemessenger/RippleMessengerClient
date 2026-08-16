@@ -6,17 +6,31 @@
    Animations
    ==================================================================== */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-fadeIn { animation: fadeIn 0.25s ease-out; }
-.animate-slideUp { animation: slideUp 0.25s ease-out; }
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out;
+}
+.animate-slideUp {
+  animation: slideUp 0.25s ease-out;
+}
 
 /* ====================================================================
    Custom Scrollbar
@@ -59,9 +73,20 @@
    * 原来使用 \`*\` 对每个 DOM 元素都添加 transition-colors，
    * 会导致大量不必要的 repaint。改为只作用于交互元素 + 组件类。
    */
-  button, a, input, select, textarea, [role="button"],
-  [class*="btn-"], [class*="card-"], [class*="tab-"], [class*="modal-"],
-  .nav-icon-btn, .page, .link-btn, .del-btn {
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role='button'],
+  [class*='btn-'],
+  [class*='card-'],
+  [class*='tab-'],
+  [class*='modal-'],
+  .nav-icon-btn,
+  .page,
+  .link-btn,
+  .del-btn {
     transition-property: color, background-color, border-color;
     transition-duration: 200ms;
   }
@@ -167,6 +192,7 @@
     @apply shrink-0 mx-auto rounded-full p-1 px-4 text-2xl font-semibold;
     @apply border border-primary/30 dark:border-primary/50;
     @apply text-text-primary dark:text-dark-text-primary;
+    @apply mb-3;
   }
 
   /* ==================== Icons & Avatars ==================== */
@@ -289,11 +315,11 @@
   }
 
   /* Hide browser-native password reveal button (Chrome/Edge eye icon) — we use our own toggle */
-  input[type="password"]::-ms-reveal,
-  input[type="password"]::-ms-clear {
+  input[type='password']::-ms-reveal,
+  input[type='password']::-ms-clear {
     display: none !important;
   }
-  input[type="password"]::-webkit-textfield-decoration-container {
+  input[type='password']::-webkit-textfield-decoration-container {
     display: none !important;
   }
 

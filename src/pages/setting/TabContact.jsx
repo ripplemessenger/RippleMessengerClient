@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { AiOutlineUserAdd } from 'react-icons/ai'
 import { IoCloseOutline } from 'react-icons/io5'
@@ -11,20 +11,29 @@ import TextTimestamp from '../../components/TextTimestamp'
 import ToggleSwitch from '../../components/ToggleSwitch'
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
-import { ContactAdd, ContactDel, ContactToggleIsFollow, ContactToggleIsFriend, LoadContactList } from '../../store/sagas/messenger.actions'
+import {
+  ContactAdd,
+  ContactDel,
+  ContactToggleIsFollow,
+  ContactToggleIsFriend,
+  LoadContactList
+} from '../../store/sagas/messenger.actions'
 import { selectTabContactData } from '../../selectors'
 
 export default function TabContact() {
   const [contactAddress, setContactAddress] = useState('')
   const [contactNickname, setContactNickname] = useState('')
   const [showAddContact, setShowAddContact] = useState(false)
+  const addContactRef = useRef(null)
 
   const dispatch = useDispatch()
   const { ContactList, activeTabSetting } = useSelector(selectTabContactData)
 
-  useEscapeKey(() => setShowAddContact(_ => false))
+  useEscapeKey(() => setShowAddContact((_) => false))
+  useFocusTrap(addContactRef)
 
   useEffect(() => {
     if (activeTabSetting === SettingPageTab.Contact) {
@@ -33,10 +42,12 @@ export default function TabContact() {
   }, [dispatch, activeTabSetting])
 
   const addContact = () => {
-    dispatch(ContactAdd({
-      address: contactAddress,
-      nickname: contactNickname
-    }))
+    dispatch(
+      ContactAdd({
+        address: contactAddress,
+        nickname: contactNickname
+      })
+    )
     setContactAddress('')
     setContactNickname('')
     setShowAddContact(false)
@@ -51,7 +62,14 @@ export default function TabContact() {
   }, [ConfirmPopup])
 
   const confirmDelContact = (address) => {
-    dispatch(setConfirmPopup({ Content: ConfirmContentOptions.DelContact, Result: false, Params: { Address: address } }))
+    dispatch(
+      setConfirmPopup({
+        Content: ConfirmContentOptions.DelContact,
+        Message: 'Remove this contact? This cannot be undone.',
+        Result: false,
+        Params: { Address: address }
+      })
+    )
   }
 
   const toggleIsFollow = (address) => {
@@ -64,31 +82,43 @@ export default function TabContact() {
 
   return (
     <div className="tab-page">
-      {
-        showAddContact &&
+      {showAddContact && (
         <div className={`modal-overlay`} role="dialog" aria-modal="true">
-          <div className="max-w-md w-full mx-4 flex flex-col mt-4">
+          <div ref={addContactRef} className="max-w-md w-full mx-4 flex flex-col mt-4">
             <div className="modal-header-bar">
               <span className={`label text-base`}>Add/Update Contact</span>
-              <button onClick={() => setShowAddContact(false)} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+              <button
+                onClick={() => setShowAddContact(false)}
+                className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+                aria-label="Close"
+              >
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
             </div>
             <div className="modal-content-area gap-3">
-              <TextInput label={'Address:'} value={contactAddress} onChange={(e) => setContactAddress(e.target.value.trim())} />
-              <TextInput label={'Nickname:'} value={contactNickname} onChange={(e) => setContactNickname(e.target.value.trim())} />
+              <TextInput
+                label={'Address:'}
+                value={contactAddress}
+                onChange={(e) => setContactAddress(e.target.value.trim())}
+              />
+              <TextInput
+                label={'Nickname:'}
+                value={contactNickname}
+                onChange={(e) => setContactNickname(e.target.value.trim())}
+              />
               <div className="flex justify-center">
                 <button
                   className="btn-primary btn-gold max-w-xs"
                   disabled={contactAddress === '' || contactNickname === ''}
-                  onClick={() => addContact()}>
+                  onClick={() => addContact()}
+                >
                   Add/Update
                 </button>
               </div>
             </div>
           </div>
         </div>
-      }
+      )}
 
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
@@ -121,18 +151,25 @@ export default function TabContact() {
                         </div>
                       </td>
                       <td className="p-3 text-text-primary dark:text-dark-text-primary">
-                        <ToggleSwitch isChecked={contact.is_follow} onClick={() => toggleIsFollow(contact.address)} ariaLabel={`Follow ${contact.nickname}`} />
+                        <ToggleSwitch
+                          isChecked={contact.is_follow}
+                          onClick={() => toggleIsFollow(contact.address)}
+                          ariaLabel={`Follow ${contact.nickname}`}
+                        />
                       </td>
                       <td className="p-3 text-text-primary dark:text-dark-text-primary">
-                        <ToggleSwitch isChecked={contact.is_friend} onClick={() => toggleIsFriend(contact.address)} ariaLabel={`Friend ${contact.nickname}`} />
+                        <ToggleSwitch
+                          isChecked={contact.is_friend}
+                          onClick={() => toggleIsFriend(contact.address)}
+                          ariaLabel={`Friend ${contact.nickname}`}
+                        />
                       </td>
                       <td className="p-3 text-text-primary dark:text-dark-text-primary">
                         <TextTimestamp timestamp={contact.updated_at} />
                       </td>
                       <td className="p-3 text-text-primary dark:text-dark-text-primary">
                         {contact.is_follow === false && contact.is_friend === false && (
-                          <button className="btn-sm btn-danger"
-                            onClick={() => confirmDelContact(contact.address)}>
+                          <button className="btn-sm btn-danger" onClick={() => confirmDelContact(contact.address)}>
                             Delete
                           </button>
                         )}

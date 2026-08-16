@@ -1,11 +1,13 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 import { Routes, Route, Navigate } from 'react-router-dom'
 
 import LoadingDiv from './components/LoadingDiv'
 import ProtectedRoute from './components/ProtectedRoute'
-import useAuth from './hooks/useAuth'
 import MainLayout from './layouts/MainLayout'
 import OpenPage from './pages/OpenPage'
+
+import useAuth from './hooks/useAuth'
 
 const AboutPage = React.lazy(() => import('./pages/AboutPage'))
 const BulletinAddressPage = React.lazy(() => import('./pages/BulletinAddressPage'))
@@ -20,6 +22,18 @@ const ServerAddressPage = React.lazy(() => import('./pages/ServerAddressPage'))
 const SettingPage = React.lazy(() => import('./pages/SettingPage'))
 
 function App() {
+  // Sync persisted settings to Rust backend on startup
+  useEffect(() => {
+    const closeToTray = localStorage.getItem('closeToTray')
+    if (closeToTray !== null) {
+      invoke('set_close_to_tray', { closeToTray: closeToTray === 'true' }).catch(() => {})
+    }
+    const startMinimized = localStorage.getItem('startMinimized')
+    if (startMinimized !== null) {
+      invoke('set_start_minimized', { startMinimized: startMinimized === 'true' }).catch(() => {})
+    }
+  }, [])
+
   return (
     <Suspense fallback={<LoadingDiv isLoading={true} />}>
       <Routes>

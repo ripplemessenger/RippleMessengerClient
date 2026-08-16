@@ -21,6 +21,14 @@ const MAIN_WINDOW_LABEL: &str = "main";
 static IS_FLASHING: AtomicBool = AtomicBool::new(false);
 static FLASH_TASK: Mutex<Option<tokio::task::AbortHandle>> = Mutex::new(None);
 
+/// true  = close → hide to tray (default)
+/// false = close → quit the app
+static CLOSE_TO_TRAY: AtomicBool = AtomicBool::new(true);
+
+/// true  = start hidden in tray, no window shown
+/// false = show window normally (default)
+static START_MINIMIZED: AtomicBool = AtomicBool::new(false);
+
 /* ── helpers (non-command, reusable by tray callbacks) ─────── */
 fn get_normal_icon(app: &AppHandle) -> Option<Image<'_>> {
     app.default_window_icon()
@@ -191,6 +199,21 @@ fn show_main_window(app: AppHandle) {
     show_main_window_internal(&app);
 }
 
+/// Toggle the "close to tray" behaviour from the frontend.
+/// Returns the new value so the UI can stay in sync.
+#[tauri::command]
+fn set_close_to_tray(close_to_tray: bool) -> bool {
+    CLOSE_TO_TRAY.store(close_to_tray, Ordering::SeqCst);
+    close_to_tray
+}
+
+/// Toggle "start minimized to tray" behaviour.
+#[tauri::command]
+fn set_start_minimized(start_minimized: bool) -> bool {
+    START_MINIMIZED.store(start_minimized, Ordering::SeqCst);
+    start_minimized
+}
+
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
     let handle = app.handle();
 
@@ -232,12 +255,23 @@ pub fn run() {
             setup_tray(app).map_err(|e| format!("Failed to setup tray: {}", e))?;
 
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                // If start-minimized is enabled, hide the window immediately
+                if START_MINIMIZED.load(Ordering::SeqCst) {
+                    if let Err(e) = window.hide() {
+                        log::warn!("Failed to hide window on startup: {}", e);
+                    }
+                }
+
                 window.clone().on_window_event(move |event| {
                     if let WindowEvent::CloseRequested { api, .. } = event {
-                        api.prevent_close();
-                        if let Err(e) = window.hide() {
-                            log::warn!("Failed to hide window on close: {}", e);
+                        if CLOSE_TO_TRAY.load(Ordering::SeqCst) {
+                            // Hide to tray (default)
+                            api.prevent_close();
+                            if let Err(e) = window.hide() {
+                                log::warn!("Failed to hide window on close: {}", e);
+                            }
                         }
+                        // else: do nothing → window closes and app quits
                     }
                 });
             }
@@ -269,7 +303,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             start_message_flash,
-            stop_message_flash
+            stop_message_flash,
+            set_close_to_tray,
+            set_start_minimized
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

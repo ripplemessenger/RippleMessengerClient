@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
 import { IoAttachSharp, IoCloseOutline } from 'react-icons/io5'
@@ -8,41 +8,44 @@ import PublishFileItem from './PublishFileItem'
 import PublishQuoteItem from './PublishQuoteItem'
 import PublishTagItem from './PublishTagItem'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setPublishFlag } from '../../store/slices/MessengerSlice'
 import { BulletinFileAdd, BulletinTagAdd, PublishBulletin } from '../../store/sagas/messenger.actions'
 
-const BulletinPublish = ({ }) => {
+const BulletinPublish = ({}) => {
   const [tag, setTag] = useState('')
   const textareaRef = useRef(null)
+  const dialogRef = useRef(null)
 
   const [tmpBulletin, setTmpBulletin] = useLocalStorage('TmpBulletin', '')
-  const { CurrentBulletinSequence, PublishTagList, PublishQuoteList, PublishFileList } = useSelector(state => state.Messenger)
+  const { CurrentBulletinSequence, PublishTagList, PublishQuoteList, PublishFileList } = useSelector(
+    (state) => state.Messenger
+  )
   const dispatch = useDispatch()
 
   const handleCancel = useCallback(() => dispatch(setPublishFlag(false)), [dispatch])
 
-  // Focus textarea on mount
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
-
   useEscapeKey(() => dispatch(setPublishFlag(false)))
+  useFocusTrap(dialogRef, textareaRef)
 
-  const handleTmpBulletin = useCallback((value) => {
-    if (value.trim() !== '') {
-      setTmpBulletin(value)
-    } else {
-      setTmpBulletin('')
-    }
-  }, [setTmpBulletin])
+  const handleTmpBulletin = useCallback(
+    (value) => {
+      if (value.trim() !== '') {
+        setTmpBulletin(value)
+      } else {
+        setTmpBulletin('')
+      }
+    },
+    [setTmpBulletin]
+  )
 
   const browseFile = useCallback(async () => {
     const file_path = await open({
       multiple: false,
-      directory: false,
+      directory: false
     })
     if (file_path) {
       dispatch(BulletinFileAdd({ file_path }))
@@ -64,14 +67,20 @@ const BulletinPublish = ({ }) => {
     }
   }, [tmpBulletin, dispatch, setTmpBulletin])
 
-  const addTag = useCallback((text) => {
-    // Split by commas, trim each, filter empties
-    const tag_list = text.split(',').map(t => t.trim()).filter(t => t !== '')
-    if (tag_list.length > 0) {
-      dispatch(BulletinTagAdd({ tag_list }))
-      setTag('')
-    }
-  }, [dispatch])
+  const addTag = useCallback(
+    (text) => {
+      // Split by commas, trim each, filter empties
+      const tag_list = text
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t !== '')
+      if (tag_list.length > 0) {
+        dispatch(BulletinTagAdd({ tag_list }))
+        setTag('')
+      }
+    },
+    [dispatch]
+  )
 
   const handleTagChange = (e) => {
     const value = e.target.value
@@ -91,30 +100,33 @@ const BulletinPublish = ({ }) => {
 
   return (
     <div className={`modal-overlay`} role="dialog" aria-modal="true">
-      <div className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
+      <div ref={dialogRef} className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="modal-header-bar">
-          <span className={`label text-base`}>
-            {`Bulletin #${CurrentBulletinSequence + 1}`}
-          </span>
-          <button onClick={handleCancel} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+          <span className={`label text-base`}>{`Bulletin #${CurrentBulletinSequence + 1}`}</span>
+          <button
+            onClick={handleCancel}
+            className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+            aria-label="Close"
+          >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
         </div>
 
         {/* Content */}
         <div className="modal-content-area">
-
           {/* Textarea with file button */}
           <div className="relative">
-            <textarea ref={textareaRef} type={"text"}
+            <textarea
+              ref={textareaRef}
+              type={'text'}
               id="new-bulletin-textarea"
               name={'New Bulletin:'}
               value={tmpBulletin}
               rows="8"
               onChange={(e) => handleTmpBulletin(e.target.value)}
               className={`w-full p-3 border rounded-lg shadow-sm appearance-none input-color input-hover resize-none`}
-              placeholder={"Write your bulletin..."}
+              placeholder={'Write your bulletin...'}
             />
             <div className="absolute bottom-2 right-3 text-xs text-text-secondary/60 dark:text-dark-text-secondary/60">
               {tmpBulletin.length} chars
@@ -123,7 +135,10 @@ const BulletinPublish = ({ }) => {
 
           {/* Action bar: file attach */}
           <div className="mt-2 flex items-center gap-2">
-          <button onClick={() => browseFile()} className="btn-sm bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-text-primary dark:text-dark-text-primary border border-primary/20 dark:border-primary/30">
+            <button
+              onClick={() => browseFile()}
+              className="btn-sm bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-text-primary dark:text-dark-text-primary border border-primary/20 dark:border-primary/30"
+            >
               <IoAttachSharp className="text-base" />
               Attach file
             </button>
@@ -132,7 +147,8 @@ const BulletinPublish = ({ }) => {
           {/* Tag input */}
           <div className="mt-3 flex flex-col gap-1">
             <span className={`label text-sm`}>Tags (Enter to add)</span>
-            <input type="text"
+            <input
+              type="text"
               id="bulletin-tag-input"
               name={'Tag:'}
               placeholder={','}
@@ -147,9 +163,9 @@ const BulletinPublish = ({ }) => {
           {PublishTagList.length > 0 && (
             <div className="mt-3">
               <span className={`label text-xs`}>Tags</span>
-              <div className='flex flex-wrap mt-1'>
+              <div className="flex flex-wrap mt-1">
                 {PublishTagList.map((t) => (
-                  <div key={t} className='mt-1 px-1'>
+                  <div key={t} className="mt-1 px-1">
                     <PublishTagItem tag={t} />
                   </div>
                 ))}
@@ -160,9 +176,9 @@ const BulletinPublish = ({ }) => {
           {PublishQuoteList.length > 0 && (
             <div className="mt-3">
               <span className={`label text-xs`}>Quotes</span>
-              <div className='flex flex-wrap mt-1'>
+              <div className="flex flex-wrap mt-1">
                 {PublishQuoteList.map((quote) => (
-                  <div key={quote.Hash} className='mt-1 px-1'>
+                  <div key={quote.Hash} className="mt-1 px-1">
                     <PublishQuoteItem address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} />
                   </div>
                 ))}
@@ -173,9 +189,9 @@ const BulletinPublish = ({ }) => {
           {PublishFileList.length > 0 && (
             <div className="mt-3">
               <span className={`label text-xs`}>Attachments</span>
-              <div className='flex flex-wrap mt-1'>
+              <div className="flex flex-wrap mt-1">
                 {PublishFileList.map((file) => (
-                  <div key={file.Hash} className='mt-1 px-1'>
+                  <div key={file.Hash} className="mt-1 px-1">
                     <PublishFileItem name={file.Name} ext={file.Ext} size={file.Size} hash={file.Hash} />
                   </div>
                 ))}

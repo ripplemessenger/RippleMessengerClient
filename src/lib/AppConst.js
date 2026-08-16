@@ -20,6 +20,7 @@ const SettingPageTab = {
   Group: 'Group',
   MessengerNetwork: 'Messenger Network',
   Storage: 'Storage',
+  General: 'General'
 }
 
 /** @type {number} Maximum bulletin cache entries; 0 means no caching */
@@ -71,6 +72,7 @@ const ConfirmContentOptions = {
   DelBulletin: 'DelBulletin',
   DelFile: 'DelFile',
   ClearOrphanedFiles: 'ClearOrphanedFiles',
+  CopySeed: 'CopySeed'
 }
 
 // UI timing
@@ -83,12 +85,9 @@ export {
   Minute,
   Hour,
   Day,
-
   FileDir,
   AvatarDir,
-
   SettingPageTab,
-
   DefaultBulletinCacheSize,
   MessageInterval,
   MaxSpeaker,
@@ -101,9 +100,7 @@ export {
   BulletinPageSize,
   BulletinContentPreviewSize,
   MessagePageSize,
-
   ConfirmContentOptions,
-
   FLASH_DURATION_MS,
   FILE_REQUEST_TTL_MS
 }

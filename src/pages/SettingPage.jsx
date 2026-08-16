@@ -1,4 +1,4 @@
-import { useCallback, lazy, Suspense, useMemo } from 'react'
+import { useCallback, lazy, useMemo, Suspense } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import LoadingDiv from '../components/LoadingDiv'
@@ -8,24 +8,36 @@ import { setActiveTabSetting } from '../store/slices/UserSlice'
 
 const TabContact = lazy(() => import('./setting/TabContact'))
 const TabGroup = lazy(() => import('./setting/TabGroup'))
+const TabGeneral = lazy(() => import('./setting/TabGeneral'))
 const TabMe = lazy(() => import('./setting/TabMe'))
 const TabMessengerNetwork = lazy(() => import('./setting/TabMessengerNetwork'))
 const TabStorage = lazy(() => import('./setting/TabStorage'))
 
 const tabContentMap = {
+  [SettingPageTab.General]: TabGeneral,
   [SettingPageTab.Me]: TabMe,
   [SettingPageTab.Contact]: TabContact,
   [SettingPageTab.Group]: TabGroup,
   [SettingPageTab.MessengerNetwork]: TabMessengerNetwork,
-  [SettingPageTab.Storage]: TabStorage,
+  [SettingPageTab.Storage]: TabStorage
 }
+
+/** Explicit tab order — prevents reordering when new tabs are added */
+const tabOrder = [
+  SettingPageTab.General,
+  SettingPageTab.Me,
+  SettingPageTab.Contact,
+  SettingPageTab.Group,
+  SettingPageTab.MessengerNetwork,
+  SettingPageTab.Storage
+]
 
 export default function SettingPage() {
   const dispatch = useDispatch()
   const activeTabSetting = useSelector(selectActiveTabSetting)
 
   const handleTabClick = useCallback((tab) => dispatch(setActiveTabSetting(tab)), [dispatch])
-  const tabItems = useMemo(() => Object.keys(tabContentMap), [])
+  const tabItems = useMemo(() => tabOrder, [])
 
   return (
     <div className="p-4 mt-2 w-full max-w-full mx-auto">
@@ -35,10 +47,11 @@ export default function SettingPage() {
             <button
               key={name}
               onClick={() => handleTabClick(name)}
-              className={`px-5 py-3 text-sm font-medium transition-colors rounded-t-lg ${activeTabSetting === name ?
-                'tab-title-active border-b-2 border-primary dark:border-dark-primary' :
-                'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
-                }`}
+              className={`px-5 py-3 text-sm font-medium transition-colors rounded-t-lg ${
+                activeTabSetting === name
+                  ? 'tab-title-active border-b-2 border-primary dark:border-dark-primary'
+                  : 'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
+              }`}
             >
               {name}
             </button>
@@ -47,10 +60,12 @@ export default function SettingPage() {
         <div className="p-4">
           {tabItems.map((name) => {
             const TabComponent = tabContentMap[name]
-            return activeTabSetting === name && (
-              <Suspense key={name} fallback={<LoadingDiv isLoading={true} text="Loading..." />}>
-                <TabComponent />
-              </Suspense>
+            return (
+              activeTabSetting === name && (
+                <Suspense key={name} fallback={<LoadingDiv isLoading={true} text="Loading..." />}>
+                  <TabComponent />
+                </Suspense>
+              )
             )
           })}
         </div>

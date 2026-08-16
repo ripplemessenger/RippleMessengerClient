@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
 import { ECDSA, Wallet } from 'xrpl'
 
@@ -14,8 +15,10 @@ export default function GenerateAccountModal({ onClose }) {
   const [newSeed, setNewSeed] = useState('')
   const [newAddress, setNewAddress] = useState('')
   const [copiedField, setCopiedField] = useState(null)
+  const dialogRef = useRef(null)
 
   useEscapeKey(onClose)
+  useFocusTrap(dialogRef)
 
   const genNewAccount = useCallback(() => {
     const tmp = Wallet.generate(ECDSA.secp256k1)
@@ -33,46 +36,70 @@ export default function GenerateAccountModal({ onClose }) {
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="max-w-md w-full mx-4 flex flex-col">
+      <div ref={dialogRef} className="max-w-md w-full mx-4 flex flex-col">
         <div className="modal-header-bar">
           <span className={`label text-base`}>Generate</span>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors" aria-label="Close">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+            aria-label="Close"
+          >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
         </div>
         <div className="modal-content-area gap-3">
-        <div className="w-full flex flex-col justify-center">
-          <FormButton title="Generate Account" onClick={genNewAccount} />
-          <div className={`mt-2 ${newSeed === '' ? 'hidden' : ''}`}>
-            <div className="justify-center flex flex-col">
-              <label className="label flex items-center gap-1">
-                Seed:
-                <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">(click to copy)</span>
-              </label>
-              <div onClick={() => copyToClipboard(newSeed, 'seed')}
-                className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative">
-                {newSeed}
-                <IoCopyOutline className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'seed' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`} />
+          <div className="w-full flex flex-col justify-center">
+            <FormButton title="Generate Account" onClick={genNewAccount} />
+            <div className={`mt-2 ${newSeed === '' ? 'hidden' : ''}`}>
+              <div className="justify-center flex flex-col">
+                <label className="label flex items-center gap-1">
+                  Seed:
+                  <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">
+                    (click to copy)
+                  </span>
+                </label>
+                <div
+                  onClick={() => copyToClipboard(newSeed, 'seed')}
+                  className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative"
+                >
+                  {newSeed}
+                  <IoCopyOutline
+                    className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'seed' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`}
+                  />
+                </div>
+                {copiedField === 'seed' && (
+                  <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">
+                    ✓ Copied to clipboard!
+                  </span>
+                )}
               </div>
-              {copiedField === 'seed' && <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">✓ Copied to clipboard!</span>}
             </div>
-          </div>
-          <div className={`mt-2 ${newAddress === '' ? 'hidden' : ''}`}>
-            <div className="justify-center flex flex-col">
-              <label className="label flex items-center gap-1">
-                Address:
-                <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">(click to copy)</span>
-              </label>
-              <div onClick={() => copyToClipboard(newAddress, 'address')}
-                className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative">
-                {newAddress}
-                <IoCopyOutline className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'address' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`} />
+            <div className={`mt-2 ${newAddress === '' ? 'hidden' : ''}`}>
+              <div className="justify-center flex flex-col">
+                <label className="label flex items-center gap-1">
+                  Address:
+                  <span className="text-xs font-normal text-text-secondary dark:text-dark-text-secondary">
+                    (click to copy)
+                  </span>
+                </label>
+                <div
+                  onClick={() => copyToClipboard(newAddress, 'address')}
+                  className="w-full px-3 py-2 border rounded-lg shadow-sm cursor-pointer break-all select-all border-primary/30 dark:border-primary/40 input-color hover:border-status-success/60 dark:hover:border-status-success-dark/60 hover:bg-primary/5 dark:hover:bg-dark-primary/5 transition-all group relative"
+                >
+                  {newAddress}
+                  <IoCopyOutline
+                    className={`absolute top-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity ${copiedField === 'address' ? 'text-status-success dark:text-status-success-dark opacity-100' : 'text-text-secondary dark:text-dark-text-secondary'}`}
+                  />
+                </div>
+                {copiedField === 'address' && (
+                  <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">
+                    ✓ Copied to clipboard!
+                  </span>
+                )}
               </div>
-              {copiedField === 'address' && <span className="text-xs mt-1 text-status-success dark:text-status-success-dark font-medium">✓ Copied to clipboard!</span>}
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   )

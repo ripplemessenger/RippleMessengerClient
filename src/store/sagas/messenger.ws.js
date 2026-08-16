@@ -29,6 +29,7 @@ import {
   QuarterSHA512Message
 } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
+import { playNotificationSound } from '../../lib/SoundUtil'
 import { mgAPI } from '../../lib/MessageGenerator'
 import {
   ActionCode,
@@ -118,6 +119,21 @@ import { LoadSessionList } from './messenger.session'
 
 // Server management & group list (stays in MessengerSaga.js)
 import { UpdateConnStatus, LoadGroupList, LoadGroupRequestList } from './MessengerSaga'
+
+// ---------- Settings helpers ----------
+/** Read a boolean setting from localStorage with a default fallback */
+function getSettingBool(key, defaultValue) {
+  const v = localStorage.getItem(key)
+  if (v === null || v === undefined) return defaultValue
+  return v === 'true'
+}
+
+/** Read a string setting from localStorage with a default fallback */
+function getSettingString(key, defaultValue) {
+  const v = localStorage.getItem(key)
+  if (v === null || v === undefined || v === '') return defaultValue
+  return v
+}
 
 // ---------- Binary message handlers (file chunk reception) ----------
 
@@ -976,7 +992,10 @@ function* processPrivateMessage(json, address, ob_address) {
         yield call(RefreshPrivateMessageList)
       }
       yield call(LoadSessionList)
-      yield call(invoke, 'start_message_flash')
+      if (getSettingBool('enableNotifications', true)) {
+        yield call(invoke, 'start_message_flash')
+      }
+      playNotificationSound(getSettingString('messageSound', 'chime'))
     }
   } catch (e) {
     Logger.error('[processPrivateMessage] failed:', e.message)
@@ -1134,7 +1153,10 @@ function* handleGroupMessageListObject(json, address, seed) {
           yield call(RefreshGroupMessageList)
         }
         yield call(LoadSessionList)
-        yield call(invoke, 'start_message_flash')
+        if (getSettingBool('enableNotifications', true)) {
+          yield call(invoke, 'start_message_flash')
+        }
+        playNotificationSound(getSettingString('messageSound', 'chime'))
       }
     }
 
