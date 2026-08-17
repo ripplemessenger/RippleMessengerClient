@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
-import { IoInformationCircleOutline } from "react-icons/io5"
+import { IoInformationCircleOutline } from 'react-icons/io5'
 
 const FlashNotice = ({ message, duration }) => {
   const [isFadingOut, setIsFadingOut] = useState(false)
@@ -9,15 +9,18 @@ const FlashNotice = ({ message, duration }) => {
 
   useEffect(() => {
     if (message) {
+      let fadeOutTimer
       const timer = setTimeout(() => {
         setIsFadingOut(true)
-        const fadeOutTimer = setTimeout(() => {
+        fadeOutTimer = setTimeout(() => {
           setIsFadingOut(false)
           dispatch(setFlashNoticeMessage({ message: null, duration: 0 }))
         }, 500)
-        return () => clearTimeout(fadeOutTimer)
       }, duration)
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+        if (fadeOutTimer) clearTimeout(fadeOutTimer)
+      }
     } else {
       setIsFadingOut(false)
     }
@@ -29,8 +32,7 @@ const FlashNotice = ({ message, duration }) => {
         bg-surface dark:bg-dark-surface border border-primary/30 dark:border-primary/50
         text-text-primary dark:text-dark-text-primary
         px-6 py-4 rounded-xl shadow-gold z-90 flex items-center gap-3
-        ${isFadingOut ? 'opacity-0 transition-opacity duration-500' : 'opacity-100 transition-opacity duration-500'
-        }`}
+        ${isFadingOut ? 'opacity-0 transition-opacity duration-500' : 'opacity-100 transition-opacity duration-500'}`}
       role="alert"
     >
       <IoInformationCircleOutline className="text-xl text-primary dark:text-dark-primary shrink-0" />

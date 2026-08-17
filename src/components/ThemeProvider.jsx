@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { getSettingString } from '../lib/SettingsUtil'
 
 const ThemeContext = createContext()
 
@@ -16,7 +17,7 @@ function applyTheme(theme) {
 
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
-    const saved = localStorage.getItem('theme') || 'light'
+    const saved = getSettingString('theme', 'light')
     // Apply immediately during hydration to avoid flash of wrong theme
     applyTheme(saved)
     return saved

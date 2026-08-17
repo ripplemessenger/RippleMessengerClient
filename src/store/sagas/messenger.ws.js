@@ -119,21 +119,7 @@ import { LoadSessionList } from './messenger.session'
 
 // Server management & group list (stays in MessengerSaga.js)
 import { UpdateConnStatus, LoadGroupList, LoadGroupRequestList } from './MessengerSaga'
-
-// ---------- Settings helpers ----------
-/** Read a boolean setting from localStorage with a default fallback */
-function getSettingBool(key, defaultValue) {
-  const v = localStorage.getItem(key)
-  if (v === null || v === undefined) return defaultValue
-  return v === 'true'
-}
-
-/** Read a string setting from localStorage with a default fallback */
-function getSettingString(key, defaultValue) {
-  const v = localStorage.getItem(key)
-  if (v === null || v === undefined || v === '') return defaultValue
-  return v
-}
+import { getSettingBool, getSettingString } from '../../lib/SettingsUtil'
 
 // ---------- Binary message handlers (file chunk reception) ----------
 
@@ -934,9 +920,9 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
-    let is_readed = false
+    let is_read = false
     if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
-      is_readed = true
+      is_read = true
     }
 
     const session_msgs = yield call(() => dbAPI.getPrivateSession(address, remote))
@@ -957,7 +943,7 @@ function* processPrivateMessage(json, address, ob_address) {
             json.Timestamp,
             false,
             false,
-            is_readed,
+            is_read,
             typeof content === 'object'
           )
         )
@@ -978,7 +964,7 @@ function* processPrivateMessage(json, address, ob_address) {
             json.Timestamp,
             false,
             false,
-            is_readed,
+            is_read,
             typeof content === 'object'
           )
         )
@@ -1126,10 +1112,10 @@ function* handleGroupMessageListObject(json, address, seed) {
         })
       }
 
-      let is_readed = false
+      let is_read = false
       const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
       if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-        is_readed = true
+        is_read = true
       }
 
       const add_result = yield call(() =>
@@ -1144,7 +1130,7 @@ function* handleGroupMessageListObject(json, address, seed) {
           verify_json.Timestamp,
           false,
           false,
-          is_readed,
+          is_read,
           typeof verify_json.Content === 'object'
         )
       )

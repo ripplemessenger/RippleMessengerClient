@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
-import AvatarCropper from '../../components/AvatarCropper'
 import AvatarImage from '../../components/AvatarImage'
 import TextInput from '../../components/Form/TextInput'
 import { readFile } from '@tauri-apps/plugin-fs'
@@ -12,6 +11,8 @@ import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setNickname } from '../../store/slices/UserSlice'
 import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
+
+const AvatarCropper = lazy(() => import('../../components/AvatarCropper'))
 
 export default function TabMe() {
   const [displayNickname, setDisplayNickname] = useState('')
@@ -134,7 +135,11 @@ export default function TabMe() {
             placeholder={'Alice'}
             onChange={(e) => updateNickname(e.target.value)}
           />
-          {imageSrc && <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />}
+          {imageSrc && (
+            <Suspense fallback={null}>
+              <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
+            </Suspense>
+          )}
           <button onClick={() => confirmCopySeed()} className="btn-primary btn-yellow">
             Copy Seed
           </button>

@@ -8,6 +8,7 @@ import MainLayout from './layouts/MainLayout'
 import OpenPage from './pages/OpenPage'
 
 import useAuth from './hooks/useAuth'
+import { getSettingBool } from './lib/SettingsUtil'
 
 const AboutPage = React.lazy(() => import('./pages/AboutPage'))
 const BulletinAddressPage = React.lazy(() => import('./pages/BulletinAddressPage'))
@@ -24,14 +25,8 @@ const SettingPage = React.lazy(() => import('./pages/SettingPage'))
 function App() {
   // Sync persisted settings to Rust backend on startup
   useEffect(() => {
-    const closeToTray = localStorage.getItem('closeToTray')
-    if (closeToTray !== null) {
-      invoke('set_close_to_tray', { closeToTray: closeToTray === 'true' }).catch(() => {})
-    }
-    const startMinimized = localStorage.getItem('startMinimized')
-    if (startMinimized !== null) {
-      invoke('set_start_minimized', { startMinimized: startMinimized === 'true' }).catch(() => {})
-    }
+    invoke('set_close_to_tray', { closeToTray: getSettingBool('closeToTray', false) }).catch(() => {})
+    invoke('set_start_minimized', { startMinimized: getSettingBool('startMinimized', false) }).catch(() => {})
   }, [])
 
   return (

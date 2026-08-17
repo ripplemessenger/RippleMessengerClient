@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import { useSelector } from 'react-redux'
 import { Outlet } from 'react-router-dom'
 
@@ -6,10 +7,11 @@ import ConnectionStatusBanner from '../components/ConnectionStatusBanner'
 import FlashNotice from '../components/FlashNotice'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
-import JsonDiv from '../components/JsonDiv'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { useConfirmPopup } from '../hooks/useConfirmPopup'
 import { selectDisplayJson, selectFlashNotice } from '../selectors'
+
+const JsonDiv = lazy(() => import('../components/JsonDiv'))
 
 export default function MainLayout() {
   const ConfirmPopup = useConfirmPopup()
@@ -18,18 +20,15 @@ export default function MainLayout() {
   return (
     <ThemeProvider>
       <div className="min-h-screen flex flex-col">
-        {
-          ConfirmPopup &&
-          <ConfirmDiv />
-        }
-        {
-          FlashNoticeData.message &&
+        {ConfirmPopup && <ConfirmDiv />}
+        {FlashNoticeData.message && (
           <FlashNotice message={FlashNoticeData.message} duration={FlashNoticeData.duration} />
-        }
-        {
-          DisplayJsonData.json &&
-          <JsonDiv json={DisplayJsonData.json} />
-        }
+        )}
+        {DisplayJsonData.json && (
+          <Suspense fallback={null}>
+            <JsonDiv json={DisplayJsonData.json} />
+          </Suspense>
+        )}
         <Header />
         <ConnectionStatusBanner />
 

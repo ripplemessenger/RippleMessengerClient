@@ -13,6 +13,7 @@ import ToggleSwitch from '../../components/ToggleSwitch'
 
 import { useTheme } from '../../components/ThemeProvider'
 import { FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
+import { getSettingBool, getSettingString } from '../../lib/SettingsUtil'
 import { playNotificationSound } from '../../lib/SoundUtil'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
@@ -43,28 +44,16 @@ export default function TabGeneral() {
   const { theme, setTheme } = useTheme()
 
   // Close to tray — defaults to true (current behavior)
-  const [closeToTray, setCloseToTray] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_CLOSE_TO_TRAY)
-    return saved === null ? true : saved === 'true'
-  })
+  const [closeToTray, setCloseToTray] = useState(() => getSettingBool(STORAGE_KEY_CLOSE_TO_TRAY, true))
 
   // Desktop notifications — defaults to true
-  const [enableNotifications, setEnableNotifications] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_NOTIFICATIONS)
-    return saved === null ? true : saved === 'true'
-  })
+  const [enableNotifications, setEnableNotifications] = useState(() => getSettingBool(STORAGE_KEY_NOTIFICATIONS, true))
 
   // Message sound — defaults to 'chime'
-  const [messageSound, setMessageSound] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_MESSAGE_SOUND)
-    return saved || 'chime'
-  })
+  const [messageSound, setMessageSound] = useState(() => getSettingString(STORAGE_KEY_MESSAGE_SOUND, 'chime'))
 
   // Start minimized — defaults to false
-  const [startMinimized, setStartMinimized] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_START_MINIMIZED)
-    return saved === null ? false : saved === 'true'
-  })
+  const [startMinimized, setStartMinimized] = useState(() => getSettingBool(STORAGE_KEY_START_MINIMIZED, false))
 
   // Persist close-to-tray preference
   useEffect(() => {
@@ -151,7 +140,11 @@ export default function TabGeneral() {
               onClick={async () => {
                 const next = !closeToTray
                 setCloseToTray(next)
-                await invoke('set_close_to_tray', { closeToTray: next })
+                try {
+                  await invoke('set_close_to_tray', { closeToTray: next })
+                } catch (e) {
+                  console.error('Failed to set close to tray:', e)
+                }
               }}
               ariaLabel="Close to Tray"
             />
@@ -170,7 +163,11 @@ export default function TabGeneral() {
               onClick={async () => {
                 const next = !startMinimized
                 setStartMinimized(next)
-                await invoke('set_start_minimized', { startMinimized: next })
+                try {
+                  await invoke('set_start_minimized', { startMinimized: next })
+                } catch (e) {
+                  console.error('Failed to set start minimized:', e)
+                }
               }}
               ariaLabel="Start Minimized"
             />
