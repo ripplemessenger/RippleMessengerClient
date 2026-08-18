@@ -49,6 +49,8 @@ const FileChunkSize = 1024 * 1024
 const FileMaxSize = 64 * 1024 * 1024
 /** @type {RegExp} Regex matching image file extensions for inline preview */
 const FileImageExtRegex = /^(png|jpe?g|gif|webp)$/i
+/** @type {string[]} Executable/script extensions — risky to auto-open, show warning instead */
+const RiskFileExts = ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'wsf', 'msi', 'scr', 'reg', 'com']
 
 // Bulletin pagination
 /** @type {number} Bulletins returned per page */
@@ -96,6 +98,7 @@ export {
   FileMaxSize,
   DefaultPartition,
   FileImageExtRegex,
+  RiskFileExts,
   SessionType,
   BulletinPageSize,
   BulletinContentPreviewSize,

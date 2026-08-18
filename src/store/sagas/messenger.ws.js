@@ -58,7 +58,9 @@ import {
   setServerAddressList,
   setDisplayBulletinReplyList,
   setTagBulletinList,
-  setRandomBulletinList
+  setRandomBulletinList,
+  markFileSaved,
+  setFileStatus
 } from '../slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 
@@ -169,6 +171,10 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
     const current_chunk_cursor = file.chunk_cursor + 1
     yield call(() => dbAPI.updateFileChunkCursor(request.Hash, current_chunk_cursor, Date.now()))
+    // Live progress for chat UI markers (N/M)
+    yield put(
+      setFileStatus({ hash: request.Hash, is_saved: false, cursor: current_chunk_cursor, length: file.chunk_length })
+    )
     Logger.info('[📥 receiveFileChunk] Updated cursor to ' + current_chunk_cursor + '/' + file.chunk_length)
     if (current_chunk_cursor < file.chunk_length) {
       Logger.info('[📥 receiveFileChunk] More chunks needed, requesting next...')
@@ -179,6 +185,12 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
       if (hash === request.Hash) {
         Logger.info('[📥 receiveFileChunk] ✅ Hash verified, marking file as saved')
         yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
+        // Notify chat/bulletin image components so they re-try loading the file
+        yield put(markFileSaved({ hash: request.Hash }))
+        // Mark as saved in the status map for chat UI markers
+        yield put(
+          setFileStatus({ hash: request.Hash, is_saved: true, cursor: file.chunk_length, length: file.chunk_length })
+        )
         // Refresh the file management UI so Pending → Saved updates immediately
         Logger.info('[📥 receiveFileChunk] Dispatching LoadFileManagementList to refresh UI')
         yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
@@ -188,6 +200,11 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
         )
         yield call(() => remove(filePath))
         yield call(() => dbAPI.updateFileChunkCursor(request.Hash, 0, Date.now()))
+        // Mark as failed so the chat UI shows a retry marker instead of a stuck progress
+        yield put(
+          setFileStatus({ hash: request.Hash, is_saved: false, cursor: 0, length: file.chunk_length, failed: true })
+        )
+        yield put(setFlashNoticeMessage({ message: '文件校验失败，正在重试...', duration: 3000 }))
         Logger.info('[📥 receiveFileChunk] Reset cursor to 0, re-requesting...')
         yield call(fetchNext, { payload: fetchNextPayload })
       }

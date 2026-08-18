@@ -27,6 +27,7 @@ import {
   FetchGroupChatFile,
   FetchChatFile,
   SaveChatFile,
+  CheckFileStatus,
   PublishBulletin,
   BulletinTagAdd,
   BulletinTagDel,
@@ -109,6 +110,7 @@ import {
   FetchGroupChatFile as FetchGroupChatFileHandler,
   FetchChatFile as FetchChatFileHandler,
   SaveChatFile as SaveChatFileHandler,
+  CheckFileStatus as CheckFileStatusHandler,
   SendFile as SendFileHandler
 } from './messenger.file'
 
@@ -205,6 +207,8 @@ export function* watchMessenger() {
   yield takeLatest(FetchGroupChatFile.type, FetchGroupChatFileHandler)
   yield takeLatest(FetchChatFile.type, FetchChatFileHandler)
   yield takeLatest(SaveChatFile.type, SaveChatFileHandler)
+  // takeEvery: many ChatFileLink components mount at once, each must be served
+  yield takeEvery(CheckFileStatus.type, CheckFileStatusHandler)
 
   // Bulletin publish
   yield takeLatest(PublishBulletin.type, PublishBulletinHandler)

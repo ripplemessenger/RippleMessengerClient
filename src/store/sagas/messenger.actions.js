@@ -32,6 +32,7 @@ export const FetchPrivateChatFile = createAction('FetchPrivateChatFile')
 export const FetchGroupChatFile = createAction('FetchGroupChatFile')
 export const FetchChatFile = createAction('FetchChatFile')
 export const SaveChatFile = createAction('SaveChatFile')
+export const CheckFileStatus = createAction('CheckFileStatus')
 
 // ==================== Bulletin Publish ====================
 export const PublishBulletin = createAction('PublishBulletin')

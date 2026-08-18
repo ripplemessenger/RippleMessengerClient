@@ -1,5 +1,6 @@
 import * as path from '@tauri-apps/api/path'
 import { readFile, writeFile, mkdir, stat, remove } from '@tauri-apps/plugin-fs'
+import { openPath } from '@tauri-apps/plugin-opener'
 import { call, put, select } from 'redux-saga/effects'
 
 import { saveLocalFile } from './messenger.bulletin'
@@ -23,6 +24,7 @@ import { mgAPI } from '../../lib/MessageGenerator'
 import { FileRequestType, MessageObjectType } from '../../lib/MessengerConst'
 import { DHSequence, PrivateFileEHash, FileHash, GroupFileEHash, buildFileFullPath } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
+import { markFileSaved, setFileStatus } from '../slices/MessengerSlice'
 
 /**
  * Fetch the next chunk of a bulletin attachment from the server.
@@ -64,6 +66,7 @@ export function* FetchBulletinFile({ payload }) {
         const hash = FileHash(content)
         if (hash === file.hash) {
           yield call(() => dbAPI.remoteFileSaved(file.hash, Date.now()))
+          yield put(markFileSaved({ hash: file.hash }))
           yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
         } else {
           Logger.error(
@@ -131,21 +134,57 @@ export function* SaveBulletinFile({ payload }) {
       yield call(() => mkdir(dest_dir, { recursive: true }))
       const dest_file_path = yield call(() => path.join(dest_dir, `${payload.name}${payload.ext}`))
       yield call(() => writeFile(dest_file_path, content))
-      yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
+      if (payload.autoOpen) {
+        yield call(() => openPath(dest_file_path))
+        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+      } else if (payload.revealOnly) {
+        // Risk file: open the download folder instead of executing the file
+        yield call(() => openPath(dest_dir))
+        yield put(
+          setFlashNoticeMessage({
+            message: `该文件类型(.${payload.ext})有安全风险，已保存到下载目录，请自行打开`,
+            duration: 4000
+          })
+        )
+      } else {
+        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+      }
     } else if (file) {
       yield put(
         setFlashNoticeMessage({
-          message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from server...`,
+          message: `正在从服务器获取文件(${file.chunk_cursor}/${file.chunk_length})...`,
           duration: 2000
         })
       )
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     } else {
-      yield put(setFlashNoticeMessage({ message: 'file record not found, fetching from server...', duration: 2000 }))
+      yield put(setFlashNoticeMessage({ message: '文件记录不存在，正在从服务器获取...', duration: 2000 }))
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     }
   } catch (e) {
-    Logger.error('[SaveBulletinFile] FAILED:', e.message, e.stack)
+    Logger.error('[SaveBulletinFile] FAILED:', String(e), e.stack)
+  }
+}
+
+/**
+ * Query the DB for a file's download status and publish it to Redux
+ * so chat UI components can render saved / in-progress / not-downloaded markers.
+ */
+export function* CheckFileStatus({ payload }) {
+  try {
+    const file = yield call(() => dbAPI.getFileByHash(payload.hash))
+    if (file) {
+      yield put(
+        setFileStatus({
+          hash: file.hash,
+          is_saved: file.is_saved,
+          cursor: file.chunk_cursor,
+          length: file.chunk_length
+        })
+      )
+    }
+  } catch (e) {
+    Logger.error('[CheckFileStatus] failed:', e.message)
   }
 }
 
@@ -204,6 +243,10 @@ export function* FetchPrivateChatFile({ payload }) {
           )
         )
         yield call(SendMessage, { key: payload.key, msg: file_request })
+      } else {
+        // No ECDH shared key — the request would be silently dropped, surface it to the user
+        Logger.warn('[FetchPrivateChatFile] no ECDH aes_key for ' + payload.remote + ', file request NOT sent')
+        yield put(setFlashNoticeMessage({ message: '无法获取加密密钥，文件请求未发送，请重试', duration: 3000 }))
       }
     } else {
       // file exist
@@ -303,20 +346,38 @@ export function* SaveChatFile({ payload }) {
       yield call(() => mkdir(dest_dir, { recursive: true }))
       const dest_file_path = yield call(() => path.join(dest_dir, `${payload.name}${payload.ext}`))
       yield call(() => writeFile(dest_file_path, content))
-      yield put(setFlashNoticeMessage({ message: 'file saved to download directory', duration: 2000 }))
+      if (payload.autoOpen) {
+        yield call(() => openPath(dest_file_path))
+        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+      } else if (payload.revealOnly) {
+        // Risk file: open the download folder instead of executing the file
+        yield call(() => openPath(dest_dir))
+        yield put(
+          setFlashNoticeMessage({
+            message: `该文件类型(.${payload.ext})有安全风险，已保存到下载目录，请自行打开`,
+            duration: 4000
+          })
+        )
+      } else {
+        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+      }
     } else if (file) {
+      const current_session = yield select((state) => state.Messenger.CurrentSession)
+      const fromWho = current_session.type === SessionType.Group ? '群成员' : '对方'
       yield put(
         setFlashNoticeMessage({
-          message: `fetching file(${file.chunk_cursor}/${file.chunk_length}) from online friend or group member...`,
+          message: `正在从${fromWho}获取文件(${file.chunk_cursor}/${file.chunk_length})...`,
           duration: FLASH_DURATION_MS
         })
       )
       yield call(FetchChatFile, { payload: { hash: payload.hash, size: payload.size } })
     } else {
       // file === null (DB missing record), will be created by FetchChatFile
+      const current_session = yield select((state) => state.Messenger.CurrentSession)
+      const fromWho = current_session.type === SessionType.Group ? '群成员' : '对方'
       yield put(
         setFlashNoticeMessage({
-          message: 'file record not found, fetching from contact...',
+          message: `文件记录不存在，正在从${fromWho}获取...`,
           duration: FLASH_DURATION_MS
         })
       )

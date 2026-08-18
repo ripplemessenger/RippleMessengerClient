@@ -132,7 +132,7 @@ export default function ChatHomePage() {
           ) : (
             <EmptyState
               icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-              title="Select a session"
+              title="Never talk to stranger..."
               className="flex flex-col items-center justify-center h-full"
             />
           )}

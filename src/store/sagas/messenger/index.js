@@ -39,6 +39,7 @@ export {
   FetchGroupChatFile,
   FetchChatFile,
   SaveChatFile,
+  CheckFileStatus,
 
   // Bulletin publish
   PublishBulletin,
@@ -74,7 +75,7 @@ export {
   // Group management
   CreateGroup,
   DeleteGroup,
-  AcceptGroupRequest,
+  AcceptGroupRequest
 } from '../messenger.actions'
 
 // Saga-only: bulletin & avatar internal helpers (no action creator)
@@ -88,7 +89,7 @@ export {
   FetchFollowBulletin,
   RefreshFollowBulletin,
   saveLocalFile,
-  SubscribeFollow,
+  SubscribeFollow
 } from '../messenger.bulletin'
 
 // Saga-only: private chat
@@ -97,16 +98,11 @@ export {
   InitHandshake,
   LoadPrivateSession,
   SendPrivateContent,
-  RefreshPrivateMessageList,
+  RefreshPrivateMessageList
 } from '../messenger.private'
 
 // Saga-only: group chat
-export {
-  RefreshGroupMessageList,
-  LoadGroupSession,
-  SendGroupContent,
-  GroupSync,
-} from '../messenger.group'
+export { RefreshGroupMessageList, LoadGroupSession, SendGroupContent, GroupSync } from '../messenger.group'
 
 // Saga-only: core messaging utilities
 export {
@@ -115,11 +111,8 @@ export {
   getFileRequestList,
   setFileRequestList,
   pushFileRequest,
-  genFileNonce,
+  genFileNonce
 } from '../messenger.core'
 
 // Saga-only: MessengerSaga internal helpers
-export {
-  LoadGroupList,
-  LoadGroupRequestList,
-} from '../MessengerSaga'
+export { LoadGroupList, LoadGroupRequestList } from '../MessengerSaga'

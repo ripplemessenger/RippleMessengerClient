@@ -10,9 +10,11 @@ import { readFile } from '@tauri-apps/plugin-fs'
  *
  * @param {string|null} filePath - Absolute file path (null to skip)
  * @param {string|null} mimeType - MIME type for the Blob (e.g. 'image/png'), or null
+ * @param {number|string|null} [refreshToken] - Optional token; when it changes the
+ *   file is re-read (used to pick up files that finished downloading after mount)
  * @returns {string|null} The blob URL, or null if not ready / error
  */
-export function useFileBlobUrl(filePath, mimeType = null) {
+export function useFileBlobUrl(filePath, mimeType = null, refreshToken = null) {
   const [blobUrl, setBlobUrl] = useState(null)
   const currentUrlRef = useRef(null)
 
@@ -53,7 +55,7 @@ export function useFileBlobUrl(filePath, mimeType = null) {
         currentUrlRef.current = null
       }
     }
-  }, [filePath, mimeType])
+  }, [filePath, mimeType, refreshToken])
 
   return blobUrl
 }

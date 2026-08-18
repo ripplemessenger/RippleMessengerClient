@@ -81,7 +81,14 @@ const MessengerSlice = createSlice({
     FileManagementFileExt: '',
     FileManagementOwnership: 'others', // default to others' files (the deletable cache)
     AllTagsList: [],
-    AllBulletinAddressesList: []
+    AllBulletinAddressesList: [],
+
+    // hash -> timestamp of files that finished downloading this session;
+    // chat/bulletin image components subscribe to this to re-try loading after download completes
+    FileSavedMap: {},
+
+    // hash -> { is_saved, cursor, length, failed } live download status for chat UI markers
+    FileStatusMap: {}
   },
   reducers: {
     updateMessengerConnStatus: (state, action) => {
@@ -245,6 +252,12 @@ const MessengerSlice = createSlice({
     },
     setAllBulletinAddressesList: (state, action) => {
       state.AllBulletinAddressesList = action.payload
+    },
+    markFileSaved: (state, action) => {
+      state.FileSavedMap[action.payload.hash] = Date.now()
+    },
+    setFileStatus: (state, action) => {
+      state.FileStatusMap[action.payload.hash] = action.payload
     }
   }
 })
@@ -292,6 +305,8 @@ export const {
   setBulletinManagementList,
   setFileManagementList,
   setAllTagsList,
-  setAllBulletinAddressesList
+  setAllBulletinAddressesList,
+  markFileSaved,
+  setFileStatus
 } = MessengerSlice.actions
 export default MessengerSlice.reducer
