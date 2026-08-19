@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
 import {
   IoColorPaletteOutline,
@@ -12,21 +13,20 @@ import {
 import ToggleSwitch from '../../components/ToggleSwitch'
 
 import { useTheme } from '../../components/ThemeProvider'
-import { FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
+import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { getSettingBool, getSettingString } from '../../lib/SettingsUtil'
 import { playNotificationSound } from '../../lib/SoundUtil'
 import { setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 
-const STORAGE_KEY_THEME = 'theme'
 const STORAGE_KEY_CLOSE_TO_TRAY = 'closeToTray'
 const STORAGE_KEY_NOTIFICATIONS = 'enableNotifications'
 const STORAGE_KEY_MESSAGE_SOUND = 'messageSound'
 const STORAGE_KEY_START_MINIMIZED = 'startMinimized'
 
 const THEME_OPTIONS = [
-  { value: 'light', label: 'Light', icon: '☀️' },
-  { value: 'dark', label: 'Dark', icon: '🌙' },
-  { value: 'system', label: 'System', icon: '💻' }
+  { value: 'light', key: 'setting.light', icon: '☀️' },
+  { value: 'dark', key: 'setting.dark', icon: '🌙' },
+  { value: 'system', key: 'setting.system', icon: '💻' }
 ]
 
 const SOUND_OPTIONS = [
@@ -36,10 +36,11 @@ const SOUND_OPTIONS = [
   { value: 'bloop', label: 'Bloop', icon: '💬' },
   { value: 'ding', label: 'Ding', icon: '🔔' },
   { value: 'blip', label: 'Blip', icon: '👾' },
-  { value: 'none', label: 'None', icon: '🔇' }
+  { value: 'none', key: 'setting.none', icon: '🔇' }
 ]
 
 export default function TabGeneral() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const { theme, setTheme } = useTheme()
 
@@ -77,29 +78,31 @@ export default function TabGeneral() {
 
   const handleThemeChange = (value) => {
     setTheme(value)
-    dispatch(setFlashNoticeMessage({ message: `Theme changed to ${value}`, duration: FLASH_DURATION_MS }))
+    dispatch(setFlashNoticeMessage({ message: t('setting.theme_changed', { value }), duration: FLASH_DURATION_MS }))
   }
 
   const handleMessageSoundChange = (value) => {
     setMessageSound(value)
     playNotificationSound(value)
-    dispatch(setFlashNoticeMessage({ message: `Message sound: ${value}`, duration: FLASH_DURATION_MS }))
+    dispatch(setFlashNoticeMessage({ message: t('setting.sound_changed', { value }), duration: FLASH_DURATION_MS }))
   }
 
   return (
     <div className="tab-page">
       <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
-        <div className="card-title">{SettingPageTab.General}</div>
+        <div className="card-title">{t('setting.tab_general')}</div>
 
         {/* Theme Section */}
         <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4">
           <div className="flex items-center gap-2 mb-2">
             <IoColorPaletteOutline className="text-xl text-primary dark:text-dark-primary" />
-            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">Appearance</h3>
+            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
+              {t('setting.appearance')}
+            </h3>
           </div>
 
           <div className="flex flex-col gap-3">
-            <span className="label">Theme</span>
+            <span className="label">{t('setting.theme')}</span>
             <div className="flex gap-3 flex-wrap">
               {THEME_OPTIONS.map((opt) => (
                 <button
@@ -113,7 +116,7 @@ export default function TabGeneral() {
                   }`}
                 >
                   <span className="text-base">{opt.icon}</span>
-                  <span className="text-sm font-medium">{opt.label}</span>
+                  <span className="text-sm font-medium">{t(opt.key)}</span>
                 </button>
               ))}
             </div>
@@ -124,15 +127,19 @@ export default function TabGeneral() {
         <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
           <div className="flex items-center gap-2 mb-2">
             <IoCloseOutline className="text-xl text-primary dark:text-dark-primary" />
-            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">Behavior</h3>
+            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
+              {t('setting.behavior')}
+            </h3>
           </div>
 
           {/* Close to Tray */}
           <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
             <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">Close to Tray</span>
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.close_to_tray')}
+              </span>
               <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                Minimize to system tray instead of quitting when closing the window
+                {t('setting.close_to_tray_desc')}
               </span>
             </div>
             <ToggleSwitch
@@ -146,16 +153,18 @@ export default function TabGeneral() {
                   console.error('Failed to set close to tray:', e)
                 }
               }}
-              ariaLabel="Close to Tray"
+              ariaLabel={t('setting.close_to_tray')}
             />
           </div>
 
           {/* Start Minimized */}
           <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
             <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">Start Minimized</span>
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.start_minimized')}
+              </span>
               <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                Launch app hidden in system tray instead of showing the window
+                {t('setting.start_minimized_desc')}
               </span>
             </div>
             <ToggleSwitch
@@ -169,24 +178,26 @@ export default function TabGeneral() {
                   console.error('Failed to set start minimized:', e)
                 }
               }}
-              ariaLabel="Start Minimized"
+              ariaLabel={t('setting.start_minimized')}
             />
           </div>
 
           {/* Desktop Notifications */}
           <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
             <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">Desktop Notifications</span>
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.desktop_notifications')}
+              </span>
               <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
                 {enableNotifications ? (
                   <>
                     <IoNotificationsOutline className="inline mr-1 text-status-success" />
-                    Enabled — show tray icon flash on new messages
+                    {t('setting.notifications_enabled')}
                   </>
                 ) : (
                   <>
                     <IoNotificationsOffOutline className="inline mr-1 text-text-secondary/60" />
-                    Disabled — no notification flashes
+                    {t('setting.notifications_disabled')}
                   </>
                 )}
               </span>
@@ -194,16 +205,18 @@ export default function TabGeneral() {
             <ToggleSwitch
               isChecked={enableNotifications}
               onClick={() => setEnableNotifications((v) => !v)}
-              ariaLabel="Desktop Notifications"
+              ariaLabel={t('setting.desktop_notifications')}
             />
           </div>
 
           {/* Message Sound */}
           <div className="flex items-center justify-between gap-4 py-2">
             <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">Message Sound</span>
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.message_sound')}
+              </span>
               <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                Play a sound when receiving new messages
+                {t('setting.message_sound_desc')}
               </span>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -219,7 +232,7 @@ export default function TabGeneral() {
                   }`}
                 >
                   <span className="text-sm">{opt.icon}</span>
-                  <span className="text-xs font-medium">{opt.label}</span>
+                  <span className="text-xs font-medium">{opt.key ? t(opt.key) : opt.label}</span>
                 </button>
               ))}
             </div>
@@ -231,7 +244,7 @@ export default function TabGeneral() {
           <div className="flex items-center gap-2">
             <IoInformationCircleOutline className="text-base text-primary dark:text-dark-primary" />
             <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-              Settings are saved locally and persist across sessions.
+              {t('setting.settings_saved')}
             </span>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { IoCloseOutline } from 'react-icons/io5'
+import { useTranslation } from 'react-i18next'
 
 import TextInput from '../components/Form/TextInput'
 import FormButton from '../components/Form/FormButton'
@@ -16,6 +17,7 @@ import { getWallet } from '../lib/RippleUtil'
  *   onAddAccount       - ({ seed, address, salt, cipher_data }) => void  called on successful encryption
  */
 export default function AddAccountModal({ onClose, onAddAccount }) {
+  const { t } = useTranslation()
   const [savePassword, setSavePassword] = useState('')
   const [saveSeed, setSaveSeed] = useState('')
   const [saveAddress, setSaveAddress] = useState('')
@@ -69,11 +71,11 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div ref={dialogRef} className="max-w-md w-full mx-4 flex flex-col">
         <div className="modal-header-bar">
-          <span className={`label text-base`}>Add Account</span>
+          <span className={`label text-base`}>{t('auth.add_account')}</span>
           <button
             onClick={onClose}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
@@ -88,7 +90,7 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
           <div className="mt-1">
             <TextInput
               ref={addSeedRef}
-              label={'Your Seed:'}
+              label={t('auth.your_seed')}
               type="password"
               value={saveSeed}
               autoComplete={'off'}
@@ -98,7 +100,7 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
           </div>
           <div className={`mt-1 ${saveSeed === '' ? 'hidden' : ''}`}>
             <TextInput
-              label={'Address:'}
+              label={t('auth.address')}
               value={saveAddress}
               disabled={true}
               autoComplete={'off'}
@@ -112,7 +114,7 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
           )}
           <div className="mt-1">
             <TextInput
-              label={'Password:'}
+              label={t('auth.password')}
               type="password"
               value={savePassword}
               autoComplete={'off'}
@@ -121,7 +123,7 @@ export default function AddAccountModal({ onClose, onAddAccount }) {
             />
           </div>
           <FormButton
-            title={addLoading ? 'Encrypting...' : 'Add Account'}
+            title={addLoading ? t('ui.encrypting') : t('ui.add_account')}
             disabled={saveSeed === '' || savePassword.trim() === '' || addLoading}
           >
             {addLoading && (

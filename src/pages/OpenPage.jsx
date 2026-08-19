@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AiOutlineUserAdd } from 'react-icons/ai'
 import { BsIncognito } from 'react-icons/bs'
 import { CgDice5 } from 'react-icons/cg'
@@ -23,6 +24,7 @@ import TempLoginModal from './TempLoginModal'
 import GenerateAccountModal from './GenerateAccountModal'
 
 export default function OpenPage() {
+  const { t } = useTranslation()
   // --- Redux hooks ---
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -81,7 +83,7 @@ export default function OpenPage() {
 
   // --- Main login form state ---
   const addressOptions = useMemo(() => {
-    return AccountList.map(a => ({ value: a.address, label: a.address }))
+    return AccountList.map((a) => ({ value: a.address, label: a.address }))
   }, [AccountList])
   const [addressSelected, setSelectedAddress] = useState('')
   const [openPassword, setOpenPassword] = useState('')
@@ -110,9 +112,10 @@ export default function OpenPage() {
 
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         e.preventDefault()
-        const newIndex = e.key === 'ArrowLeft'
-          ? (avatarIndex - 1 + addressOptions.length) % addressOptions.length
-          : (avatarIndex + 1) % addressOptions.length
+        const newIndex =
+          e.key === 'ArrowLeft'
+            ? (avatarIndex - 1 + addressOptions.length) % addressOptions.length
+            : (avatarIndex + 1) % addressOptions.length
         setAvatarIndex(newIndex)
         setSelectedAddress(addressOptions[newIndex].value)
         focusPasswordInput()
@@ -127,7 +130,7 @@ export default function OpenPage() {
 
   // --- Login ---
   const login = () => {
-    const account = AccountList?.find(a => a.address === addressSelected)
+    const account = AccountList?.find((a) => a.address === addressSelected)
     if (!account) return
     setLoginLoading(true)
     setTimeout(() => {
@@ -139,7 +142,7 @@ export default function OpenPage() {
           setAddress(addressSelected)
           dispatch(loginStart({ seed: tmpSeed, address: addressSelected }))
         } else {
-          setLoginError('wrong password')
+          setLoginError(t('auth.wrong_password'))
         }
       } catch (e) {
         Logger.debug(e)
@@ -185,25 +188,32 @@ export default function OpenPage() {
       )}
 
       {/* Add Account Modal */}
-      {showAdd && (
-        <AddAccountModal
-          onClose={() => setShowAdd(false)}
-          onAddAccount={onAddAccount}
-        />
-      )}
+      {showAdd && <AddAccountModal onClose={() => setShowAdd(false)} onAddAccount={onAddAccount} />}
 
       {/* Main Login Form */}
       <div className="overflow-y-auto text-text-primary dark:text-dark-text-primary transition-width duration-300 ease-in-out">
         <div className="tab-page">
           <div className="card-title flex flex-row items-center">
-            Open Account
-            <button className="icon-action-btn" onClick={() => setShowAdd(true)} aria-label="Import account">
+            {t('auth.open_account')}
+            <button
+              className="icon-action-btn"
+              onClick={() => setShowAdd(true)}
+              aria-label={t('common.import_account')}
+            >
               <AiOutlineUserAdd className="card-icon" />
             </button>
-            <button className="icon-action-btn" onClick={() => setShowTmp(true)} aria-label="Temporary login">
+            <button
+              className="icon-action-btn"
+              onClick={() => setShowTmp(true)}
+              aria-label={t('common.temporary_login')}
+            >
               <BsIncognito className="card-icon" />
             </button>
-            <button className="icon-action-btn" onClick={() => setShowGen(true)} aria-label="Generate new account">
+            <button
+              className="icon-action-btn"
+              onClick={() => setShowGen(true)}
+              aria-label={t('common.generate_new_account')}
+            >
               <CgDice5 className="card-icon" />
             </button>
           </div>
@@ -211,27 +221,51 @@ export default function OpenPage() {
             <div className="!max-w-sm max-w-full w-full mx-auto mb-10">
               <div className="form-card-container">
                 <div className="flex flex-col justify-center p-6 space-y-4">
-                  <AvatarSelector avatars={addressOptions} defaultIndex={avatarIndex} disableKeyboard={true} onSelect={(address) => {
-                    const index = addressOptions.map(a => a.value).indexOf(address)
-                    setAvatarIndex(index)
-                    setSelectedAddress(address)
-                    focusPasswordInput()
-                  }} />
-                  <div className="mt-1">
-                    <SelectInput label={'Address:'} options={addressOptions} selectedOption={addressSelected} onChange={(e) => {
-                      setSelectedAddress(e.target.value)
-                      const index = addressOptions.map(a => a.value).indexOf(e.target.value)
+                  <AvatarSelector
+                    avatars={addressOptions}
+                    defaultIndex={avatarIndex}
+                    disableKeyboard={true}
+                    onSelect={(address) => {
+                      const index = addressOptions.map((a) => a.value).indexOf(address)
                       setAvatarIndex(index)
+                      setSelectedAddress(address)
                       focusPasswordInput()
-                    }} />
+                    }}
+                  />
+                  <div className="mt-1">
+                    <SelectInput
+                      label={t('auth.address')}
+                      options={addressOptions}
+                      selectedOption={addressSelected}
+                      onChange={(e) => {
+                        setSelectedAddress(e.target.value)
+                        const index = addressOptions.map((a) => a.value).indexOf(e.target.value)
+                        setAvatarIndex(index)
+                        focusPasswordInput()
+                      }}
+                    />
                   </div>
-                  <form onSubmit={(e) => { e.preventDefault(); if (!loginLoading) login() }} className="flex flex-col">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (!loginLoading) login()
+                    }}
+                    className="flex flex-col"
+                  >
                     <div className="mt-1">
-                      <TextInput ref={passwordRef} label={'Password:'} type='password' value={openPassword} autoComplete={"off"} placeholder={"........"} onChange={(e) => setOpenPassword(e.target.value)} />
+                      <TextInput
+                        ref={passwordRef}
+                        label={t('auth.password')}
+                        type="password"
+                        value={openPassword}
+                        autoComplete={'off'}
+                        placeholder={'........'}
+                        onChange={(e) => setOpenPassword(e.target.value)}
+                      />
                     </div>
-                    <FormButton title={loginLoading ? 'Decrypting...' : 'Open Account'} disabled={loginLoading}>
+                    <FormButton title={loginLoading ? t('auth.decrypting') : t('auth.open_account')} disabled={loginLoading}>
                       {loginLoading && (
-                        <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle"/>
+                        <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle" />
                       )}
                     </FormButton>
                   </form>
@@ -240,12 +274,12 @@ export default function OpenPage() {
             </div>
           ) : (
             <div className="empty-state-box my-4">
-              <p className="text-text-secondary dark:text-dark-text-secondary">No saved accounts</p>
+              <p className="text-text-secondary dark:text-dark-text-secondary">{t('auth.no_saved_accounts')}</p>
             </div>
           )}
           {loginError !== null && (
             <div className="p-4 rounded-xl border border-status-error/30 dark:border-status-error-dark/40 bg-status-error/5 dark:bg-status-error-dark/20 mb-4 max-w-md mx-auto">
-              <span className='label-error break-all'>{loginError}</span>
+              <span className="label-error break-all">{loginError}</span>
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoMdRefresh } from 'react-icons/io'
 
@@ -8,7 +9,10 @@ import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { RequestRandomBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinRandomPage() {
-  const { MessengerConnStatus, RandomBulletinList, ShowPublishFlag, ShowForwardFlag } = useSelector(state => state.Messenger)
+  const { t } = useTranslation()
+  const { MessengerConnStatus, RandomBulletinList, ShowPublishFlag, ShowForwardFlag } = useSelector(
+    (state) => state.Messenger
+  )
 
   const dispatch = useDispatch()
 
@@ -23,8 +27,12 @@ export default function BulletinRandomPage() {
       <BulletinListPage
         title={
           <>
-            Random
-            <button className="icon-action-btn" onClick={() => dispatch(RequestRandomBulletin())} aria-label="Refresh">
+            {t('page.random')}
+            <button
+              className="icon-action-btn"
+              onClick={() => dispatch(RequestRandomBulletin())}
+              aria-label={t('common.refresh')}
+            >
               <IoMdRefresh className="card-icon" />
             </button>
           </>
@@ -32,8 +40,8 @@ export default function BulletinRandomPage() {
         bulletins={RandomBulletinList}
         showEmpty
         emptyIcon={<IoMdRefresh className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-        emptyTitle="No random bulletins"
-        emptyDescription="Refresh to discover random posts"
+        emptyTitle={t('page.no_random_bulletins')}
+        emptyDescription={t('page.refresh_to_discover')}
         renderWrapper={false}
       />
     </div>

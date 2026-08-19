@@ -4,6 +4,7 @@ import { createSearchParams, useNavigate } from 'react-router-dom'
 import { HiOutlineStatusOffline, HiOutlineStatusOnline } from 'react-icons/hi'
 import { IoCloseOutline, IoStatsChartOutline } from 'react-icons/io5'
 import { TbCloudNetwork } from 'react-icons/tb'
+import { useTranslation } from 'react-i18next'
 
 import TextInput from '../../components/Form/TextInput'
 import ToggleSwitch from '../../components/ToggleSwitch'
@@ -11,11 +12,12 @@ import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { selectServerNetworkData } from '../../selectors'
-import { ConfirmContentOptions, SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions } from '../../lib/AppConst'
 import { ServerAdd, ServerDel, ServerSetDefault, ServerToggle } from '../../store/sagas/messenger.actions'
 import { setConfirmPopup } from '../../store/slices/CommonSlice'
 
 export default function TabMessengerNetwork() {
+  const { t } = useTranslation()
   const [newURL, setNewURL] = useState('')
   const [showAddServer, setShowAddServer] = useState(false)
   const addServerRef = useRef(null)
@@ -59,7 +61,7 @@ export default function TabMessengerNetwork() {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.DelServer,
-        Message: 'Remove this server from your list?',
+        Message: t('setting.remove_server_confirm'),
         Result: false,
         Params: { URL: url }
       })
@@ -89,11 +91,11 @@ export default function TabMessengerNetwork() {
           <div ref={addServerRef} className="max-w-md w-full mx-4 flex flex-col">
             {/* Header */}
             <div className="modal-header-bar">
-              <span className={`label text-base`}>Add Server</span>
+              <span className={`label text-base`}>{t('setting.add_server')}</span>
               <button
                 onClick={() => setShowAddServer(false)}
                 className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
@@ -101,13 +103,13 @@ export default function TabMessengerNetwork() {
 
             {/* Content */}
             <div className="modal-content-area gap-3">
-              <TextInput label={'URL:'} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
+              <TextInput label={t('network.url')} value={newURL} onChange={(e) => setNewURL(e.target.value.trim())} />
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
               <button className="btn-sm btn-gold" disabled={newURL === ''} onClick={() => addServer()}>
-                Add
+                {t('common.add')}
               </button>
             </div>
           </div>
@@ -116,8 +118,12 @@ export default function TabMessengerNetwork() {
 
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
-          {SettingPageTab.MessengerNetwork}
-          <button className="icon-action-btn" onClick={() => setShowAddServer(true)} aria-label="Add server">
+          {t('setting.tab_network')}
+          <button
+            className="icon-action-btn"
+            onClick={() => setShowAddServer(true)}
+            aria-label={t('common.add_server')}
+          >
             <TbCloudNetwork className="card-icon" />
           </button>
         </div>
@@ -128,9 +134,9 @@ export default function TabMessengerNetwork() {
               <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                 <thead>
                   <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
-                    <th>URL</th>
-                    <th>Connect</th>
-                    <th>Status</th>
+                    <th>{t('setting.url')}</th>
+                    <th>{t('setting.connect')}</th>
+                    <th>{t('setting.status')}</th>
                     <th></th>
                     <th></th>
                   </tr>
@@ -155,7 +161,7 @@ export default function TabMessengerNetwork() {
                       </td>
                       <td className="table-cell">
                         <button className="btn-sm btn-primary-outline" onClick={() => setDefaultServer(server.url)}>
-                          Set Default
+                          {t('setting.set_default')}
                         </button>
                       </td>
                       <td className="table-cell">
@@ -163,7 +169,7 @@ export default function TabMessengerNetwork() {
                           <button
                             className="icon-action-btn"
                             onClick={() => goto_server(server.url)}
-                            aria-label="View server statistics"
+                            aria-label={t('common.view_server_stats')}
                           >
                             <IoStatsChartOutline className="icon-sm" />
                           </button>
@@ -172,7 +178,7 @@ export default function TabMessengerNetwork() {
                       <td className="table-cell">
                         {!server.is_connect && (
                           <button className="btn-sm btn-danger" onClick={() => confirmDelServer(server.url)}>
-                            Delete
+                            {t('setting.delete')}
                           </button>
                         )}
                       </td>
@@ -184,9 +190,11 @@ export default function TabMessengerNetwork() {
           ) : (
             <div className="empty-state-box py-8">
               <TbCloudNetwork className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />
-              <h3 className="text-lg font-medium text-text-secondary dark:text-dark-text-secondary">No servers yet</h3>
+              <h3 className="text-lg font-medium text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.no_servers')}
+              </h3>
               <p className="text-sm text-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">
-                Add a server to get started
+                {t('setting.add_server_desc')}
               </p>
             </div>
           )}

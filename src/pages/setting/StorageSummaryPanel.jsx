@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MdOutlineArticle, MdInsertDriveFile, MdAccountCircle, MdExpandMore } from 'react-icons/md'
 import { FcDatabase } from 'react-icons/fc'
 
@@ -9,7 +10,7 @@ function formatSize(bytes) {
   return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i]
 }
 
-function DatabaseCard({ summary }) {
+function DatabaseCard({ summary, t }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -17,8 +18,10 @@ function DatabaseCard({ summary }) {
       className="rounded-lg border p-4 flex flex-col items-center gap-2 bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800 cursor-pointer transition-all hover:shadow-md"
       onClick={() => setExpanded(!expanded)}
     >
-      <div className="text-2xl text-sky-500"><FcDatabase /></div>
-      <span className="text-xs text-text-secondary dark:text-dark-text-secondary">Database</span>
+      <div className="text-2xl text-sky-500">
+        <FcDatabase />
+      </div>
+      <span className="text-xs text-text-secondary dark:text-dark-text-secondary">{t('storage.database')}</span>
       <span className="text-xl font-bold">{summary.totalDbRecords ?? 0}</span>
       <span className="text-xs text-text-secondary/70 dark:text-dark-text-secondary/70">
         {formatSize(summary.dbFileSize)}
@@ -28,19 +31,19 @@ function DatabaseCard({ summary }) {
         <div className="w-full mt-1 pt-2 border-t border-sky-200/50 dark:border-sky-800/50 space-y-1 text-xs">
           <div className="flex justify-between items-center">
             <span className="text-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-              <MdOutlineArticle /> Bulletins
+              <MdOutlineArticle /> {t('storage.bulletins')}
             </span>
             <strong>{summary.bulletinCount ?? 0}</strong>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-              <MdAccountCircle /> Private Msgs
+              <MdAccountCircle /> {t('storage.private_msgs')}
             </span>
             <strong>{summary.privateMsgCount ?? 0}</strong>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-              <MdInsertDriveFile /> Group Msgs
+              <MdInsertDriveFile /> {t('storage.group_msgs')}
             </span>
             <strong>{summary.groupMsgCount ?? 0}</strong>
           </div>
@@ -51,32 +54,33 @@ function DatabaseCard({ summary }) {
 }
 
 export default function StorageSummaryPanel({ summary }) {
+  const { t } = useTranslation()
   const sizeCards = useMemo(() => {
     if (!summary) return []
     return [
       {
-        label: 'Files',
+        label: t('storage.files'),
         count: summary.fileCount,
         size: summary.fileSizeSum,
         icon: <MdInsertDriveFile className="text-2xl text-emerald-500" />,
-        colorClass: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800',
+        colorClass: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
       },
       {
-        label: 'Avatars',
+        label: t('storage.avatars'),
         count: summary.avatarCount,
         size: summary.avatarSizeSum,
         icon: <MdAccountCircle className="text-2xl text-purple-500" />,
-        colorClass: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800',
-      },
+        colorClass: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800'
+      }
     ]
   }, [summary])
 
   if (!summary) {
     return (
       <div className="rounded-xl card p-6 mt-4 border">
-        <h3 className="text-base font-medium mb-3">Storage Summary</h3>
+        <h3 className="text-base font-medium mb-3">{t('storage.summary')}</h3>
         <div className="flex items-center justify-center py-8 text-text-secondary/60 dark:text-dark-text-secondary/60 text-sm">
-          Loading storage data...
+          {t('storage.loading_storage_data')}
         </div>
       </div>
     )
@@ -84,9 +88,9 @@ export default function StorageSummaryPanel({ summary }) {
 
   return (
     <div className="rounded-xl card p-6 mt-4 border">
-      <h3 className="text-base font-medium mb-4">Storage Summary</h3>
+      <h3 className="text-base font-medium mb-4">{t('storage.summary')}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <DatabaseCard summary={summary} />
+        <DatabaseCard summary={summary} t={t} />
         {sizeCards.map((card) => (
           <div key={card.label} className={`rounded-lg border p-4 flex flex-col items-center gap-2 ${card.colorClass}`}>
             {card.icon}

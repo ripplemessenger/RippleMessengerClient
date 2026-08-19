@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { MdStorage } from 'react-icons/md'
-import { SettingPageTab } from '../../lib/AppConst'
 import { selectStorageSummary } from '../../selectors'
 import { LoadStorageSummary } from '../../store/sagas/messenger.actions'
 import StorageSummaryPanel from './StorageSummaryPanel'
@@ -11,6 +11,7 @@ import FileManagerPanel from './FileManagerPanel'
 const ManagerTab = { BULLETIN: 'bulletins', FILE: 'files' }
 
 export default function TabStorage() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const storageSummary = useSelector(selectStorageSummary)
   const [managerTab, setManagerTab] = useState(ManagerTab.BULLETIN)
@@ -23,7 +24,7 @@ export default function TabStorage() {
     <div className="tab-page">
       <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
         <div className="card-title flex flex-row items-center">
-          {SettingPageTab.Storage}
+          {t('setting.tab_storage')}
           <MdStorage className="card-icon" />
         </div>
 
@@ -41,7 +42,7 @@ export default function TabStorage() {
                   : 'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
               }`}
             >
-              Bulletins
+              {t('setting.bulletins')}
             </button>
             <button
               onClick={() => setManagerTab(ManagerTab.FILE)}
@@ -51,15 +52,11 @@ export default function TabStorage() {
                   : 'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
               }`}
             >
-              Bulletin Files
+              {t('storage.bulletin_files')}
             </button>
           </div>
 
-          {managerTab === ManagerTab.BULLETIN ? (
-            <BulletinManagerPanel />
-          ) : (
-            <FileManagerPanel />
-          )}
+          {managerTab === ManagerTab.BULLETIN ? <BulletinManagerPanel /> : <FileManagerPanel />}
         </div>
       </div>
     </div>

@@ -50,6 +50,7 @@ import {
   CreateGroup,
   DeleteGroup,
   AcceptGroupRequest,
+  LoadGroupList as LoadGroupListAction,
   LoadStorageSummary,
   LoadBulletinManagementList,
   DeleteBulletinItem,
@@ -160,6 +161,7 @@ import {
 // Server management & session dispatchers (defined in MessengerSaga.js)
 import {
   LoadServerList,
+  LoadGroupList,
   ServerAdd as ServerAddHandler,
   ServerDel as ServerDelHandler,
   ServerSetDefault as ServerSetDefaultHandler,
@@ -241,6 +243,7 @@ export function* watchMessenger() {
   yield takeLatest(CreateGroup.type, CreateGroupHandler)
   yield takeLatest(DeleteGroup.type, DeleteGroupHandler)
   yield takeLatest(AcceptGroupRequest.type, AcceptGroupRequestHandler)
+  yield takeLatest(LoadGroupListAction.type, LoadGroupList)
 
   // Storage management
   yield takeLatest(LoadStorageSummary.type, LoadStorageSummaryHandler)

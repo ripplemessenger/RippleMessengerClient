@@ -222,6 +222,10 @@
     @apply h-12 w-12 border border-primary/20 dark:border-primary/40 rounded-xl shadow-sm;
   }
 
+  .avatar-xs {
+    @apply h-6 w-6 border border-primary/20 dark:border-primary/40 rounded-lg shadow-sm;
+  }
+
   .avatar {
     @apply h-24 w-24 border border-primary/20 dark:border-primary/40 rounded-xl shadow-gold;
   }

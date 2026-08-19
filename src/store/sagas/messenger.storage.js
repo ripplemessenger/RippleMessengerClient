@@ -2,6 +2,8 @@ import * as path from '@tauri-apps/api/path'
 import { remove, stat } from '@tauri-apps/plugin-fs'
 import { all, call, put, select } from 'redux-saga/effects'
 
+import i18n from '../../i18n'
+
 import { dbAPI } from '../../db'
 import { FileDir, FLASH_DURATION_MS } from '../../lib/AppConst'
 import Logger from '../../lib/Logger'
@@ -98,10 +100,10 @@ export function* DeleteBulletinItem({ payload }) {
     // If current page exceeds total pages after deletion, go to last available page
     const refreshPage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage
     yield call(LoadBulletinManagementList, { payload: { filter, page: refreshPage, addressFilter } })
-    yield put(setFlashNoticeMessage({ message: 'bulletin deleted', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.deleted_single'), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteBulletinItem] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to delete bulletin', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.delete_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -122,10 +124,15 @@ export function* BulkDeleteBulletins({ payload }) {
     yield call(LoadBulletinManagementList, {
       payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages), addressFilter }
     })
-    yield put(setFlashNoticeMessage({ message: `${hashes.length} bulletins deleted`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('bulletin.bulk_deleted', { count: hashes.length }),
+        duration: FLASH_DURATION_MS
+      })
+    )
   } catch (e) {
     Logger.error('[BulkDeleteBulletins] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to delete bulletins', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.delete_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -192,10 +199,10 @@ export function* DeleteFileItem({ payload }) {
     yield call(LoadFileManagementList, {
       payload: { category: 'bulletin', fileExt: currentFileExt, page: refreshPage }
     })
-    yield put(setFlashNoticeMessage({ message: 'file deleted', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.deleted_single'), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteFileItem] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to delete file', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_delete'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -227,11 +234,14 @@ export function* ClearOrphanedFiles() {
     yield call(LoadStorageSummary)
 
     yield put(
-      setFlashNoticeMessage({ message: `${orphanedFiles.length} orphaned files cleared`, duration: FLASH_DURATION_MS })
+      setFlashNoticeMessage({
+        message: i18n.t('file.orphaned_cleared', { count: orphanedFiles.length }),
+        duration: FLASH_DURATION_MS
+      })
     )
   } catch (e) {
     Logger.error('[ClearOrphanedFiles] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to clear orphaned files', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_clear_orphaned'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -319,10 +329,15 @@ export function* BulkDeleteFiles({ payload }) {
     const currentFileExt = yield select((state) => state.Messenger.FileManagementFileExt)
     yield call(LoadFileManagementList, { payload: { category: 'bulletin', fileExt: currentFileExt, page: 1 } })
     yield call(LoadStorageSummary)
-    yield put(setFlashNoticeMessage({ message: `${hashes.length} files deleted`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('file.bulk_deleted', { count: hashes.length }),
+        duration: FLASH_DURATION_MS
+      })
+    )
   } catch (e) {
     Logger.error('[BulkDeleteFiles] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to delete files', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_delete'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -360,10 +375,12 @@ export function* DeleteOthersFileReferences({ payload }) {
     yield call(LoadBulletinFileList, {
       payload: { ownership: currentOwnership, fileExt: currentFileExt, page: refreshPage }
     })
-    yield put(setFlashNoticeMessage({ message: "others' references deleted", duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.others_refs_deleted'), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteOthersFileReferences] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: "failed to delete others' references", duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({ message: i18n.t('file.failed_to_delete_others_refs'), duration: FLASH_DURATION_MS })
+    )
   }
 }
 
@@ -406,7 +423,9 @@ export function* BulkDeleteOthersFileReferences({ payload }) {
     )
   } catch (e) {
     Logger.error('[BulkDeleteOthersFileReferences] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: "failed to delete others' references", duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({ message: i18n.t('file.failed_to_delete_others_refs'), duration: FLASH_DURATION_MS })
+    )
   }
 }
 
@@ -417,9 +436,11 @@ export function* ClearAvatarCache() {
     // Refresh storage summary
     yield call(LoadStorageSummary)
 
-    yield put(setFlashNoticeMessage({ message: `${count} avatar(s) cleared`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({ message: i18n.t('file.avatars_cleared', { count }), duration: FLASH_DURATION_MS })
+    )
   } catch (e) {
     Logger.error('[ClearAvatarCache] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'failed to clear avatar cache', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_clear_avatars'), duration: FLASH_DURATION_MS }))
   }
 }

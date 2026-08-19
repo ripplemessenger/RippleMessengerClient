@@ -12,8 +12,21 @@ const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
   return (
     <div className={`${textSize}`}>
       {session.type === SessionType.Private && (
-        <div className={rowClass} onClick={handleClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick() }} role="button" tabIndex={0} aria-label={`Open chat with ${session.address}`}>
-          <AvatarWithBadger session_type={session.type} address={session.address} new_msg_count={session.new_msg_count} />
+        <div
+          className={rowClass}
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleClick()
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Open chat with ${session.address}`}
+        >
+          <AvatarWithBadger
+            session_type={session.type}
+            address={session.address}
+            new_msg_count={session.new_msg_count}
+          />
           <div className="flex flex-col justify-between px-1">
             <AvatarName address={session.address} />
             <TextTimestamp timestamp={session.updated_at} textSize={'text-xs'} />
@@ -21,8 +34,17 @@ const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
         </div>
       )}
       {session.type === SessionType.Group && (
-        <div className={rowClass} onClick={handleClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick() }} role="button" tabIndex={0} aria-label={`Open group chat ${session.name}`}>
-          <AvatarWithBadger session_type={session.type} new_msg_count={session.new_msg_count} />
+        <div
+          className={rowClass}
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') handleClick()
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label={`Open group chat ${session.name}`}
+        >
+          <AvatarWithBadger session_type={session.type} member={session.member} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">
             <SessionName name={session.name} />
             <TextTimestamp timestamp={session.updated_at} textSize={'text-xs'} />

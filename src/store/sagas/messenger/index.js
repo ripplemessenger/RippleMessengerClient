@@ -75,7 +75,8 @@ export {
   // Group management
   CreateGroup,
   DeleteGroup,
-  AcceptGroupRequest
+  AcceptGroupRequest,
+  LoadGroupList
 } from '../messenger.actions'
 
 // Saga-only: bulletin & avatar internal helpers (no action creator)
@@ -115,4 +116,4 @@ export {
 } from '../messenger.core'
 
 // Saga-only: MessengerSaga internal helpers
-export { LoadGroupList, LoadGroupRequestList } from '../MessengerSaga'
+export { LoadGroupRequestList } from '../MessengerSaga'

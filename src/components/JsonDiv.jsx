@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { JsonView, allExpanded, collapseAllNested, defaultStyles, darkStyles } from 'react-json-view-lite'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { IoCopyOutline, IoCheckmarkOutline, IoCloseOutline } from 'react-icons/io5'
 import { FLASH_DURATION_MS } from '../lib/AppConst'
 import { useEscapeKey } from '../hooks/useEscapeKey'
@@ -11,6 +12,7 @@ import { selectDisplayJsonOption } from '../selectors'
 import 'react-json-view-lite/dist/index.css'
 
 const JsonDiv = ({ json }) => {
+  const { t } = useTranslation()
   const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
   const dialogRef = useRef(null)
@@ -28,7 +30,7 @@ const JsonDiv = ({ json }) => {
       setCopied(true)
       setTimeout(() => setCopied(false), FLASH_DURATION_MS)
     } catch {
-      dispatch(setFlashNoticeMessage({ message: 'Copy failed', duration: FLASH_DURATION_MS }))
+      dispatch(setFlashNoticeMessage({ message: t('common.copy_failed'), duration: FLASH_DURATION_MS }))
     }
   }
 

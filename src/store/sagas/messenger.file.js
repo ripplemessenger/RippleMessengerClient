@@ -25,6 +25,7 @@ import { FileRequestType, MessageObjectType } from '../../lib/MessengerConst'
 import { DHSequence, PrivateFileEHash, FileHash, GroupFileEHash, buildFileFullPath } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { markFileSaved, setFileStatus } from '../slices/MessengerSlice'
+import i18n from '../../i18n'
 
 /**
  * Fetch the next chunk of a bulletin attachment from the server.
@@ -136,29 +137,35 @@ export function* SaveBulletinFile({ payload }) {
       yield call(() => writeFile(dest_file_path, content))
       if (payload.autoOpen) {
         yield call(() => openPath(dest_file_path))
-        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+        yield put(setFlashNoticeMessage({ message: i18n.t('file.saved_to_download'), duration: 2000 }))
       } else if (payload.revealOnly) {
         // Risk file: open the download folder instead of executing the file
         yield call(() => openPath(dest_dir))
         yield put(
           setFlashNoticeMessage({
-            message: `该文件类型(.${payload.ext})有安全风险，已保存到下载目录，请自行打开`,
+            message: i18n.t('file.risk_warning', { ext: payload.ext }),
             duration: 4000
           })
         )
       } else {
-        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+        yield put(setFlashNoticeMessage({ message: i18n.t('file.saved_to_download'), duration: 2000 }))
       }
     } else if (file) {
       yield put(
         setFlashNoticeMessage({
-          message: `正在从服务器获取文件(${file.chunk_cursor}/${file.chunk_length})...`,
+          message: i18n.t('file.fetching_from_peer', {
+            source: 'server',
+            cursor: file.chunk_cursor,
+            length: file.chunk_length
+          }),
           duration: 2000
         })
       )
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     } else {
-      yield put(setFlashNoticeMessage({ message: '文件记录不存在，正在从服务器获取...', duration: 2000 }))
+      yield put(
+        setFlashNoticeMessage({ message: i18n.t('file.record_not_found', { source: 'server' }), duration: 2000 })
+      )
       yield call(FetchBulletinFile, { payload: { hash: payload.hash, size: payload.size } })
     }
   } catch (e) {
@@ -246,7 +253,7 @@ export function* FetchPrivateChatFile({ payload }) {
       } else {
         // No ECDH shared key — the request would be silently dropped, surface it to the user
         Logger.warn('[FetchPrivateChatFile] no ECDH aes_key for ' + payload.remote + ', file request NOT sent')
-        yield put(setFlashNoticeMessage({ message: '无法获取加密密钥，文件请求未发送，请重试', duration: 3000 }))
+        yield put(setFlashNoticeMessage({ message: i18n.t('chat.no_ecdh_key'), duration: 3000 }))
       }
     } else {
       // file exist
@@ -348,25 +355,29 @@ export function* SaveChatFile({ payload }) {
       yield call(() => writeFile(dest_file_path, content))
       if (payload.autoOpen) {
         yield call(() => openPath(dest_file_path))
-        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+        yield put(setFlashNoticeMessage({ message: i18n.t('file.saved_to_download'), duration: 2000 }))
       } else if (payload.revealOnly) {
         // Risk file: open the download folder instead of executing the file
         yield call(() => openPath(dest_dir))
         yield put(
           setFlashNoticeMessage({
-            message: `该文件类型(.${payload.ext})有安全风险，已保存到下载目录，请自行打开`,
+            message: i18n.t('file.risk_warning', { ext: payload.ext }),
             duration: 4000
           })
         )
       } else {
-        yield put(setFlashNoticeMessage({ message: '文件已保存到下载目录', duration: 2000 }))
+        yield put(setFlashNoticeMessage({ message: i18n.t('file.saved_to_download'), duration: 2000 }))
       }
     } else if (file) {
       const current_session = yield select((state) => state.Messenger.CurrentSession)
-      const fromWho = current_session.type === SessionType.Group ? '群成员' : '对方'
+      const fromWho = current_session.type === SessionType.Group ? i18n.t('chat.group_members') : i18n.t('chat.peer')
       yield put(
         setFlashNoticeMessage({
-          message: `正在从${fromWho}获取文件(${file.chunk_cursor}/${file.chunk_length})...`,
+          message: i18n.t('file.fetching_from_peer', {
+            source: fromWho,
+            cursor: file.chunk_cursor,
+            length: file.chunk_length
+          }),
           duration: FLASH_DURATION_MS
         })
       )
@@ -374,10 +385,10 @@ export function* SaveChatFile({ payload }) {
     } else {
       // file === null (DB missing record), will be created by FetchChatFile
       const current_session = yield select((state) => state.Messenger.CurrentSession)
-      const fromWho = current_session.type === SessionType.Group ? '群成员' : '对方'
+      const fromWho = current_session.type === SessionType.Group ? i18n.t('chat.group_members') : i18n.t('chat.peer')
       yield put(
         setFlashNoticeMessage({
-          message: `文件记录不存在，正在从${fromWho}获取...`,
+          message: i18n.t('file.record_not_found', { source: fromWho }),
           duration: FLASH_DURATION_MS
         })
       )
@@ -404,7 +415,7 @@ export function* SendFile({ payload }) {
     if (file_info.size > FileMaxSize) {
       yield put(
         setFlashNoticeMessage({
-          message: `file size too large(more than ${filesize_format(FileMaxSize)})...`,
+          message: i18n.t('file.size_too_large', { maxSize: filesize_format(FileMaxSize) }),
           duration: FLASH_DURATION_MS
         })
       )

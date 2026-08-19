@@ -13,7 +13,7 @@ import { setCurrentSession, setCurrentSessionMessageList, setComposeMemberList }
 
 export function* RefreshGroupMessageList() {
   try {
-    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     if (!CurrentSession) {
       return
     }
@@ -26,17 +26,19 @@ export function* RefreshGroupMessageList() {
 
 function* RequestGroupMessageSync({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
 
     const latest_msg = yield call(() => dbAPI.getLastGroupMessage(payload.hash))
     if (latest_msg) {
-      const group_message_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, payload.hash, latest_msg.address, latest_msg.sequence))
+      const group_message_sync_request = yield call(() =>
+        mgAPI.genGroupMessageSync(seed, payload.hash, latest_msg.address, latest_msg.sequence)
+      )
       yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
     } else {
-      const address = yield select(state => state.User.Address)
+      const address = yield select((state) => state.User.Address)
       const group_message_sync_request = yield call(() => mgAPI.genGroupMessageSync(seed, payload.hash, address, 0))
       yield call(SendMessage, { msg: JSON.stringify(group_message_sync_request) })
     }
@@ -48,12 +50,18 @@ function* RequestGroupMessageSync({ payload }) {
 /** Load a group chat session. */
 export function* LoadGroupSession({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const self_address = yield select(state => state.User.Address)
-    let group_session = { type: SessionType.Group, hash: payload.hash, name: payload.name, member: payload.member, updated_at: payload.updated_at }
+    const self_address = yield select((state) => state.User.Address)
+    let group_session = {
+      type: SessionType.Group,
+      hash: payload.hash,
+      name: payload.name,
+      member: payload.member,
+      updated_at: payload.updated_at
+    }
     if (group_session.member.includes(self_address)) {
       const current_group_msg = yield call(() => dbAPI.getMemberLastGroupMessage(payload.hash, self_address))
       if (current_group_msg !== null) {
@@ -90,9 +98,11 @@ function* SendGroupMessageToMember(group_hash, self_address, member, msg_json, s
     } else {
       const encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
       tmp_msg_json.Content = encrypt_content
-      delete tmp_msg_json["ObjectType"]
-      delete tmp_msg_json["GroupHash"]
-      const group_msg_list_json = yield call(() => mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp))
+      delete tmp_msg_json['ObjectType']
+      delete tmp_msg_json['GroupHash']
+      const group_msg_list_json = yield call(() =>
+        mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp)
+      )
       yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
     }
   } catch (e) {
@@ -103,22 +113,30 @@ function* SendGroupMessageToMember(group_hash, self_address, member, msg_json, s
 /** Send a message in the current group chat session. */
 export function* SendGroupContent({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
     let timestamp = Date.now()
-    const self_address = yield select(state => state.User.Address)
-    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    const self_address = yield select((state) => state.User.Address)
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     if (!CurrentSession) {
       return
     }
 
-    const last_confirmed_group_msg = yield call(() => dbAPI.getLastConfirmGroupMessage(CurrentSession.hash, self_address))
-    const last_unconfirm_message_group_list = yield call(() => dbAPI.getLastUnconfirmGroupMessage(CurrentSession.hash, self_address))
+    const last_confirmed_group_msg = yield call(() =>
+      dbAPI.getLastConfirmGroupMessage(CurrentSession.hash, self_address)
+    )
+    const last_unconfirm_message_group_list = yield call(() =>
+      dbAPI.getLastUnconfirmGroupMessage(CurrentSession.hash, self_address)
+    )
     let to_confirm_group_msg = null
 
-    if (last_unconfirm_message_group_list !== null && (last_confirmed_group_msg === null || last_unconfirm_message_group_list.sequence > last_confirmed_group_msg.sequence)) {
+    if (
+      last_unconfirm_message_group_list !== null &&
+      (last_confirmed_group_msg === null ||
+        last_unconfirm_message_group_list.sequence > last_confirmed_group_msg.sequence)
+    ) {
       to_confirm_group_msg = {
         Address: last_unconfirm_message_group_list.address,
         Sequence: last_unconfirm_message_group_list.sequence,
@@ -130,9 +148,34 @@ export function* SendGroupContent({ payload }) {
       yield call(() => dbAPI.confirmGroupMessage(to_confirm_group_msg.Hash))
     }
 
-    const group_msg_json = yield call(() => mgAPI.genGroupMessage(seed, CurrentSession.hash, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_group_msg, payload.content, timestamp))
+    const group_msg_json = yield call(() =>
+      mgAPI.genGroupMessage(
+        seed,
+        CurrentSession.hash,
+        CurrentSession.current_sequence + 1,
+        CurrentSession.current_hash,
+        to_confirm_group_msg,
+        payload.content,
+        timestamp
+      )
+    )
     let group_msg_hash = QuarterSHA512Message(group_msg_json)
-    yield call(() => dbAPI.addGroupMessage(group_msg_hash, CurrentSession.hash, self_address, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, group_msg_json, group_msg_json.Timestamp, false, false, true, typeof payload.content === 'object'))
+    yield call(() =>
+      dbAPI.addGroupMessage(
+        group_msg_hash,
+        CurrentSession.hash,
+        self_address,
+        CurrentSession.current_sequence + 1,
+        CurrentSession.current_hash,
+        payload.content,
+        group_msg_json,
+        group_msg_json.Timestamp,
+        false,
+        false,
+        true,
+        typeof payload.content === 'object'
+      )
+    )
 
     let tmp_group_session = { ...CurrentSession }
     tmp_group_session.current_sequence = CurrentSession.current_sequence + 1
@@ -142,9 +185,14 @@ export function* SendGroupContent({ payload }) {
     yield call(RefreshGroupMessageList)
 
     // Send to all members concurrently
-    yield all(tmp_group_session.member.map(member =>
-      fork(SendGroupMessageToMember, CurrentSession.hash, self_address, member, group_msg_json, seed, timestamp)
-    ))
+    yield all(
+      tmp_group_session.member.map((member) =>
+        fork(SendGroupMessageToMember, CurrentSession.hash, self_address, member, group_msg_json, seed, timestamp)
+      )
+    )
+
+    // Refresh session list so updated_at reflects the new message
+    yield call(LoadSessionList)
   } catch (e) {
     Logger.error('[SendGroupContent] failed:', e.message)
   }
@@ -152,12 +200,12 @@ export function* SendGroupContent({ payload }) {
 
 export function* ComposeMemberAdd({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
-    const old_list = yield select(state => state.Messenger.ComposeMemberList) || []
+    const address = yield select((state) => state.User.Address)
+    const old_list = yield select((state) => state.Messenger.ComposeMemberList) || []
     let new_list = [...old_list]
-    new_list = new_list.filter(member => member !== payload.address)
+    new_list = new_list.filter((member) => member !== payload.address)
     new_list.unshift(payload.address)
-    new_list = new_list.filter(member => member !== address)
+    new_list = new_list.filter((member) => member !== address)
     if (new_list.length > GroupMemberMax) {
       new_list = new_list.slice(0, GroupMemberMax)
     }
@@ -169,9 +217,9 @@ export function* ComposeMemberAdd({ payload }) {
 
 export function* ComposeMemberDel({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.ComposeMemberList) || []
+    const old_list = yield select((state) => state.Messenger.ComposeMemberList) || []
     let new_list = [...old_list]
-    new_list = new_list.filter(member => member !== payload.address)
+    new_list = new_list.filter((member) => member !== payload.address)
     yield put(setComposeMemberList(new_list))
   } catch (e) {
     Logger.error('[ComposeMemberDel] failed:', e.message)
@@ -180,60 +228,98 @@ export function* ComposeMemberDel({ payload }) {
 
 export function* CreateGroup(action) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    Logger.info('[CreateGroup] START', { name: action.payload.name })
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
+      Logger.warn('[CreateGroup] no seed, aborting')
       return
     }
-    const address = yield select(state => state.User.Address)
-    const member = yield select(state => state.Messenger.ComposeMemberList)
+    const address = yield select((state) => state.User.Address)
+    const member = yield select((state) => state.Messenger.ComposeMemberList)
 
-    let hash = QuarterSHA512Message({ created_by: address, Member: member, Random: crypto.getRandomValues(new Uint32Array(1))[0] / 4294967295 })
+    let hash = QuarterSHA512Message({
+      created_by: address,
+      Member: member,
+      Random: crypto.getRandomValues(new Uint32Array(1))[0] / 4294967295
+    })
     let json = yield call(() => mgAPI.genGroupCreate(seed, hash, action.payload.name, member))
-    let result = yield call(() => dbAPI.createGroup(json.Hash, action.payload.name, address, json.Member, json.Timestamp, json, true))
+    let result = yield call(() =>
+      dbAPI.createGroup(json.Hash, action.payload.name, address, json.Member, json.Timestamp, json, true)
+    )
+    Logger.info('[CreateGroup] dbAPI.createGroup result:', result)
     if (result) {
       let group_response = {
         ObjectType: ObjectType.GroupList,
         List: [json]
       }
       yield call(SendMessage, { msg: JSON.stringify(group_response) })
+      Logger.info('[CreateGroup] calling LoadSessionList')
       yield call(LoadSessionList)
+      Logger.info('[CreateGroup] calling LoadGroupList')
       yield call(LoadGroupList)
+      Logger.info('[CreateGroup] LoadGroupList done')
     }
     yield put(setComposeMemberList([]))
+    Logger.info('[CreateGroup] COMPLETE')
   } catch (e) {
-    Logger.error('[CreateGroup] failed:', e.message)
+    Logger.error('[CreateGroup] failed:', e.message, e.stack)
   }
 }
 
 export function* DeleteGroup(action) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    Logger.info('[DeleteGroup] START', { hash: action.payload.hash })
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
+      Logger.warn('[DeleteGroup] no seed, aborting')
       return
     }
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const group = yield call(() => dbAPI.getGroupByHash(action.payload.hash))
+    Logger.info(
+      '[DeleteGroup] found group:',
+      group ? 'yes' : 'no',
+      'created_by match:',
+      group?.created_by === address,
+      'already deleted:',
+      group?.delete_json !== null
+    )
+
+    let json = null
     if (group !== null && group.created_by === address && group.delete_json === null) {
-      let json = yield call(() => mgAPI.genGroupDelete(seed, action.payload.hash))
-      let result = yield call(() => dbAPI.updateGroupDelete(action.payload.hash, json))
-      if (result > 0) {
-        let group_response = {
-          ObjectType: ObjectType.GroupList,
-          List: [json]
-        }
-        yield call(SendMessage, { msg: JSON.stringify(group_response) })
-        yield call(LoadSessionList)
-        yield call(LoadGroupList)
-      }
+      json = yield call(() => mgAPI.genGroupDelete(seed, action.payload.hash))
+      const result = yield call(() => dbAPI.updateGroupDelete(action.payload.hash, json))
+      Logger.info('[DeleteGroup] dbAPI.updateGroupDelete result:', result)
+    } else {
+      Logger.warn('[DeleteGroup] group check failed — skipping DB update', {
+        group: !!group,
+        createdByMatch: group?.created_by === address,
+        alreadyDeleted: group?.delete_json !== null
+      })
     }
+
+    // Always refresh after delete attempt, regardless of DB result
+    if (json) {
+      let group_response = {
+        ObjectType: ObjectType.GroupList,
+        List: [json]
+      }
+      yield call(SendMessage, { msg: JSON.stringify(group_response) })
+    }
+    Logger.info('[DeleteGroup] calling LoadSessionList')
+    yield call(LoadSessionList)
+    Logger.info('[DeleteGroup] calling LoadGroupList')
+    yield call(LoadGroupList)
+    Logger.info('[DeleteGroup] LoadGroupList done')
+    Logger.info('[DeleteGroup] COMPLETE')
   } catch (e) {
-    Logger.error('[DeleteGroup] failed:', e.message)
+    Logger.error('[DeleteGroup] failed:', e.message, e.stack)
   }
 }
 
 export function* GroupSync(payload) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }

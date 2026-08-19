@@ -1,5 +1,6 @@
 import { useCallback, useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { open } from '@tauri-apps/plugin-dialog'
 import { IoAttachSharp, IoCloseOutline } from 'react-icons/io5'
 import { MdPublish } from 'react-icons/md'
@@ -16,6 +17,7 @@ import { setPublishFlag } from '../../store/slices/MessengerSlice'
 import { BulletinFileAdd, BulletinTagAdd, PublishBulletin } from '../../store/sagas/messenger.actions'
 
 const BulletinPublish = ({}) => {
+  const { t } = useTranslation()
   const [tag, setTag] = useState('')
   const textareaRef = useRef(null)
   const dialogRef = useRef(null)
@@ -63,7 +65,7 @@ const BulletinPublish = ({}) => {
       setTmpBulletin('')
       dispatch(setPublishFlag(false))
     } else {
-      dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: FLASH_DURATION_MS }))
+      dispatch(setFlashNoticeMessage({ message: t('chat.content_empty'), duration: FLASH_DURATION_MS }))
     }
   }, [tmpBulletin, dispatch, setTmpBulletin])
 
@@ -107,7 +109,7 @@ const BulletinPublish = ({}) => {
           <button
             onClick={handleCancel}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
@@ -121,15 +123,16 @@ const BulletinPublish = ({}) => {
               ref={textareaRef}
               type={'text'}
               id="new-bulletin-textarea"
-              name={'New Bulletin:'}
+              name={t('ui.new_bulletin')}
               value={tmpBulletin}
               rows="8"
               onChange={(e) => handleTmpBulletin(e.target.value)}
               className={`w-full p-3 border rounded-lg shadow-sm appearance-none input-color input-hover resize-none`}
-              placeholder={'Write your bulletin...'}
+              placeholder={t('ui.write_your_bulletin')}
             />
             <div className="absolute bottom-2 right-3 text-xs text-text-secondary/60 dark:text-dark-text-secondary/60">
-              {tmpBulletin.length} chars
+              {tmpBulletin.length}
+              {t('ui.chars')}
             </div>
           </div>
 
@@ -140,13 +143,13 @@ const BulletinPublish = ({}) => {
               className="btn-sm bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-text-primary dark:text-dark-text-primary border border-primary/20 dark:border-primary/30"
             >
               <IoAttachSharp className="text-base" />
-              Attach file
+              {t('ui.attach_file')}
             </button>
           </div>
 
           {/* Tag input */}
           <div className="mt-3 flex flex-col gap-1">
-            <span className={`label text-sm`}>Tags (Enter to add)</span>
+            <span className={`label text-sm`}>{t('ui.tags_enter_to_add')}</span>
             <input
               type="text"
               id="bulletin-tag-input"
@@ -162,7 +165,7 @@ const BulletinPublish = ({}) => {
           {/* Attached sections */}
           {PublishTagList.length > 0 && (
             <div className="mt-3">
-              <span className={`label text-xs`}>Tags</span>
+              <span className={`label text-xs`}>{t('ui.tags')}</span>
               <div className="flex flex-wrap mt-1">
                 {PublishTagList.map((t) => (
                   <div key={t} className="mt-1 px-1">
@@ -175,7 +178,7 @@ const BulletinPublish = ({}) => {
 
           {PublishQuoteList.length > 0 && (
             <div className="mt-3">
-              <span className={`label text-xs`}>Quotes</span>
+              <span className={`label text-xs`}>{t('ui.quotes')}</span>
               <div className="flex flex-wrap mt-1">
                 {PublishQuoteList.map((quote) => (
                   <div key={quote.Hash} className="mt-1 px-1">
@@ -188,7 +191,7 @@ const BulletinPublish = ({}) => {
 
           {PublishFileList.length > 0 && (
             <div className="mt-3">
-              <span className={`label text-xs`}>Attachments</span>
+              <span className={`label text-xs`}>{t('ui.attachments')}</span>
               <div className="flex flex-wrap mt-1">
                 {PublishFileList.map((file) => (
                   <div key={file.Hash} className="mt-1 px-1">
@@ -203,7 +206,7 @@ const BulletinPublish = ({}) => {
         {/* Footer */}
         <div className="flex items-center justify-center gap-3 px-4 py-3 border-t border-primary/20 dark:border-primary/30 rounded-b-xl bg-surface dark:bg-dark-surface shadow-lg">
           <button onClick={() => publish()} className="btn-sm btn-gold flex items-center gap-1">
-            <MdPublish className="inline mr-1" /> Publish
+            <MdPublish className="inline mr-1" /> {t('ui.publish')}
           </button>
         </div>
       </div>

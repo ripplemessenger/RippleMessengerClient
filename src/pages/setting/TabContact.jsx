@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { AiOutlineUserAdd } from 'react-icons/ai'
 import { IoCloseOutline } from 'react-icons/io5'
+import { useTranslation } from 'react-i18next'
 
 import AvatarImage from '../../components/AvatarImage'
 import AvatarName from '../../components/AvatarName'
@@ -24,6 +25,7 @@ import {
 import { selectTabContactData } from '../../selectors'
 
 export default function TabContact() {
+  const { t } = useTranslation()
   const [contactAddress, setContactAddress] = useState('')
   const [contactNickname, setContactNickname] = useState('')
   const [showAddContact, setShowAddContact] = useState(false)
@@ -65,7 +67,7 @@ export default function TabContact() {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.DelContact,
-        Message: 'Remove this contact? This cannot be undone.',
+        Message: t('setting.remove_contact_confirm'),
         Result: false,
         Params: { Address: address }
       })
@@ -86,23 +88,23 @@ export default function TabContact() {
         <div className={`modal-overlay`} role="dialog" aria-modal="true">
           <div ref={addContactRef} className="max-w-md w-full mx-4 flex flex-col mt-4">
             <div className="modal-header-bar">
-              <span className={`label text-base`}>Add/Update Contact</span>
+              <span className={`label text-base`}>{t('contact.add_update_contact')}</span>
               <button
                 onClick={() => setShowAddContact(false)}
                 className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
             </div>
             <div className="modal-content-area gap-3">
               <TextInput
-                label={'Address:'}
+                label={t('auth.address')}
                 value={contactAddress}
                 onChange={(e) => setContactAddress(e.target.value.trim())}
               />
               <TextInput
-                label={'Nickname:'}
+                label={t('ui.nickname')}
                 value={contactNickname}
                 onChange={(e) => setContactNickname(e.target.value.trim())}
               />
@@ -112,7 +114,7 @@ export default function TabContact() {
                   disabled={contactAddress === '' || contactNickname === ''}
                   onClick={() => addContact()}
                 >
-                  Add/Update
+                  {t('contact.add_update')}
                 </button>
               </div>
             </div>
@@ -122,8 +124,12 @@ export default function TabContact() {
 
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
-          {SettingPageTab.Contact}
-          <button className="icon-action-btn" onClick={() => setShowAddContact(true)} aria-label="Add contact">
+          {t('setting.tab_contact')}
+          <button
+            className="icon-action-btn"
+            onClick={() => setShowAddContact(true)}
+            aria-label={t('common.add_contact')}
+          >
             <AiOutlineUserAdd className="card-icon" />
           </button>
         </div>
@@ -134,10 +140,10 @@ export default function TabContact() {
               <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                 <thead>
                   <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
-                    <th>Avatar</th>
-                    <th>Follow</th>
-                    <th>Friend</th>
-                    <th>Timestamp</th>
+                    <th>{t('setting.avatar')}</th>
+                    <th>{t('setting.follow')}</th>
+                    <th>{t('setting.friend')}</th>
+                    <th>{t('setting.timestamp')}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -170,7 +176,7 @@ export default function TabContact() {
                       <td className="p-3 text-text-primary dark:text-dark-text-primary">
                         {contact.is_follow === false && contact.is_friend === false && (
                           <button className="btn-sm btn-danger" onClick={() => confirmDelContact(contact.address)}>
-                            Delete
+                            {t('setting.delete')}
                           </button>
                         )}
                       </td>
@@ -182,8 +188,8 @@ export default function TabContact() {
           ) : (
             <EmptyState
               icon={<AiOutlineUserAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-              title="No contact yet"
-              description="Add a contact to start connecting"
+              title={t('ui.no_contact')}
+              description={t('ui.add_contact')}
               className="mx-auto max-w-sm mt-8"
             />
           )}

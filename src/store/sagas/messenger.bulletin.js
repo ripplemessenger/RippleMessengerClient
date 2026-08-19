@@ -6,15 +6,38 @@ import { all, call, fork, put, select } from 'redux-saga/effects'
 import { SendMessage, genFileNonce, pushFileRequest, safeFork, getFileRequestList } from './messenger.core'
 import { FetchBulletinFile } from './messenger.file'
 import { dbAPI } from '../../db'
-import { AvatarDir, BulletinPageSize, FileChunkSize, FileDir, FileMaxSize, FLASH_DURATION_MS, Hour } from '../../lib/AppConst'
+import {
+  AvatarDir,
+  BulletinPageSize,
+  FileChunkSize,
+  FileDir,
+  FileMaxSize,
+  FLASH_DURATION_MS,
+  Hour
+} from '../../lib/AppConst'
 import { AesDecryptBuffer, filesize_format, QuarterSHA512Message } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { Epoch, FileRequestType, GenesisHash, ListItemMax, ObjectType } from '../../lib/MessengerConst'
 import { calcTotalPage, FileHash, buildFileSubPath } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
-import { setCurrentBulletinSequence, setPublishFileList, setPublishQuoteList, setFollowBulletinList, setPublishFlag, setPublishTagList, setDisplayBulletin, setDisplayBulletinReplyList, setTagBulletinList, setBookmarkBulletinList, setPortalBulletinList, setAddressBulletinList, setRandomBulletinList } from '../slices/MessengerSlice'
+import {
+  setCurrentBulletinSequence,
+  setPublishFileList,
+  setPublishQuoteList,
+  setFollowBulletinList,
+  setPublishFlag,
+  setPublishTagList,
+  setDisplayBulletin,
+  setDisplayBulletinReplyList,
+  setTagBulletinList,
+  setBookmarkBulletinList,
+  setPortalBulletinList,
+  setAddressBulletinList,
+  setRandomBulletinList
+} from '../slices/MessengerSlice'
 import { deleteFile, statFile, getFileFullPath } from '../../services/fileService'
+import i18n from '../../i18n'
 
 // ==================== Bulletin Cache & Upload ====================
 
@@ -24,7 +47,17 @@ export function* CacheBulletin(bulletin_json) {
     let bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
     if (bulletin_db === null) {
       const new_bulletin_hash = QuarterSHA512Message(bulletin_json)
-      const result = yield call(() => dbAPI.addBulletin(new_bulletin_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
+      const result = yield call(() =>
+        dbAPI.addBulletin(
+          new_bulletin_hash,
+          address,
+          bulletin_json.Sequence,
+          bulletin_json.PreHash,
+          bulletin_json.Content,
+          bulletin_json,
+          bulletin_json.Timestamp
+        )
+      )
       if (result) {
         if (bulletin_json.Tag) {
           yield call(() => dbAPI.addTagsToBulletin(new_bulletin_hash, bulletin_json.Timestamp, bulletin_json.Tag))
@@ -33,7 +66,7 @@ export function* CacheBulletin(bulletin_json) {
           yield call(() => dbAPI.addReplyToBulletins(bulletin_json.Quote, new_bulletin_hash, bulletin_json.Timestamp))
         }
         if (bulletin_json.File) {
-          const pendingHashes = new Set(getFileRequestList().map(r => r.Hash))
+          const pendingHashes = new Set(getFileRequestList().map((r) => r.Hash))
           for (let i = 0; i < bulletin_json.File.length; i++) {
             const f = bulletin_json.File[i]
             const chunk_length = Math.ceil(f.Size / FileChunkSize)
@@ -64,9 +97,9 @@ export function* CacheBulletin(bulletin_json) {
 export function* UploadBulletin({ payload }) {
   const bulletin = yield call(CacheBulletin, payload.json)
   if (bulletin !== null) {
-    yield put(setFlashNoticeMessage({ message: 'bulletin saved', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.saved'), duration: FLASH_DURATION_MS }))
   } else {
-    yield put(setFlashNoticeMessage({ message: 'bulletin not saved...', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.save_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -87,17 +120,21 @@ export function* CheckAvatar({ payload }) {
 
 export function* SaveSelfAvatar({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const db_avatar = yield call(() => dbAPI.getAvatarByAddress(address))
     const avatar_json = yield call(() => mgAPI.genAvatarJson(seed, payload.hash, payload.size, payload.timestamp))
     if (db_avatar !== null) {
-      yield call(() => dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
+      yield call(() =>
+        dbAPI.updateAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true)
+      )
     } else {
-      yield call(() => dbAPI.addAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true))
+      yield call(() =>
+        dbAPI.addAvatar(address, payload.hash, payload.size, payload.timestamp, payload.timestamp, avatar_json, true)
+      )
     }
 
     const avatar_response = {
@@ -112,7 +149,7 @@ export function* SaveSelfAvatar({ payload }) {
 
 export function* AvatarRequest({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
@@ -139,7 +176,7 @@ export function* RequestAvatarFile(payload) {
   if (payload.hash === GenesisHash) {
     return
   }
-  const seed = yield select(state => state.User.Seed)
+  const seed = yield select((state) => state.User.Seed)
   if (!seed) {
     return
   }
@@ -154,14 +191,16 @@ export function* RequestAvatarFile(payload) {
   }
   pushFileRequest(tmp)
 
-  const avatar_file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.Avatar, payload.hash, nonce, 1))
+  const avatar_file_request = yield call(() =>
+    mgAPI.genFileRequest(seed, FileRequestType.Avatar, payload.hash, nonce, 1)
+  )
   yield call(SendMessage, { key: payload.key, msg: avatar_file_request })
 }
 
 // ==================== Bulletin Loading ====================
 
 export function* RequestNextBulletin({ payload }) {
-  const seed = yield select(state => state.User.Seed)
+  const seed = yield select((state) => state.User.Seed)
   if (!seed) {
     return
   }
@@ -170,7 +209,9 @@ export function* RequestNextBulletin({ payload }) {
   if (last_bulletin !== null) {
     request_sequence = last_bulletin.sequence + 1
   }
-  const bulletin_request = yield call(() => mgAPI.genBulletinRequest(seed, payload.address, request_sequence, payload.address))
+  const bulletin_request = yield call(() =>
+    mgAPI.genBulletinRequest(seed, payload.address, request_sequence, payload.address)
+  )
   yield call(SendMessage, { key: payload.key, msg: bulletin_request })
 }
 
@@ -186,24 +227,24 @@ export function* LoadPortalBulletin({ payload }) {
 }
 
 export function* RefreshPortalBulletin() {
-  const page = yield select(state => state.Messenger.PortalBulletinPage)
+  const page = yield select((state) => state.Messenger.PortalBulletinPage)
   yield fork(LoadPortalBulletin, { payload: { page: page } })
 }
 
 export function* LoadMineBulletinSequence() {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const bulletin_count = yield call(() => dbAPI.getAddressBulletinCount(address))
     yield put(setCurrentBulletinSequence(bulletin_count))
     // Also request own bulletins from server (for first login on new device or after DB clear)
     yield call(FetchMineBulletin)
   } catch (e) {
     Logger.error('[LoadMineBulletinSequence] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to load bulletin sequence', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_sequence_failed'), duration: 3000 }))
   }
 }
 
@@ -214,8 +255,8 @@ export function* LoadMineBulletinSequence() {
  */
 export function* FetchMineBulletin() {
   try {
-    const seed = yield select(state => state.User.Seed)
-    const address = yield select(state => state.User.Address)
+    const seed = yield select((state) => state.User.Seed)
+    const address = yield select((state) => state.User.Address)
     if (!seed || !address) return
 
     const local_last = yield call(() => dbAPI.getLastBulletin(address))
@@ -242,12 +283,12 @@ export function* LoadAddressBulletin({ payload }) {
 
 export function* FetchFollowBulletin() {
   try {
-    const address = yield select(state => state.User.Address)
-    const seed = yield select(state => state.User.Seed)
+    const address = yield select((state) => state.User.Address)
+    const seed = yield select((state) => state.User.Seed)
     const follow_list = yield call(() => dbAPI.getMyFollows(address))
     if (follow_list.length === 0) return
 
-    const remote_addresses = follow_list.map(f => f.remote)
+    const remote_addresses = follow_list.map((f) => f.remote)
 
     // --- Batch 1: latest bulletin per address (single query) ---
     const lastByAddr = yield call(() => dbAPI.getLastBulletinByAddresses(remote_addresses))
@@ -258,16 +299,14 @@ export function* FetchFollowBulletin() {
     //   To keep it simple and correct, query each address individually.
     //   (This is N queries for count, which is cheaper than the lastBulletin loop was.)
     const countsMap = {}
-    const countResults = yield all(
-      remote_addresses.map(addr => call(() => dbAPI.getAddressBulletinCount(addr)))
-    )
+    const countResults = yield all(remote_addresses.map((addr) => call(() => dbAPI.getAddressBulletinCount(addr))))
     for (let i = 0; i < remote_addresses.length; i++) {
       countsMap[remote_addresses[i]] = countResults[i]
     }
 
     // --- Classify: which addresses need sync, which need gap-check ---
-    const needSync = []       // no bulletins yet or already up to date
-    const needGapCheck = []   // has some but may have holes
+    const needSync = [] // no bulletins yet or already up to date
+    const needGapCheck = [] // has some but may have holes
 
     for (let i = 0; i < remote_addresses.length; i++) {
       const addr = remote_addresses[i]
@@ -316,7 +355,7 @@ export function* FetchFollowBulletin() {
 
 export function* LoadFollowBulletin({ payload }) {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const follow_list = yield call(() => dbAPI.getMyFollows(address))
     if (follow_list.length > 0) {
       const follow_address_list = []
@@ -337,7 +376,7 @@ export function* LoadFollowBulletin({ payload }) {
 }
 
 export function* RefreshFollowBulletin() {
-  const page = yield select(state => state.Messenger.FollowBulletinPage)
+  const page = yield select((state) => state.Messenger.FollowBulletinPage)
   yield fork(LoadFollowBulletin, { payload: { page: page } })
 }
 
@@ -355,7 +394,7 @@ export function* LoadBookmarkBulletin({ payload }) {
 export function* LoadBulletin(action) {
   try {
     yield put(setDisplayBulletin(null))
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
@@ -378,7 +417,7 @@ export function* LoadBulletin(action) {
 export function* RequestRandomBulletin() {
   try {
     yield put(setRandomBulletinList([]))
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
@@ -386,13 +425,13 @@ export function* RequestRandomBulletin() {
     yield call(SendMessage, { flag: true, msg: random_bulletin_request })
   } catch (e) {
     Logger.error('[RequestRandomBulletin] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to load random bulletins', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_random_failed'), duration: 3000 }))
   }
 }
 
 export function* RequestServerAddress({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
@@ -406,16 +445,18 @@ export function* RequestServerAddress({ payload }) {
 export function* RequestReplyBulletin({ payload }) {
   try {
     yield put(setDisplayBulletinReplyList({ List: [], Page: 1, TotalPage: 1 }))
-    const connect_status = yield select(state => state.Messenger.MessengerConnStatus)
+    const connect_status = yield select((state) => state.Messenger.MessengerConnStatus)
     if (!connect_status) {
-      const display_bulletin = yield select(state => state.Messenger.DisplayBulletin)
-      const reply_hash_list = yield call(() => dbAPI.getReplyHashListByBulletinHash(display_bulletin.hash, payload.page))
+      const display_bulletin = yield select((state) => state.Messenger.DisplayBulletin)
+      const reply_hash_list = yield call(() =>
+        dbAPI.getReplyHashListByBulletinHash(display_bulletin.hash, payload.page)
+      )
       const replys = yield call(() => dbAPI.getBulletinListByHash(reply_hash_list))
       const reply_count = yield call(() => dbAPI.getReplyCount(display_bulletin.hash))
       const total_page = calcTotalPage(reply_count, BulletinPageSize)
       yield put(setDisplayBulletinReplyList({ List: replys, Page: 1, TotalPage: total_page }))
     } else {
-      const seed = yield select(state => state.User.Seed)
+      const seed = yield select((state) => state.User.Seed)
       if (!seed) {
         return
       }
@@ -430,7 +471,7 @@ export function* RequestReplyBulletin({ payload }) {
 export function* RequestTagBulletin({ payload }) {
   try {
     yield put(setTagBulletinList({ List: [], Page: 1, TotalPage: 1 }))
-    const connect_status = yield select(state => state.Messenger.MessengerConnStatus)
+    const connect_status = yield select((state) => state.Messenger.MessengerConnStatus)
     if (!connect_status) {
       const tag_ids = yield call(() => dbAPI.getTagIdListByName(payload.tag))
       const bulletin_hashes = yield call(() => dbAPI.getBulletinHashListByTagId(tag_ids, payload.page))
@@ -439,7 +480,7 @@ export function* RequestTagBulletin({ payload }) {
       const total_page = calcTotalPage(total, BulletinPageSize)
       yield put(setTagBulletinList({ List: bulletins, Page: 1, TotalPage: total_page }))
     } else {
-      const seed = yield select(state => state.User.Seed)
+      const seed = yield select((state) => state.User.Seed)
       if (!seed) {
         return
       }
@@ -455,24 +496,47 @@ export function* RequestTagBulletin({ payload }) {
 
 export function* PublishBulletin(action) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const address = yield select(state => state.User.Address)
-    const tag = yield select(state => state.Messenger.PublishTagList)
-    const quote = yield select(state => state.Messenger.PublishQuoteList)
-    const file = yield select(state => state.Messenger.PublishFileList)
+    const address = yield select((state) => state.User.Address)
+    const tag = yield select((state) => state.Messenger.PublishTagList)
+    const quote = yield select((state) => state.Messenger.PublishQuoteList)
+    const file = yield select((state) => state.Messenger.PublishFileList)
     const last_bulletin = yield call(() => dbAPI.getLastBulletin(address))
     let bulletin_json
     let timestamp = Date.now()
     if (last_bulletin === null) {
-      bulletin_json = yield call(() => mgAPI.genBulletinJson(seed, 1, GenesisHash, tag, quote, file, action.payload.content, timestamp))
+      bulletin_json = yield call(() =>
+        mgAPI.genBulletinJson(seed, 1, GenesisHash, tag, quote, file, action.payload.content, timestamp)
+      )
     } else {
-      bulletin_json = yield call(() => mgAPI.genBulletinJson(seed, last_bulletin.sequence + 1, last_bulletin.hash, tag, quote, file, action.payload.content, timestamp))
+      bulletin_json = yield call(() =>
+        mgAPI.genBulletinJson(
+          seed,
+          last_bulletin.sequence + 1,
+          last_bulletin.hash,
+          tag,
+          quote,
+          file,
+          action.payload.content,
+          timestamp
+        )
+      )
     }
     const bulletin_json_hash = QuarterSHA512Message(bulletin_json)
-    const result = yield call(() => dbAPI.addBulletin(bulletin_json_hash, address, bulletin_json.Sequence, bulletin_json.PreHash, bulletin_json.Content, bulletin_json, bulletin_json.Timestamp))
+    const result = yield call(() =>
+      dbAPI.addBulletin(
+        bulletin_json_hash,
+        address,
+        bulletin_json.Sequence,
+        bulletin_json.PreHash,
+        bulletin_json.Content,
+        bulletin_json,
+        bulletin_json.Timestamp
+      )
+    )
     if (result) {
       if (bulletin_json.Tag) {
         yield call(() => dbAPI.addTagsToBulletin(bulletin_json_hash, bulletin_json.Timestamp, bulletin_json.Tag))
@@ -489,20 +553,20 @@ export function* PublishBulletin(action) {
     yield put(setPublishQuoteList([]))
     yield put(setPublishFileList([]))
     yield fork(RefreshPortalBulletin)
-    const bulletin_address = yield select(state => state.Messenger.BulletinAddress)
+    const bulletin_address = yield select((state) => state.Messenger.BulletinAddress)
     if (bulletin_address === address) {
       yield fork(LoadAddressBulletin, { payload: { address: address, page: 1 } })
     }
     yield call(SendMessage, { msg: JSON.stringify(bulletin_json) })
   } catch (e) {
     Logger.error('[PublishBulletin] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'bulletin publish failed', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.publish_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
 export function* BulletinTagAdd({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.PublishTagList)
+    const old_list = yield select((state) => state.Messenger.PublishTagList)
     let new_list = [...old_list, ...payload.tag_list]
     new_list = [...new Set(new_list)]
     if (new_list.length > ListItemMax) {
@@ -511,25 +575,25 @@ export function* BulletinTagAdd({ payload }) {
     yield put(setPublishTagList(new_list))
   } catch (e) {
     Logger.error('[BulletinTagAdd] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to add tag', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.add_tag_failed'), duration: 3000 }))
   }
 }
 
 export function* BulletinTagDel({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.PublishTagList)
+    const old_list = yield select((state) => state.Messenger.PublishTagList)
     let new_list = [...old_list]
-    new_list = new_list.filter(t => t !== payload.Tag)
+    new_list = new_list.filter((t) => t !== payload.Tag)
     yield put(setPublishTagList(new_list))
   } catch (e) {
     Logger.error('[BulletinTagDel] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to remove tag', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.remove_tag_failed'), duration: 3000 }))
   }
 }
 
 export function* BulletinQuoteAdd({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.PublishQuoteList)
+    const old_list = yield select((state) => state.Messenger.PublishQuoteList)
     for (let i = 0; i < old_list.length; i++) {
       const quote = old_list[i]
       if (quote.Hash === payload.Hash) {
@@ -543,19 +607,19 @@ export function* BulletinQuoteAdd({ payload }) {
     yield put(setPublishQuoteList(new_list))
   } catch (e) {
     Logger.error('[BulletinQuoteAdd] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to add quote', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.add_quote_failed'), duration: 3000 }))
   }
 }
 
 export function* BulletinQuoteDel({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.PublishQuoteList)
+    const old_list = yield select((state) => state.Messenger.PublishQuoteList)
     let new_list = [...old_list]
-    new_list = new_list.filter(q => q.Hash !== payload.Hash)
+    new_list = new_list.filter((q) => q.Hash !== payload.Hash)
     yield put(setPublishQuoteList(new_list))
   } catch (e) {
     Logger.error('[BulletinQuoteDel] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to remove quote', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.remove_quote_failed'), duration: 3000 }))
   }
 }
 
@@ -566,12 +630,12 @@ export function* BulletinReply({ payload }) {
 
 export function* BulletinQuote({ payload }) {
   yield call(BulletinQuoteAdd, { payload: payload })
-  yield put(setFlashNoticeMessage({ message: 'quote success', duration: FLASH_DURATION_MS }))
+  yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.quote_success'), duration: FLASH_DURATION_MS }))
 }
 
 export function* saveLocalFile(hash, content) {
   try {
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
     const hash_subpath = buildFileSubPath(hash)
     const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
     yield call(() => mkdir(file_dir, { recursive: true }))
@@ -590,7 +654,12 @@ export function* BulletinFileAdd({ payload }) {
     const name = yield call(() => path.basename(fileNameWithExt, ext))
     const file_info = yield call(() => stat(file_path))
     if (file_info.size > FileMaxSize) {
-      yield put(setFlashNoticeMessage({ message: `file size too large(more than ${filesize_format(FileMaxSize)})...`, duration: FLASH_DURATION_MS }))
+      yield put(
+        setFlashNoticeMessage({
+          message: i18n.t('file.size_too_large', { maxSize: filesize_format(FileMaxSize) }),
+          duration: FLASH_DURATION_MS
+        })
+      )
     } else {
       const content = yield call(() => readFile(file_path))
       const hash = FileHash(content)
@@ -611,7 +680,7 @@ export function* BulletinFileAdd({ payload }) {
         Size: file_info.size,
         Hash: hash
       }
-      const old_list = yield select(state => state.Messenger.PublishFileList)
+      const old_list = yield select((state) => state.Messenger.PublishFileList)
       for (let i = 0; i < old_list.length; i++) {
         const file = old_list[i]
         if (file.hash === new_file.Hash) {
@@ -631,13 +700,13 @@ export function* BulletinFileAdd({ payload }) {
 
 export function* BulletinFileDel({ payload }) {
   try {
-    const old_list = yield select(state => state.Messenger.PublishFileList)
+    const old_list = yield select((state) => state.Messenger.PublishFileList)
     let new_list = [...old_list]
-    new_list = new_list.filter(f => f.Hash !== payload.Hash)
+    new_list = new_list.filter((f) => f.Hash !== payload.Hash)
     yield put(setPublishFileList(new_list))
   } catch (e) {
     Logger.error('[BulletinFileDel] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to remove file', duration: 3000 }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.delete_failed'), duration: 3000 }))
   }
 }
 
@@ -654,11 +723,11 @@ export function* BulletinMarkToggle({ payload }) {
 
 export function* SubscribeFollow() {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const follow_list = yield select(state => state.User.FollowList)
+    const follow_list = yield select((state) => state.User.FollowList)
     const subscribe_request = yield call(() => mgAPI.genBulletinSubscribe(seed, follow_list))
     yield call(SendMessage, { msg: JSON.stringify(subscribe_request) })
   } catch (e) {
@@ -674,7 +743,7 @@ export function* SubscribeFollow() {
  */
 export function* LoadBulletinManagement({ payload: { filter, page } }) {
   try {
-    const address = yield select(state => state.User.Address)
+    const address = yield select((state) => state.User.Address)
     const p = page || 1
 
     let bulletins, total
@@ -701,10 +770,15 @@ export function* LoadBulletinManagement({ payload: { filter, page } }) {
     const total_page = calcTotalPage(total, BulletinPageSize)
 
     yield put(setPortalBulletinList({ List: bulletins, Page: p, TotalPage: total_page }))
-    yield put(setFlashNoticeMessage({ message: `Loaded ${bulletins.length} bulletins (total: ${total})`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('bulletin.loaded_bulletins', { count: bulletins.length, total }),
+        duration: FLASH_DURATION_MS
+      })
+    )
   } catch (e) {
     Logger.error('[LoadBulletinManagement] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to load bulletin management list', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_list_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -714,11 +788,16 @@ export function* LoadBulletinManagement({ payload: { filter, page } }) {
 export function* DeleteBulletin({ payload: { hash, filter, page } }) {
   try {
     yield call(() => dbAPI.deleteBulletin(hash))
-    yield put(setFlashNoticeMessage({ message: `Bulletin ${hash.substring(0, 12)}... deleted`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('bulletin.deleted', { hash: hash.substring(0, 12) }),
+        duration: FLASH_DURATION_MS
+      })
+    )
     yield call(LoadBulletinManagement, { payload: { filter, page } })
   } catch (e) {
     Logger.error('[DeleteBulletin] failed for', hash, e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to delete bulletin', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.delete_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -734,10 +813,10 @@ export function* ClearAllBulletins() {
     yield put(setAddressBulletinList({ List: [], Page: 1, TotalPage: 0 }))
     yield put(setRandomBulletinList([]))
     yield put(setDisplayBulletin(null))
-    yield put(setFlashNoticeMessage({ message: `Cleared ${count} bulletins`, duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.cleared', { count }), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[ClearAllBulletins] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to clear bulletins', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.clear_failed'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -749,9 +828,9 @@ export function* ClearAllBulletins() {
  */
 export function* LoadCachedFiles({ payload: { page, category } }) {
   try {
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
     if (!base_dir) {
-      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      yield put(setFlashNoticeMessage({ message: i18n.t('file.app_dir_not_available'), duration: FLASH_DURATION_MS }))
       return
     }
 
@@ -764,7 +843,7 @@ export function* LoadCachedFiles({ payload: { page, category } }) {
     // Get paginated file records and category counts in parallel
     ;[files, categoryCounts] = yield all([
       call(() => dbAPI.getFilesForManagement({ category: cat, page: p, pageSize })),
-      call(() => dbAPI.getFileCountByCategory()),
+      call(() => dbAPI.getFileCountByCategory())
     ])
 
     const total = yield call(() => dbAPI.getFileCountForManagement({ category: cat }))
@@ -776,29 +855,39 @@ export function* LoadCachedFiles({ payload: { page, category } }) {
     for (let start = 0; start < files.length; start += BATCH_SIZE) {
       const batch = files.slice(start, start + BATCH_SIZE)
       const results = yield all(
-        batch.map(file => call(async () => {
-          const filePath = await getFileFullPath(base_dir, file.hash)
-          return statFile(filePath)
-        }))
+        batch.map((file) =>
+          call(async () => {
+            const filePath = await getFileFullPath(base_dir, file.hash)
+            return statFile(filePath)
+          })
+        )
       )
       for (let i = 0; i < batch.length; i++) {
         verifiedFiles.push({
           ...batch[i],
           on_disk: results[i]?.exists || false,
-          disk_size: results[i]?.size ?? null,
+          disk_size: results[i]?.size ?? null
         })
       }
     }
 
     const fileTotalSize = yield call(() => dbAPI.getFileSizeSum())
 
-    yield put(setFlashNoticeMessage({ message: `Loaded ${verifiedFiles.length} cached files (total size: ${filesize_format(fileTotalSize)})`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('file.loaded_files', {
+          count: verifiedFiles.length,
+          totalSize: filesize_format(fileTotalSize)
+        }),
+        duration: FLASH_DURATION_MS
+      })
+    )
 
     // Return via portal list for reuse of existing UI infrastructure
     yield put(setPortalBulletinList({ List: verifiedFiles, Page: p, TotalPage: total_page }))
   } catch (e) {
     Logger.error('[LoadCachedFiles] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to load cached files', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_load_list'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -807,9 +896,9 @@ export function* LoadCachedFiles({ payload: { page, category } }) {
  */
 export function* DeleteCachedFile({ payload: { hash, category, page } }) {
   try {
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
     if (!base_dir) {
-      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      yield put(setFlashNoticeMessage({ message: i18n.t('file.app_dir_not_available'), duration: FLASH_DURATION_MS }))
       return
     }
 
@@ -821,13 +910,18 @@ export function* DeleteCachedFile({ payload: { hash, category, page } }) {
     yield call(() => dbAPI.removeFileReferences(hash))
     yield call(() => dbAPI.deleteFileRecord(hash))
 
-    yield put(setFlashNoticeMessage({ message: `File ${hash.substring(0, 12)}... deleted`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('file.deleted', { hash: hash.substring(0, 12) }),
+        duration: FLASH_DURATION_MS
+      })
+    )
 
     // Reload the file list
     yield call(LoadCachedFiles, { payload: { category, page } })
   } catch (e) {
     Logger.error('[DeleteCachedFile] failed for', hash, e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to delete cached file', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_delete'), duration: FLASH_DURATION_MS }))
   }
 }
 
@@ -836,9 +930,9 @@ export function* DeleteCachedFile({ payload: { hash, category, page } }) {
  */
 export function* ClearOrphanedFiles() {
   try {
-    const base_dir = yield select(state => state.Common.AppBaseDir)
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
     if (!base_dir) {
-      yield put(setFlashNoticeMessage({ message: 'App directory not available', duration: FLASH_DURATION_MS }))
+      yield put(setFlashNoticeMessage({ message: i18n.t('file.app_dir_not_available'), duration: FLASH_DURATION_MS }))
       return
     }
 
@@ -859,12 +953,17 @@ export function* ClearOrphanedFiles() {
       yield call(() => dbAPI.deleteFileRecord(hash))
     }
 
-    yield put(setFlashNoticeMessage({ message: `Cleared ${deletedCount} orphaned files`, duration: FLASH_DURATION_MS }))
+    yield put(
+      setFlashNoticeMessage({
+        message: i18n.t('file.orphaned_cleared', { count: deletedCount }),
+        duration: FLASH_DURATION_MS
+      })
+    )
 
     // Reload the file list
     yield call(LoadCachedFiles, { payload: { page: 1 } })
   } catch (e) {
     Logger.error('[ClearOrphanedFiles] failed:', e.message)
-    yield put(setFlashNoticeMessage({ message: 'Failed to clear orphaned files', duration: FLASH_DURATION_MS }))
+    yield put(setFlashNoticeMessage({ message: i18n.t('file.failed_to_clear_orphaned'), duration: FLASH_DURATION_MS }))
   }
 }

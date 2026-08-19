@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { BsGlobe2 } from 'react-icons/bs'
+import { useTranslation } from 'react-i18next'
 
 import AvatarName from '../components/AvatarName'
 import BulletinAvatarLink from '../components/Bulletin/BulletinAvatarLink'
@@ -10,6 +11,7 @@ import { useBulletinLoad } from '../hooks/useBulletinLoad'
 import { selectServerAddressData } from '../selectors'
 
 export default function ServerAddressPage() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const url = searchParams.get('url')
 
@@ -58,8 +60,8 @@ export default function ServerAddressPage() {
             ) : (
               <EmptyState
                 icon={<BsGlobe2 className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                title="No addresses yet"
-                description="Server-discovered bulletin authors will appear here"
+                title={t('ui.no_addresses')}
+                description={t('ui.server_discovered')}
               />
             )}
           </div>

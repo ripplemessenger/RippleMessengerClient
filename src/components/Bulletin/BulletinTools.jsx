@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
 import { AiOutlineLink } from "react-icons/ai"
 import { MdPostAdd } from "react-icons/md"
+import { useTranslation } from 'react-i18next'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { MessageObjectType } from '../../lib/MessengerConst'
 import { useClipboard } from '../../hooks/useClipboard'
@@ -10,6 +11,7 @@ import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/Common
 import { BulletinMarkToggle, BulletinQuote, BulletinReply, ShowForwardBulletin } from '../../store/sagas/messenger.actions'
 
 const BulletinTools = ({ address, sequence, hash, content, json, is_marked = false }) => {
+  const { t } = useTranslation()
 
   const [displayMark, setDisplayMark] = useState(is_marked)
 
@@ -26,19 +28,19 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
       <button className="icon-action-btn" onClick={() => { dispatch(BulletinMarkToggle({ hash })); toggleMarkDisplay() }} aria-label={displayMark ? "Unmark bulletin" : "Mark bulletin"}>
         {displayMark ? <IoStar className="icon-sm" /> : <IoStarOutline className="icon-sm" />}
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(BulletinReply({ Address: address, Sequence: sequence, Hash: hash }))} aria-label="Reply">
+      <button className="icon-action-btn" onClick={() => dispatch(BulletinReply({ Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('ui.reply')}>
         <MdPostAdd className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(BulletinQuote({ Address: address, Sequence: sequence, Hash: hash }))} aria-label="Quote">
+      <button className="icon-action-btn" onClick={() => dispatch(BulletinQuote({ Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('ui.quote')}>
         <AiOutlineLink className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(ShowForwardBulletin({ ObjectType: MessageObjectType.Bulletin, Address: address, Sequence: sequence, Hash: hash }))} aria-label="Forward">
+      <button className="icon-action-btn" onClick={() => dispatch(ShowForwardBulletin({ ObjectType: MessageObjectType.Bulletin, Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('common.forward')}>
         <IoArrowRedoOutline className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => copyText(content)} aria-label="Copy content">
+      <button className="icon-action-btn" onClick={() => copyText(content)} aria-label={t('ui.copy_content')}>
         <IoCopyOutline className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(setDisplayJson({ json, isExpand: true }))} aria-label="View details">
+      <button className="icon-action-btn" onClick={() => dispatch(setDisplayJson({ json, isExpand: true }))} aria-label={t('ui.view_details')}>
         <IoInformationCircleOutline className="icon-sm" />
       </button>
     </div>

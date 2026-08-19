@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { GrGroup } from 'react-icons/gr'
 import { IoCloseOutline } from 'react-icons/io5'
 import { MdOutlineVerifiedUser } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
 
 import AvatarImage from '../../components/AvatarImage'
 import AvatarName from '../../components/AvatarName'
@@ -20,10 +21,12 @@ import {
   ComposeMemberDel,
   CreateGroup,
   DeleteGroup,
-  AcceptGroupRequest
+  AcceptGroupRequest,
+  LoadGroupList
 } from '../../store/sagas/messenger'
 
 export default function TabGroup() {
+  const { t } = useTranslation()
   const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [showRequest, setShowRequest] = useState(false)
   const createGroupRef = useRef(null)
@@ -32,7 +35,7 @@ export default function TabGroup() {
   const [groupName, setGroupName] = useState('')
 
   const dispatch = useDispatch()
-  const { Address, ContactList } = useSelector(selectUserTabGroup)
+  const { Address, ContactList, activeTabSetting } = useSelector(selectUserTabGroup)
   const { GroupRequestList, ComposeMemberList, GroupList } = useSelector(selectGroupData)
 
   useEscapeKey(() => {
@@ -41,6 +44,12 @@ export default function TabGroup() {
   })
   useFocusTrap(createGroupRef)
   useFocusTrap(requestRef)
+
+  useEffect(() => {
+    if (activeTabSetting === SettingPageTab.Group) {
+      dispatch(LoadGroupList())
+    }
+  }, [dispatch, activeTabSetting])
 
   const addComposeMember = (address) => {
     dispatch(ComposeMemberAdd({ address }))
@@ -70,7 +79,7 @@ export default function TabGroup() {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.DelGroup,
-        Message: 'Delete this group? All messages will be removed.',
+        Message: t('setting.delete_group_confirm'),
         Result: false,
         Params: { Hash: hash }
       })
@@ -92,14 +101,14 @@ export default function TabGroup() {
               <button
                 onClick={() => setShowCreateGroup(false)}
                 className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
             </div>
             <div className="modal-content-area overflow-auto">
               <TextInput
-                label={'Group Name:'}
+                label={t('group.group_name')}
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value.trim())}
               />
@@ -168,7 +177,7 @@ export default function TabGroup() {
               <button
                 onClick={() => setShowRequest(false)}
                 className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-                aria-label="Close"
+                aria-label={t('common.close')}
               >
                 <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
               </button>
@@ -192,7 +201,12 @@ export default function TabGroup() {
                           <td className="table-cell">{request.name}</td>
                           <td className="table-cell">
                             <div className="mt-1 pl-1 flex flex-col justify-center items-center">
-                              <AvatarImage address={request.created_by} classNames={'avatar'} />
+                              <div className="group relative">
+                                <AvatarImage address={request.created_by} classNames={'avatar'} />
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs rounded bg-black/80 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                  {request.created_by}
+                                </div>
+                              </div>
                               <AvatarName address={request.created_by} />
                             </div>
                           </td>
@@ -200,7 +214,12 @@ export default function TabGroup() {
                             <div className="flex flex-wrap">
                               {request.member.map((member) => (
                                 <div key={member} className="mt-1 px-1 flex flex-col justify-center items-center">
-                                  <AvatarImage address={member} classNames={'avatar-sm'} />
+                                  <div className="group relative">
+                                    <AvatarImage address={member} classNames={'avatar-sm'} />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs rounded bg-black/80 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                      {member}
+                                    </div>
+                                  </div>
                                   <AvatarName address={member} classNames={'text-xs'} />
                                 </div>
                               ))}
@@ -225,8 +244,8 @@ export default function TabGroup() {
               ) : (
                 <EmptyState
                   icon={<MdOutlineVerifiedUser className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                  title="No group requests"
-                  description="Pending group invitations will appear here"
+                  title={t('ui.no_group_requests')}
+                  description={t('ui.pending_invitations')}
                   className="mx-auto max-w-sm mt-8"
                 />
               )}
@@ -237,11 +256,19 @@ export default function TabGroup() {
 
       <div className="mx-auto flex flex-col mt-4">
         <div className="card-title flex flex-row items-center">
-          {SettingPageTab.Group}
-          <button className="icon-action-btn" onClick={() => setShowCreateGroup(true)} aria-label="Create group">
+          {t('setting.tab_group')}
+          <button
+            className="icon-action-btn"
+            onClick={() => setShowCreateGroup(true)}
+            aria-label={t('common.create_group')}
+          >
             <GrGroup className="card-icon" />
           </button>
-          <button className="icon-action-btn" onClick={() => setShowRequest(true)} aria-label="View group requests">
+          <button
+            className="icon-action-btn"
+            onClick={() => setShowRequest(true)}
+            aria-label={t('common.view_group_requests')}
+          >
             <MdOutlineVerifiedUser className="card-icon" />
           </button>
         </div>
@@ -253,10 +280,10 @@ export default function TabGroup() {
                 <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                   <thead className="">
                     <tr className="table-header-row">
-                      <th>Group Name</th>
-                      <th>Created By</th>
-                      <th>Group Member</th>
-                      <th>Created At</th>
+                      <th>{t('setting.group_name')}</th>
+                      <th>{t('setting.created_by')}</th>
+                      <th>{t('setting.group_member')}</th>
+                      <th>{t('setting.created_at')}</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -266,7 +293,12 @@ export default function TabGroup() {
                         <td className="table-cell">{group.name}</td>
                         <td className="table-cell" title={group.created_by}>
                           <div className="mt-1 pl-1 flex flex-col justify-center items-center">
-                            <AvatarImage address={group.created_by} classNames={'avatar'} />
+                            <div className="group relative">
+                              <AvatarImage address={group.created_by} classNames={'avatar'} />
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs rounded bg-black/80 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                {group.created_by}
+                              </div>
+                            </div>
                             <AvatarName address={group.created_by} />
                           </div>
                         </td>
@@ -274,7 +306,12 @@ export default function TabGroup() {
                           <div className="flex flex-wrap">
                             {group.member.map((member) => (
                               <div key={member} className="mt-1 px-1 flex flex-col justify-center items-center">
-                                <AvatarImage address={member} classNames={'avatar-sm'} />
+                                <div className="group relative">
+                                  <AvatarImage address={member} classNames={'avatar-sm'} />
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs rounded bg-black/80 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                                    {member}
+                                  </div>
+                                </div>
                                 <AvatarName address={member} classNames={'text-xs'} />
                               </div>
                             ))}
@@ -286,13 +323,13 @@ export default function TabGroup() {
                         <td className="table-cell">
                           {group.delete_json !== null ? (
                             <div>
-                              Deleted <TextTimestamp timestamp={group.deleted_at} />
+                              {t('setting.deleted')} <TextTimestamp timestamp={group.deleted_at} />
                             </div>
                           ) : (
                             <div>
                               {group.created_by === Address && (
                                 <button className="btn-sm btn-danger" onClick={() => confirmDelGroup(group.hash)}>
-                                  Delete
+                                  {t('setting.delete')}
                                 </button>
                               )}
                             </div>
@@ -306,8 +343,8 @@ export default function TabGroup() {
             ) : (
               <EmptyState
                 icon={<GrGroup className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                title="No groups yet"
-                description="Groups you create or join will appear here"
+                title={t('ui.no_groups')}
+                description={t('ui.groups_you_create')}
                 className="mx-auto max-w-sm mt-8"
               />
             )}

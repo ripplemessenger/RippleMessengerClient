@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { open } from '@tauri-apps/plugin-dialog'
 import AvatarImage from '../../components/AvatarImage'
 import TextInput from '../../components/Form/TextInput'
@@ -15,6 +16,7 @@ import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
 const AvatarCropper = lazy(() => import('../../components/AvatarCropper'))
 
 export default function TabMe() {
+  const { t } = useTranslation()
   const [displayNickname, setDisplayNickname] = useState('')
   const [imageSrc, setImageSrc] = useState(null)
   const blobUrlRef = useRef(null)
@@ -81,7 +83,7 @@ export default function TabMe() {
     }
     if (confirmPopup?.Content === ConfirmContentOptions.CopySeed && confirmPopup?.Result) {
       navigator.clipboard.writeText(Seed).then(() => {
-        dispatch(setFlashNoticeMessage({ message: 'copy seed success', duration: FLASH_DURATION_MS }))
+        dispatch(setFlashNoticeMessage({ message: t('chat.copy_seed_success'), duration: FLASH_DURATION_MS }))
       })
       dispatch(setConfirmPopup(null))
     }
@@ -95,7 +97,7 @@ export default function TabMe() {
     }
   }, [])
 
-  const confirmDelAccount = (address) => {
+  const confirmDelAccount = (_address) => {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.RemoveAccount,
@@ -118,7 +120,7 @@ export default function TabMe() {
   return (
     <div className="tab-page">
       <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
-        <div className="card-title">{SettingPageTab.Me}</div>
+        <div className="card-title">{t('setting.tab_me')}</div>
         <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col items-center gap-4">
           {Address && (
             <AvatarImage
@@ -129,7 +131,7 @@ export default function TabMe() {
             />
           )}
           <TextInput
-            label={'Nickname:'}
+            label={t('ui.nickname')}
             value={displayNickname}
             autoComplete={'off'}
             placeholder={'Alice'}
@@ -141,11 +143,11 @@ export default function TabMe() {
             </Suspense>
           )}
           <button onClick={() => confirmCopySeed()} className="btn-primary btn-yellow">
-            Copy Seed
+            {t('auth.copy_seed')}
           </button>
           {showRemoveButton && (
             <button onClick={() => confirmDelAccount()} className="btn-primary btn-red">
-              Remove Account
+              {t('auth.remove_account')}
             </button>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { memo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseOutline } from 'react-icons/io5'
+import { useTranslation } from 'react-i18next'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { ForwardBulletin } from '../../store/sagas/messenger.actions'
@@ -10,6 +11,7 @@ import EmptyState from '../EmptyState'
 import { selectChatSessions } from '../../selectors'
 
 const BulletinForward = ({}) => {
+  const { t } = useTranslation()
   const sessionList = useSelector(selectChatSessions)
   const dispatch = useDispatch()
   const dialogRef = useRef(null)
@@ -33,7 +35,7 @@ const BulletinForward = ({}) => {
           <button
             onClick={() => dispatch(setForwardFlag(false))}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
@@ -51,7 +53,7 @@ const BulletinForward = ({}) => {
               ))}
             </div>
           ) : (
-            <EmptyState title="No sessions" description="Start a chat to forward bulletins" />
+            <EmptyState title={t('ui.no_sessions')} description={t('ui.start_conversation')} />
           )}
         </div>
       </div>

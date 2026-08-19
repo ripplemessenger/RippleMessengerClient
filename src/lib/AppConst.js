@@ -18,7 +18,7 @@ const SettingPageTab = {
   Me: 'Me',
   Contact: 'Contact',
   Group: 'Group',
-  MessengerNetwork: 'Messenger Network',
+  MessengerNetwork: 'Network',
   Storage: 'Storage',
   General: 'General'
 }

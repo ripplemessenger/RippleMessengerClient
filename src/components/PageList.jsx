@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useDispatch } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 
 const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   // Use ref for payload to avoid re-binding keyboard listener on every parent re-render
   // when payload is an inline object literal (new reference each render).
@@ -66,14 +68,14 @@ const PageList = ({ current_page, total_page, dispatch_type, payload }) => {
       {pages.map((item, idx) => {
         if (item.type === 'prev') {
           return (
-            <button key={`p-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page - 1)} aria-label="Previous page">
+            <button key={`p-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page - 1)} aria-label={t('common.previous_page')}>
               ‹
             </button>
           )
         }
         if (item.type === 'next') {
           return (
-            <button key={`n-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page + 1)} aria-label="Next page">
+            <button key={`n-${idx}`} className="page cursor-pointer px-2" onClick={() => goto(current_page + 1)} aria-label={t('common.next_page')}>
               ›
             </button>
           )

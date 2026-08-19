@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { MdPostAdd } from 'react-icons/md'
 
@@ -11,6 +12,7 @@ import { setPublishFlag } from '../store/slices/MessengerSlice'
 import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinAddressPage() {
+  const { t } = useTranslation()
   const Address = useSelector(selectUserAddress)
   const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(selectBulletinAddressData)
 
@@ -31,7 +33,7 @@ export default function BulletinAddressPage() {
           <>
             <AvatarName address={BulletinAddress} />
             {BulletinAddress === Address &&
-              <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label="Publish bulletin">
+              <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label={t('common.publish_bulletin')}>
                 <MdPostAdd className="card-icon" />
               </button>
             }

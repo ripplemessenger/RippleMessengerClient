@@ -219,11 +219,15 @@ export const selectGroupData = createSelector(
   })
 )
 
-// TabGroup — user profile fields needed by group tab (Address + ContactList)
-export const selectUserTabGroup = createSelector([selectUserAddress, selectContactList], (address, contacts) => ({
-  Address: address,
-  ContactList: contacts || []
-}))
+// TabGroup — user profile fields needed by group tab (Address + ContactList + activeTabSetting)
+export const selectUserTabGroup = createSelector(
+  [selectUserAddress, selectContactList, selectActiveTabSettingField],
+  (address, contacts, activeTab) => ({
+    Address: address,
+    ContactList: contacts || [],
+    activeTabSetting: activeTab
+  })
+)
 
 // TabMe — user profile fields (includes activeTabSetting since TabMe reads it too)
 export const selectUserTabMe = createSelector(

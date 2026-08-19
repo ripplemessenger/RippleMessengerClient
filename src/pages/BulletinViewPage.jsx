@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { FiMessageSquare } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
 
 import BulletinForward from '../components/Bulletin/BulletinForward'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
@@ -14,6 +15,7 @@ import { selectDisplayBulletins, selectPublishFlags } from '../selectors'
 import { LoadBulletin, RequestReplyBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinViewPage() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
 
   const bulletin_hash = searchParams.get('hash')
@@ -62,7 +64,7 @@ export default function BulletinViewPage() {
       {DisplayBulletinReplyList.length === 0 && !(!DisplayBulletin && bulletin_hash) && (
         <EmptyState
           icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-          title="No replies yet"
+          title={t('ui.no_replies')}
         />
       )}
       {!DisplayBulletin && bulletin_hash && (

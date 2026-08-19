@@ -1,5 +1,6 @@
 import { useCallback, lazy, useMemo, Suspense } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 
 import LoadingDiv from '../components/LoadingDiv'
 import { selectActiveTabSetting } from '../selectors'
@@ -22,6 +23,15 @@ const tabContentMap = {
   [SettingPageTab.Storage]: TabStorage
 }
 
+const tabLabelKeys = {
+  [SettingPageTab.General]: 'setting.tab_general',
+  [SettingPageTab.Me]: 'setting.tab_me',
+  [SettingPageTab.Contact]: 'setting.tab_contact',
+  [SettingPageTab.Group]: 'setting.tab_group',
+  [SettingPageTab.MessengerNetwork]: 'setting.tab_network',
+  [SettingPageTab.Storage]: 'setting.tab_storage'
+}
+
 /** Explicit tab order — prevents reordering when new tabs are added */
 const tabOrder = [
   SettingPageTab.General,
@@ -33,6 +43,7 @@ const tabOrder = [
 ]
 
 export default function SettingPage() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const activeTabSetting = useSelector(selectActiveTabSetting)
 
@@ -53,7 +64,7 @@ export default function SettingPage() {
                   : 'tab-title hover:text-text-primary/80 dark:hover:text-dark-text-primary/80'
               }`}
             >
-              {name}
+              {t(tabLabelKeys[name])}
             </button>
           ))}
         </div>

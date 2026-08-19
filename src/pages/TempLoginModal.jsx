@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { IoCloseOutline } from 'react-icons/io5'
+import { useTranslation } from 'react-i18next'
 
 import TextInput from '../components/Form/TextInput'
 
@@ -15,6 +16,7 @@ import TextInput from '../components/Form/TextInput'
  *   onSeedUpdate      - (value: string) => void  called onChange
  */
 export default function TempLoginModal({ displaySeed, tmpError, Seed, onClose, onSeedUpdate }) {
+  const { t } = useTranslation()
   const tmpSeedRef = useRef(null)
   const dialogRef = useRef(null)
 
@@ -25,11 +27,11 @@ export default function TempLoginModal({ displaySeed, tmpError, Seed, onClose, o
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div ref={dialogRef} className="max-w-md w-full mx-4 flex flex-col">
         <div className="modal-header-bar">
-          <span className={`label text-base`}>Tmp Open</span>
+          <span className={`label text-base`}>{t('auth.temporary_login')}</span>
           <button
             onClick={onClose}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <IoCloseOutline className="text-lg text-text-secondary dark:text-dark-text-secondary" />
           </button>
@@ -41,7 +43,7 @@ export default function TempLoginModal({ displaySeed, tmpError, Seed, onClose, o
                 <div className="mt-1">
                   <TextInput
                     ref={tmpSeedRef}
-                    label={'Your Seed:'}
+                    label={t('auth.your_seed')}
                     type="password"
                     value={displaySeed}
                     autoComplete={'off'}

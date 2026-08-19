@@ -4,6 +4,7 @@ import TextTimestamp from '../../components/TextTimestamp'
 import EmptyState from '../../components/EmptyState'
 import BulletinLink from '../../components/Bulletin/BulletinLink'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { getDB } from '../../db/core'
 import { dbAPI } from '../../db'
 import { selectFileManagementData } from '../../selectors'
@@ -36,19 +37,20 @@ function buildFileName(name, ext) {
 const ownershipTabs = [
   {
     value: 'owned',
-    label: 'Owned',
+    key: 'setting.owned',
     icon: <MdLock className="text-sm" />,
-    desc: 'Your data source — cannot be deleted'
+    descKey: 'setting.owned_desc'
   },
   {
     value: 'others',
-    label: "Others'",
+    key: 'setting.others',
     icon: <MdPublic className="text-sm" />,
-    desc: 'Downloaded cache — can be cleared to free space'
+    descKey: 'setting.others_desc'
   }
 ]
 
 export default function FileManagerPanel() {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const { list, page, totalPage, ownership } = useSelector(selectFileManagementData)
   const [currentFileType, setCurrentFileType] = useState('')
@@ -136,7 +138,7 @@ export default function FileManagerPanel() {
           <button
             key={tab.value}
             onClick={() => dispatch(LoadBulletinFileList({ ownership: tab.value, fileExt: currentFileType, page: 1 }))}
-            title={tab.desc}
+            title={t(tab.descKey)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
               ownership === tab.value
                 ? 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-dark-primary font-medium'
@@ -144,7 +146,7 @@ export default function FileManagerPanel() {
             }`}
           >
             {tab.icon}
-            {tab.label}
+            {t(tab.key)}
           </button>
         ))}
       </div>
@@ -196,11 +198,11 @@ export default function FileManagerPanel() {
                     )}
                   </th>
                   <th style={{ width: 40 }}>#</th>
-                  <th className="text-center">Name</th>
-                  <th style={{ width: 70 }}>Size</th>
-                  <th style={{ width: 60 }}>Refs</th>
-                  {!isOwnedTab && <th style={{ width: 80 }}>Status</th>}
-                  <th style={{ width: 128 }}>Timestamp</th>
+                  <th className="text-center">{t('setting.file_name')}</th>
+                  <th style={{ width: 70 }}>{t('setting.size')}</th>
+                  <th style={{ width: 60 }}>{t('setting.file_refs')}</th>
+                  {!isOwnedTab && <th style={{ width: 80 }}>{t('setting.status')}</th>}
+                  <th style={{ width: 128 }}>{t('setting.timestamp')}</th>
                   <th style={{ width: 82 }}></th>
                 </tr>
               </thead>
@@ -251,12 +253,15 @@ export default function FileManagerPanel() {
                           }`}
                           title={
                             item.is_saved
-                              ? 'Already saved'
-                              : `Downloaded ${item.chunk_cursor || 0}/${item.chunk_length} chunks — click to download`
+                              ? t('setting.already_saved')
+                              : t('setting.download_chunks', {
+                                  cursor: item.chunk_cursor || 0,
+                                  total: item.chunk_length
+                                })
                           }
                           onClick={() => handleSaveFile(item)}
                         >
-                          {item.is_saved ? 'Saved' : `${item.chunk_cursor || 0}/${item.chunk_length}`}
+                          {item.is_saved ? t('setting.saved') : `${item.chunk_cursor || 0}/${item.chunk_length}`}
                         </button>
                       </td>
                     )}
@@ -267,13 +272,13 @@ export default function FileManagerPanel() {
                       {isOwnedTab ? (
                         <span
                           className="text-xs text-text-secondary/50 dark:text-dark-text-secondary/50"
-                          title="Your data source — cannot be deleted"
+                          title={t('ui.your_data_source')}
                         >
                           🔒
                         </span>
                       ) : (
                         <button className="btn-sm btn-danger" onClick={() => handleDeleteOthersRef(item.hash)}>
-                          Delete
+                          {t('setting.delete')}
                         </button>
                       )}
                     </td>
@@ -308,9 +313,7 @@ export default function FileManagerPanel() {
           icon={<MdInsertDriveFile className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
           title={isOwnedTab ? 'No owned files' : 'No cached files'}
           description={
-            isOwnedTab
-              ? 'Files from your bulletins will appear here'
-              : "Downloaded files from others' bulletins will appear here"
+            isOwnedTab ? t('storage.files_from_bulletins') : "Downloaded files from others' bulletins will appear here"
           }
           className="mx-auto max-w-sm mt-8"
         />

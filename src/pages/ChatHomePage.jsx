@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
 import { FiMessageSquare } from 'react-icons/fi'
-import { GrGroup } from 'react-icons/gr'
 
 import AvatarImage from '../components/AvatarImage'
 import AvatarName from '../components/AvatarName'
@@ -18,6 +18,7 @@ import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { LoadCurrentSession, LoadSessionList, SendContent, SendFile } from '../store/sagas/messenger.actions'
 
 export default function ChatHomePage() {
+  const { t } = useTranslation()
   const containerRef = useRef(null)
   const dispatch = useDispatch()
   const SessionList = useSelector(selectChatSessions)
@@ -30,17 +31,22 @@ export default function ChatHomePage() {
 
   useEffect(() => {
     if (containerRef.current) {
-      requestAnimationFrame(() => { containerRef.current.scrollTop = containerRef.current.scrollHeight })
+      requestAnimationFrame(() => {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight
+      })
     }
   }, [CurrentSessionMessageList.length])
 
-  const send = useCallback((content) => {
-    if (content !== '') {
-      dispatch(SendContent({ content }))
-    } else {
-      dispatch(setFlashNoticeMessage({ message: 'content is empty...', duration: FLASH_DURATION_MS }))
-    }
-  }, [dispatch])
+  const send = useCallback(
+    (content) => {
+      if (content !== '') {
+        dispatch(SendContent({ content }))
+      } else {
+        dispatch(setFlashNoticeMessage({ message: t('chat.content_empty'), duration: FLASH_DURATION_MS }))
+      }
+    },
+    [dispatch]
+  )
 
   const browseFile = useCallback(async () => {
     const file_path = await open({ multiple: false, directory: false })
@@ -49,33 +55,40 @@ export default function ChatHomePage() {
     }
   }, [dispatch])
 
-  const handleSessionClick = useCallback((session) => {
-    dispatch(LoadCurrentSession(session))
-  }, [dispatch])
+  const handleSessionClick = useCallback(
+    (session) => {
+      dispatch(LoadCurrentSession(session))
+    },
+    [dispatch]
+  )
 
   return (
     <div className="p-4 mt-2 rounded-xl bg-gradient-card dark:bg-dark-gradient-card border border-primary/20 dark:border-primary/30 overflow-hidden h-full flex flex-row">
       <ErrorBoundary fallbackTitle="Chat Error">
         {/* Left — session list */}
-        <div className='w-1/4 h-full flex flex-col border-r border-primary/10 dark:border-primary/20 pr-3'>
+        <div className="w-1/4 h-full flex flex-col border-r border-primary/10 dark:border-primary/20 pr-3">
           <div className="overflow-y-auto flex-1">
             {SessionList.length === 0 ? (
               <EmptyState
                 icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                title="No sessions yet"
-                description="Start a conversation with a contact"
+                title={t('ui.no_sessions')}
+                description={t('ui.start_conversation')}
                 className="my-6"
               />
             ) : (
               SessionList.map((session) => (
-                <ListSession key={session.address || session.hash || session.remote} session={session} onSessionClick={handleSessionClick} />
+                <ListSession
+                  key={session.address || session.hash || session.remote}
+                  session={session}
+                  onSessionClick={handleSessionClick}
+                />
               ))
             )}
           </div>
         </div>
 
         {/* Right — chat area */}
-        <div className='w-3/4 h-full flex flex-col pl-4 min-w-0'>
+        <div className="w-3/4 h-full flex flex-col pl-4 min-w-0">
           {CurrentSession ? (
             CurrentSession.type === SessionType.Private ? (
               <div className="flex flex-col h-full">
@@ -85,15 +98,17 @@ export default function ChatHomePage() {
                   <AvatarName address={CurrentSession.remote} />
                 </div>
                 {/* Messages — fills remaining, scrolls when too tall */}
-                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col">
+                <div
+                  ref={containerRef}
+                  id="MessageListContainer"
+                  className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col"
+                >
                   {CurrentSessionMessageList.length > 0 ? (
-                    CurrentSessionMessageList.map((msg) => (
-                      <MessageCard key={msg.hash} message={msg} mode="private" />
-                    ))
+                    CurrentSessionMessageList.map((msg) => <MessageCard key={msg.hash} message={msg} mode="private" />)
                   ) : (
                     <EmptyState
                       icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                      title="No messages yet"
+                      title={t('ui.no_messages')}
                       className="h-full"
                     />
                   )}
@@ -109,19 +124,44 @@ export default function ChatHomePage() {
               </div>
             ) : (
               <div className="flex flex-col h-full">
-                <div className="card-title flex flex-row items-center shrink-0" title={CurrentSession.hash}>
-                  <GrGroup className="session-icon" />
+                <div className="card-title flex flex-row items-center shrink-0 gap-1" title={CurrentSession.hash}>
                   <SessionName name={CurrentSession.name} />
+                  {CurrentSession.member && CurrentSession.member.length > 0 && (
+                    <div className="flex items-center ml-auto gap-0.5">
+                      {CurrentSession.member.map((memberAddr) => (
+                        <div key={memberAddr} className="group relative">
+                          <AvatarImage
+                            address={memberAddr}
+                            classNames={'avatar-xs'}
+                            onClick={() => {
+                              navigator.clipboard.writeText(memberAddr)
+                              dispatch(
+                                setFlashNoticeMessage({
+                                  message: `${t('ui.copied_to_clipboard')} ${memberAddr.slice(0, 8)}...`,
+                                  duration: FLASH_DURATION_MS
+                                })
+                              )
+                            }}
+                          />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs rounded bg-black/80 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                            {memberAddr}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div ref={containerRef} id='MessageListContainer' className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col">
+                <div
+                  ref={containerRef}
+                  id="MessageListContainer"
+                  className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col"
+                >
                   {CurrentSessionMessageList.length > 0 ? (
-                    CurrentSessionMessageList.map((msg) => (
-                      <MessageCard key={msg.hash} message={msg} mode="group" />
-                    ))
+                    CurrentSessionMessageList.map((msg) => <MessageCard key={msg.hash} message={msg} mode="group" />)
                   ) : (
                     <EmptyState
                       icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-                      title="No messages yet"
+                      title={t('ui.no_messages')}
                       className="h-full"
                     />
                   )}
@@ -132,7 +172,7 @@ export default function ChatHomePage() {
           ) : (
             <EmptyState
               icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-              title="Never talk to stranger..."
+              title={t('ui.never_talk')}
               className="flex flex-col items-center justify-center h-full"
             />
           )}

@@ -1,18 +1,20 @@
 import { useSelector } from 'react-redux'
 import { IoStar } from 'react-icons/io5'
+import { useTranslation } from 'react-i18next'
 
 import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { selectBookmarkBulletins } from '../selectors'
 import { useBulletinLoad } from '../hooks/useBulletinLoad'
 
 export default function BookmarkAddressPage() {
+  const { t } = useTranslation()
   useBulletinLoad('LoadBookmarkBulletin', { page: 1 })
 
   const { list: BookmarkBulletinList, page: BookmarkBulletinPage, totalPage: BookmarkBulletinTotalPage } = useSelector(selectBookmarkBulletins)
 
   return (
     <BulletinListPage
-      title="Bookmark"
+      title={t('common.bookmark')}
       bulletins={BookmarkBulletinList}
       bulletinData={{ page: BookmarkBulletinPage, totalPage: BookmarkBulletinTotalPage }}
       pageListType={'LoadBookmarkBulletin'}
@@ -21,7 +23,7 @@ export default function BookmarkAddressPage() {
       showEmpty
       emptyIcon={<IoStar className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
       emptyTitle="No bookmarked bulletins"
-      emptyDescription="Bookmark bulletins to save them here"
+      emptyDescription={t('ui.bookmark_bulletins')}
     />
   )
 }

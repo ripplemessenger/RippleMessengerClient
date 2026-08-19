@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { HiHashtag } from 'react-icons/hi2'
 
 import TextInput from '../components/Form/TextInput'
@@ -11,10 +12,13 @@ import { setSearchTagList } from '../store/slices/MessengerSlice'
 import { RequestTagBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinTagPage() {
+  const { t } = useTranslation()
   const [tag, setTag] = useState('')
 
   const Address = useSelector(selectUserAddress)
-  const { MessengerConnStatus, TagBulletinList, TagBulletinPage, TagBulletinTotalPage, SearchTagList } = useSelector(state => state.Messenger)
+  const { MessengerConnStatus, TagBulletinList, TagBulletinPage, TagBulletinTotalPage, SearchTagList } = useSelector(
+    (state) => state.Messenger
+  )
 
   const dispatch = useDispatch()
 
@@ -54,14 +58,15 @@ export default function BulletinTagPage() {
         />
       }
       extraContent={
-        SearchTagList.length > 0 &&
-        <div className='flex flex-wrap'>
-          {SearchTagList.map((tag) => (
-            <div key={tag} className='mt-1 px-1'>
-              <SearchTagItem tag={tag} />
-            </div>
-          ))}
-        </div>
+        SearchTagList.length > 0 && (
+          <div className="flex flex-wrap">
+            {SearchTagList.map((tag) => (
+              <div key={tag} className="mt-1 px-1">
+                <SearchTagItem tag={tag} />
+              </div>
+            ))}
+          </div>
+        )
       }
       bulletins={TagBulletinList}
       bulletinData={{ page: TagBulletinPage, totalPage: TagBulletinTotalPage }}
@@ -70,8 +75,8 @@ export default function BulletinTagPage() {
       wrapperStyle={'card'}
       showEmpty
       emptyIcon={<HiHashtag className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-      emptyTitle="No tagged bulletins"
-      emptyDescription="Bulletin tags will appear here"
+      emptyTitle={t('page.no_tagged_bulletins')}
+      emptyDescription={t('page.tags_will_appear')}
     />
   )
 }
