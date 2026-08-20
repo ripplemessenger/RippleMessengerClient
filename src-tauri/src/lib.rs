@@ -294,10 +294,7 @@ pub fn run() {
                 .level_for("sqlx::query", LevelFilter::Off)
                 .level_for("sqlx::sqlite", LevelFilter::Off)
                 .targets([Target::new(TargetKind::LogDir { file_name: None })])
-                .rotation_strategy(RotationStrategy::Size {
-                    max_file_size: 5 * 1024 * 1024,
-                    keep: 5,
-                })
+                .rotation_strategy(RotationStrategy::KeepSome(5))
                 .build(),
         )
         .plugin(tauri_plugin_sql::Builder::new().build())
