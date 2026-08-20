@@ -232,7 +232,8 @@
     "group_msgs": "群聊消息"
   },
   "group": {
-    "group_name": "群组名称:"
+    "group_name": "群组名称:",
+    "deleted": "该群已被删除，无法发送消息"
   },
   "network": {
     "url": "URL:"

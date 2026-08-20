@@ -6,6 +6,7 @@ const ec = new Elliptic.ec('secp256k1')
 
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
+import { LoadCurrentSession, SendContent } from './MessengerSaga'
 import { dbAPI } from '../../db'
 import { FLASH_DURATION_MS, SessionType, DefaultPartition } from '../../lib/AppConst'
 import { AesEncrypt, ConsoleError, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
@@ -14,12 +15,26 @@ import { mgAPI } from '../../lib/MessageGenerator'
 import { GenesisHash } from '../../lib/MessengerConst'
 import { DHSequence } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
-import { setCurrentSession, setCurrentSessionMessageList, setForwardBulletin, setForwardFlag } from '../slices/MessengerSlice'
+import {
+  setCurrentSession,
+  setCurrentSessionMessageList,
+  setForwardBulletin,
+  setForwardFlag
+} from '../slices/MessengerSlice'
+
+/**
+ * Throttle for SyncPrivateMessage: prevents the same (local, remote, selfSeq, pairSeq)
+ * request from being re-sent in a tight loop. If chain validation keeps misfiring
+ * (e.g. a regression in the per-direction last_msg logic), this caps the storm at
+ * one request per 5s per peer instead of an unbounded flood.
+ */
+const syncThrottle = new Map()
+const SYNC_THROTTLE_MS = 5000
 
 /** Sync private message state with the remote peer via the server. */
 export function* SyncPrivateMessage({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
@@ -36,7 +51,21 @@ export function* SyncPrivateMessage({ payload }) {
       pair_sequence = current_pair_msg.sequence
     }
 
-    const private_sync_request = yield call(() => mgAPI.genPrivateMessageSync(seed, payload.remote, pair_sequence, self_sequence))
+    // Throttle: skip if the identical request was already sent recently.
+    // The infinite-loop bug always re-sends the SAME self/pair sequence, so this
+    // breaks the storm; a legitimate re-sync (after new messages land) has different
+    // sequences and passes through.
+    const throttleKey = `${payload.local}:${payload.remote}`
+    const now = Date.now()
+    const last = syncThrottle.get(throttleKey)
+    if (last && last.selfSeq === self_sequence && last.pairSeq === pair_sequence && now - last.ts < SYNC_THROTTLE_MS) {
+      return
+    }
+    syncThrottle.set(throttleKey, { selfSeq: self_sequence, pairSeq: pair_sequence, ts: now })
+
+    const private_sync_request = yield call(() =>
+      mgAPI.genPrivateMessageSync(seed, payload.remote, pair_sequence, self_sequence)
+    )
     yield call(SendMessage, { key: payload.key, msg: private_sync_request })
   } catch (e) {
     Logger.error('[SyncPrivateMessage] failed:', e.message)
@@ -47,10 +76,9 @@ export function* SyncPrivateMessage({ payload }) {
  * After Declare completes, silently sync private messages with ALL friends.
  * Runs in the background via fork — does not block WebSocket listener.
  */
-const AUTO_SYNC_IN_PROGRESS = { flag: false }
 export function* AutoSyncPrivateMessages() {
   try {
-    const self_address = yield select(state => state.User.Address)
+    const self_address = yield select((state) => state.User.Address)
     if (!self_address) {
       return
     }
@@ -63,7 +91,9 @@ export function* AutoSyncPrivateMessages() {
     Logger.info(`[AutoSyncPrivateMessages] syncing ${friends.length} contacts...`)
     // Fork all syncs concurrently — they're fire-and-forget;
     // incoming messages will be handled by processPrivateMessage normally.
-    yield all(friends.map(f => () => fork(SyncPrivateMessage, { payload: { local: self_address, remote: f.remote } })))
+    yield all(
+      friends.map((f) => () => fork(SyncPrivateMessage, { payload: { local: self_address, remote: f.remote } }))
+    )
 
     // Give server time to return synced messages (they arrive as normal WS messages)
     // Then refresh session list so badges reflect newly received unread counts.
@@ -77,11 +107,11 @@ export function* AutoSyncPrivateMessages() {
 /** Initiate an ECDH handshake with a peer. */
 export function* InitHandshake(payload) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const self_address = yield select(state => state.User.Address)
+    const self_address = yield select((state) => state.User.Address)
     if (payload.pair_address === self_address) {
       return
     }
@@ -89,8 +119,28 @@ export function* InitHandshake(payload) {
     const ecdh_sk = HalfSHA512(GenesisHash + seed + self_address + payload.ecdh_sequence)
     const key_pair = ec.keyFromPrivate(ecdh_sk, 'hex')
     const ecdh_pk = key_pair.getPublic('hex')
-    const self_json = yield call(() => mgAPI.genECDHHandshake(seed, DefaultPartition, payload.ecdh_sequence, ecdh_pk, '', payload.pair_address, timestamp))
-    yield call(() => dbAPI.initHandshakeFromLocal(self_address, payload.pair_address, DefaultPartition, payload.ecdh_sequence, ecdh_sk, ecdh_pk, self_json))
+    const self_json = yield call(() =>
+      mgAPI.genECDHHandshake(
+        seed,
+        DefaultPartition,
+        payload.ecdh_sequence,
+        ecdh_pk,
+        '',
+        payload.pair_address,
+        timestamp
+      )
+    )
+    yield call(() =>
+      dbAPI.initHandshakeFromLocal(
+        self_address,
+        payload.pair_address,
+        DefaultPartition,
+        payload.ecdh_sequence,
+        ecdh_sk,
+        ecdh_pk,
+        self_json
+      )
+    )
     yield fork(SendMessage, { msg: JSON.stringify(self_json) })
   } catch (e) {
     Logger.error('[InitHandshake] failed with', payload.pair_address, e.message)
@@ -100,11 +150,11 @@ export function* InitHandshake(payload) {
 /** Load a private chat session, establishing ECDH if needed. */
 export function* LoadPrivateSession({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
-    const self_address = yield select(state => state.User.Address)
+    const self_address = yield select((state) => state.User.Address)
     let timestamp = Date.now()
     const pair_address = payload.address
     const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, pair_address)
@@ -122,8 +172,12 @@ export function* LoadPrivateSession({ payload }) {
       }
     }
 
-    let current_msg = yield call(() => dbAPI.getPrivateSession(self_address, pair_address))
-    current_msg = current_msg && current_msg.length > 0 ? current_msg[current_msg.length - 1] : null
+    // Must use getLastPrivateMessage (single direction: self→remote) to get the
+    // correct chain tip. getPrivateSession returns BOTH directions mixed together;
+    // if the remote's last message (remote→self) is more recent, its sequence/hash
+    // would be used as the starting point for self→remote, producing a wrong seq
+    // and PreHash that breaks the hash chain.
+    let current_msg = yield call(() => dbAPI.getLastPrivateMessage(self_address, pair_address))
     if (current_msg !== null) {
       session.current_sequence = current_msg.sequence
       session.current_hash = current_msg.hash
@@ -143,13 +197,13 @@ export function* LoadPrivateSession({ payload }) {
 /** Send a message in the current private chat session. */
 export function* SendPrivateContent({ payload }) {
   try {
-    const seed = yield select(state => state.User.Seed)
+    const seed = yield select((state) => state.User.Seed)
     if (!seed) {
       return
     }
     let timestamp = Date.now()
-    const self_address = yield select(state => state.User.Address)
-    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    const self_address = yield select((state) => state.User.Address)
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     if (!CurrentSession) {
       return
     }
@@ -157,11 +211,18 @@ export function* SendPrivateContent({ payload }) {
     if (CurrentSession.aes_key !== undefined) {
       let content = AesEncrypt(payload.content, CurrentSession.aes_key)
 
-      const last_confirmed_msg = yield call(() => dbAPI.getLastConfirmPrivateMessage(CurrentSession.remote, self_address))
-      const last_unconfirmed_msg = yield call(() => dbAPI.getLastUnconfirmPrivateMessage(CurrentSession.remote, self_address))
+      const last_confirmed_msg = yield call(() =>
+        dbAPI.getLastConfirmPrivateMessage(CurrentSession.remote, self_address)
+      )
+      const last_unconfirmed_msg = yield call(() =>
+        dbAPI.getLastUnconfirmPrivateMessage(CurrentSession.remote, self_address)
+      )
       let to_confirm_msg = null
 
-      if (last_unconfirmed_msg !== null && (last_confirmed_msg === null || last_unconfirmed_msg.sequence > last_confirmed_msg.sequence)) {
+      if (
+        last_unconfirmed_msg !== null &&
+        (last_confirmed_msg === null || last_unconfirmed_msg.sequence > last_confirmed_msg.sequence)
+      ) {
         to_confirm_msg = {
           Sequence: last_unconfirmed_msg.sequence,
           Hash: last_unconfirmed_msg.hash
@@ -172,9 +233,34 @@ export function* SendPrivateContent({ payload }) {
         yield call(() => dbAPI.confirmPrivateMessage(to_confirm_msg.Hash))
       }
 
-      const msg_json = yield call(() => mgAPI.genPrivateMessage(seed, CurrentSession.current_sequence + 1, CurrentSession.current_hash, to_confirm_msg, content, CurrentSession.remote, timestamp))
+      const msg_json = yield call(() =>
+        mgAPI.genPrivateMessage(
+          seed,
+          CurrentSession.current_sequence + 1,
+          CurrentSession.current_hash,
+          to_confirm_msg,
+          content,
+          CurrentSession.remote,
+          timestamp
+        )
+      )
       let hash = QuarterSHA512Message(msg_json)
-      yield call(() => dbAPI.addPrivateMessage(hash, self_address, CurrentSession.remote, CurrentSession.current_sequence + 1, CurrentSession.current_hash, payload.content, msg_json, timestamp, false, false, true, typeof payload.content === 'object'))
+      yield call(() =>
+        dbAPI.addPrivateMessage(
+          hash,
+          self_address,
+          CurrentSession.remote,
+          CurrentSession.current_sequence + 1,
+          CurrentSession.current_hash,
+          payload.content,
+          msg_json,
+          timestamp,
+          false,
+          false,
+          true,
+          typeof payload.content === 'object'
+        )
+      )
 
       let tmp_session = { ...CurrentSession }
       tmp_session.current_sequence = CurrentSession.current_sequence + 1
@@ -194,11 +280,11 @@ export function* SendPrivateContent({ payload }) {
 
 export function* RefreshPrivateMessageList() {
   try {
-    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     if (!CurrentSession) {
       return
     }
-    const self_address = yield select(state => state.User.Address)
+    const self_address = yield select((state) => state.User.Address)
     const current_msg_list = yield call(() => dbAPI.getPrivateSession(self_address, CurrentSession.remote))
     yield put(setCurrentSessionMessageList(current_msg_list))
   } catch (e) {
@@ -214,9 +300,9 @@ export function* ShowForwardBulletin({ payload }) {
 export function* ForwardBulletin({ payload }) {
   try {
     yield put(setForwardFlag(false))
-    yield call(LoadPrivateSession, { payload: payload.session })
-    const forward_bulletin = yield select(state => state.Messenger.ForwardBulletin)
-    yield call(SendPrivateContent, {
+    yield call(LoadCurrentSession, { payload: payload.session })
+    const forward_bulletin = yield select((state) => state.Messenger.ForwardBulletin)
+    yield call(SendContent, {
       payload: {
         content: forward_bulletin
       }

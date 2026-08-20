@@ -199,7 +199,7 @@ export default function TabGroup() {
                       {GroupRequestList.map((request) => (
                         <tr key={request.hash} className="table-tr">
                           <td className="table-cell">{request.name}</td>
-                          <td className="table-cell">
+                          <td className="table-cell min-w-[100px]">
                             <div className="mt-1 pl-1 flex flex-col justify-center items-center">
                               <div className="group relative">
                                 <AvatarImage address={request.created_by} classNames={'avatar'} />
@@ -291,7 +291,7 @@ export default function TabGroup() {
                     {GroupList.map((group) => (
                       <tr key={group.hash} className="table-tr">
                         <td className="table-cell">{group.name}</td>
-                        <td className="table-cell" title={group.created_by}>
+                        <td className="table-cell min-w-[100px]" title={group.created_by}>
                           <div className="mt-1 pl-1 flex flex-col justify-center items-center">
                             <div className="group relative">
                               <AvatarImage address={group.created_by} classNames={'avatar'} />

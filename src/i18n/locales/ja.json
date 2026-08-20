@@ -232,7 +232,8 @@
     "group_msgs": "グループメッセージ"
   },
   "group": {
-    "group_name": "グループ名:"
+    "group_name": "グループ名:",
+    "deleted": "このグループは削除されたため、メッセージを送信できません"
   },
   "network": {
     "url": "URL:"

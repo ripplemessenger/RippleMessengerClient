@@ -9,15 +9,24 @@ import { setForwardFlag } from '../../store/slices/MessengerSlice'
 import ListSession from '../Chat/ListSession'
 import EmptyState from '../EmptyState'
 import { selectChatSessions } from '../../selectors'
+import { SessionType } from '../../lib/AppConst'
 
 const BulletinForward = ({}) => {
   const { t } = useTranslation()
   const sessionList = useSelector(selectChatSessions)
+  const groupList = useSelector((state) => state.Messenger.GroupList)
   const dispatch = useDispatch()
   const dialogRef = useRef(null)
 
   useEscapeKey(() => dispatch(setForwardFlag(false)))
   useFocusTrap(dialogRef)
+
+  // Exclude deleted groups from the forwarding list (history viewing is unaffected)
+  const forwardableSessions = sessionList.filter((session) => {
+    if (session.type !== SessionType.Group) return true
+    const group = groupList.find((g) => g.hash === session.hash)
+    return !group || group.delete_json === null
+  })
 
   const forward = (session) => {
     dispatch(
@@ -41,9 +50,9 @@ const BulletinForward = ({}) => {
           </button>
         </div>
         <div className="modal-content-area">
-          {sessionList.length > 0 ? (
+          {forwardableSessions.length > 0 ? (
             <div className="flex flex-wrap">
-              {sessionList.map((session) => (
+              {forwardableSessions.map((session) => (
                 <div
                   key={`${session.type}-${session.address || session.name}`}
                   className="text-xs text-text-primary dark:text-dark-text-primary mt-1 p-1"

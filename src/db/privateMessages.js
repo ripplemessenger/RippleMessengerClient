@@ -77,20 +77,44 @@ export const api = {
     )
   },
 
-  async addPrivateMessage(hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object) {
+  async addPrivateMessage(
+    hash,
+    sour,
+    dest,
+    sequence,
+    pre_hash,
+    content,
+    json,
+    signed_at,
+    is_confirmed,
+    is_marked,
+    is_readed,
+    is_object
+  ) {
     const db = await getDB()
     await db.execute(
       'INSERT INTO private_messages (hash, sour, dest, sequence, pre_hash, content, json, signed_at, is_confirmed, is_marked, is_readed, is_object, object_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
-      [hash, sour, dest, sequence, pre_hash, is_object ? JSON.stringify(content) : content, JSON.stringify(json), signed_at, Bool2Int(is_confirmed), Bool2Int(is_marked), Bool2Int(is_readed), Bool2Int(is_object), is_object ? content.ObjectType : MessageObjectType.NotObject]
+      [
+        hash,
+        sour,
+        dest,
+        sequence,
+        pre_hash,
+        is_object ? JSON.stringify(content) : content,
+        JSON.stringify(json),
+        signed_at,
+        Bool2Int(is_confirmed),
+        Bool2Int(is_marked),
+        Bool2Int(is_readed),
+        Bool2Int(is_object),
+        is_object ? content.ObjectType : MessageObjectType.NotObject
+      ]
     )
     return true
   },
 
   async confirmPrivateMessage(hash) {
     const db = await getDB()
-    await db.execute(
-      'UPDATE private_messages SET is_confirmed = $1 WHERE hash = $2',
-      [Bool2Int(true), hash]
-    )
-  },
+    await db.execute('UPDATE private_messages SET is_confirmed = $1 WHERE hash = $2', [Bool2Int(true), hash])
+  }
 }

@@ -216,7 +216,7 @@ export async function initDB() {
       object_type INTEGER DEFAULT 0
     );`)
 
-    await dbInstance.execute("PRAGMA foreign_keys = ON;");
+    await dbInstance.execute('PRAGMA foreign_keys = ON;')
   } catch (error) {
     Logger.error('db.initDB', error)
   }

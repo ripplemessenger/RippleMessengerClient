@@ -11,17 +11,20 @@ const Badge = ({ count = 0 }) => {
   const badgeText = count > 9999 ? '9999+' : String(count)
 
   const badgeWidthClass =
-    badgeText.length === 1 ? 'min-w-5' :
-      badgeText.length === 2 ? 'min-w-6' :
-        badgeText.length === 3 ? 'min-w-7' :
-          'min-w-8'
+    badgeText.length === 1
+      ? 'min-w-5'
+      : badgeText.length === 2
+        ? 'min-w-6'
+        : badgeText.length === 3
+          ? 'min-w-7'
+          : 'min-w-8'
 
   return (
     <div
       className={`
         absolute -bottom-1 -right-1
         flex items-center justify-center
-        bg-primary text-white text-xs font-bold
+        bg-red-500 text-white text-xs font-bold
         rounded-full border-2 border-surface dark:border-dark-surface
         shadow-gold
         ${badgeWidthClass}

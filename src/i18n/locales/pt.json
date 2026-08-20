@@ -232,7 +232,8 @@
     "group_msgs": "Msg. de grupo"
   },
   "group": {
-    "group_name": "Nome do grupo:"
+    "group_name": "Nome do grupo:",
+    "deleted": "Este grupo foi excluído, o envio está desabilitado"
   },
   "network": {
     "url": "URL:"

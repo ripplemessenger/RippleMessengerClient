@@ -942,9 +942,14 @@ function* processPrivateMessage(json, address, ob_address) {
       is_read = true
     }
 
-    const session_msgs = yield call(() => dbAPI.getPrivateSession(address, remote))
-    let last_msg =
-      session_msgs && session_msgs.length > 0 ? session_msgs.reduce((a, b) => (a.sequence > b.sequence ? a : b)) : null
+    // Chain validation must compare against the LAST message in the SAME direction
+    // as the incoming message (ob_address -> json.To). Private messages form TWO
+    // independent hash-chains (A->B and B->A), each numbered from 1. Taking the max
+    // sequence across BOTH directions (the old getPrivateSession + reduce) mixed the
+    // two chains, so a message from one direction whose sequence exceeded the other
+    // direction's max+1 was misread as a "gap" and re-triggered SyncPrivateMessage
+    // in an infinite loop.
+    let last_msg = yield call(() => dbAPI.getLastPrivateMessage(ob_address, json.To))
     let add_result = false
     if (last_msg === null || json.Sequence === 1) {
       if (json.Sequence === 1 && json.PreHash === GenesisHash) {
@@ -1046,6 +1051,8 @@ function* handleGroupListObject(json, address) {
       } else if (group_json.ObjectType === ObjectType.GroupDelete && VerifyJsonSignature(group_json)) {
         if (db_g !== null) {
           yield call(() => dbAPI.updateGroupDelete(group_json.Hash, group_json))
+          yield call(LoadSessionList)
+          yield call(LoadGroupList)
         }
       }
     }
@@ -1082,7 +1089,7 @@ function* handleGroupMessageListObject(json, address, seed) {
       const group_msg = json.List[i]
       const msg_address = rippleKeyPairs.deriveAddress(group_msg.PublicKey)
       const pre_message = yield call(() => dbAPI.getGroupMessageByHash(json.GroupHash, group_msg.PreHash))
-      if (pre_message === undefined && !(group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
+      if (pre_message === null && !(group_msg.Sequence === 1 && group_msg.PreHash === GenesisHash)) {
         unCachedMessageAddress.push(msg_address)
         continue
       }
@@ -1113,6 +1120,16 @@ function* handleGroupMessageListObject(json, address, seed) {
       }
 
       if (!VerifyJsonSignature(verify_json)) continue
+
+      // Confirm 缺口检测：该消息见证发送方持有 Confirm.Address 的 seq N，
+      // 若本地该成员的链比 N 短，说明我们缺消息 → 加入补拉名单
+      if (verify_json.Confirm && verify_json.Confirm.Address !== address) {
+        const confirm_addr = verify_json.Confirm.Address
+        const last_local = yield call(() => dbAPI.getMemberLastGroupMessage(json.GroupHash, confirm_addr))
+        if (last_local === null || last_local.sequence < verify_json.Confirm.Sequence) {
+          unCachedMessageAddress.push(confirm_addr)
+        }
+      }
 
       const hash = QuarterSHA512Message(verify_json)
       if (
@@ -1182,7 +1199,7 @@ function* handleGroupMessageListObject(json, address, seed) {
 }
 
 // ---------- Object message dispatcher ----------
-function* handleObjectMessage(json, action, address, seed) {
+function* handleObjectMessage(json, _action, address, seed) {
   try {
     if (json.ObjectType === ObjectType.Bulletin) {
       yield call(handleBulletinObject, json)

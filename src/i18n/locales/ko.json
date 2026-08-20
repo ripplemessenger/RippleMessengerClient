@@ -232,7 +232,8 @@
     "group_msgs": "그룹 메시지"
   },
   "group": {
-    "group_name": "그룹 이름:"
+    "group_name": "그룹 이름:",
+    "deleted": "이 그룹은 삭제되어 메시지를 보낼 수 없습니다"
   },
   "network": {
     "url": "URL:"

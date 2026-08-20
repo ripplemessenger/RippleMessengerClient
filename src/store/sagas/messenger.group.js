@@ -1,15 +1,17 @@
-import { all, call, fork, put, select } from 'redux-saga/effects'
+import { all, call, delay, fork, put, select } from 'redux-saga/effects'
 
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
 import { dbAPI } from '../../db'
-import { DefaultPartition, SessionType } from '../../lib/AppConst'
+import { DefaultPartition, SessionType, FLASH_DURATION_MS } from '../../lib/AppConst'
 import { AesEncrypt, QuarterSHA512Message } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { GenesisHash, ObjectType, GroupMemberMax } from '../../lib/MessengerConst'
 import { DHSequence } from '../../lib/MessengerUtil'
 import { setCurrentSession, setCurrentSessionMessageList, setComposeMemberList } from '../slices/MessengerSlice'
+import { setFlashNoticeMessage } from '../slices/CommonSlice'
+import i18n from '../../i18n'
 
 export function* RefreshGroupMessageList() {
   try {
@@ -90,21 +92,52 @@ function* SendGroupMessageToMember(group_hash, self_address, member, msg_json, s
     }
     const tmp_msg_json = JSON.parse(JSON.stringify(msg_json))
     const ecdh_sequence = DHSequence(DefaultPartition, timestamp, self_address, member)
-    const ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+    let ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+
     if (ecdh === null) {
+      Logger.info('[SendGroupMessageToMember] no ECDH, initiating handshake for', member)
       yield call(InitHandshake, { ecdh_sequence, pair_address: member })
+      // Wait for handshake to complete (up to 3 seconds)
+      for (let retry = 0; retry < 6; retry++) {
+        yield call(delay, 500)
+        ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+        if (ecdh && ecdh.aes_key) {
+          Logger.info('[SendGroupMessageToMember] handshake ready for', member, 'after', retry + 1, 'retries')
+          break
+        }
+      }
+      if (!ecdh || !ecdh.aes_key) {
+        Logger.error('[SendGroupMessageToMember] handshake timeout for', member)
+        return
+      }
     } else if (ecdh.aes_key === null) {
+      Logger.info('[SendGroupMessageToMember] aes_key null, sending handshake for', member)
       yield fork(SendMessage, { msg: JSON.stringify(ecdh.self_json) })
-    } else {
-      const encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
-      tmp_msg_json.Content = encrypt_content
-      delete tmp_msg_json['ObjectType']
-      delete tmp_msg_json['GroupHash']
-      const group_msg_list_json = yield call(() =>
-        mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp)
-      )
-      yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
+      // Wait for handshake response (up to 3 seconds)
+      for (let retry = 0; retry < 6; retry++) {
+        yield call(delay, 500)
+        ecdh = yield call(() => dbAPI.getHandshake(self_address, member, DefaultPartition, ecdh_sequence))
+        if (ecdh && ecdh.aes_key) {
+          Logger.info('[SendGroupMessageToMember] handshake ready for', member, 'after', retry + 1, 'retries')
+          break
+        }
+      }
+      if (!ecdh || !ecdh.aes_key) {
+        Logger.error('[SendGroupMessageToMember] handshake timeout for', member)
+        return
+      }
     }
+
+    Logger.info('[SendGroupMessageToMember] sending to', member)
+    const encrypt_content = AesEncrypt(tmp_msg_json.Content, ecdh.aes_key)
+    tmp_msg_json.Content = encrypt_content
+    delete tmp_msg_json['ObjectType']
+    delete tmp_msg_json['GroupHash']
+    const group_msg_list_json = yield call(() =>
+      mgAPI.genGroupMessageList(seed, group_hash, member, [tmp_msg_json], timestamp)
+    )
+    yield call(SendMessage, { msg: JSON.stringify(group_msg_list_json) })
+    Logger.info('[SendGroupMessageToMember] sent to', member)
   } catch (e) {
     Logger.error('[SendGroupMessageToMember] failed for', member, e.message)
   }
@@ -121,6 +154,13 @@ export function* SendGroupContent({ payload }) {
     const self_address = yield select((state) => state.User.Address)
     const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
     if (!CurrentSession) {
+      return
+    }
+
+    // Refuse to send in a deleted group
+    const group = yield call(() => dbAPI.getGroupByHash(CurrentSession.hash))
+    if (group !== null && group.delete_json !== null) {
+      yield put(setFlashNoticeMessage({ message: i18n.t('group.deleted'), duration: FLASH_DURATION_MS }))
       return
     }
 

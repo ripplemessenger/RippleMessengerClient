@@ -232,7 +232,8 @@
     "group_msgs": "Gruppen-Nachrichten"
   },
   "group": {
-    "group_name": "Gruppenname:"
+    "group_name": "Gruppenname:",
+    "deleted": "Diese Gruppe wurde gelöscht, das Senden ist deaktiviert"
   },
   "network": {
     "url": "URL:"

@@ -3,7 +3,14 @@ import { Buffer } from 'buffer'
 import * as rippleKeyPairs from 'ripple-keypairs'
 import Logger from './Logger'
 import { Epoch } from './MessengerConst'
-import { ConsoleWarn, HalfSHA512, Int2Bool, QuarterSHA512Message, QuarterSHA512WordArray, sortedAddressPair } from './AppUtil'
+import {
+  ConsoleWarn,
+  HalfSHA512,
+  Int2Bool,
+  QuarterSHA512Message,
+  QuarterSHA512WordArray,
+  sortedAddressPair
+} from './AppUtil'
 import { NonceMax } from './AppConst'
 
 const ADDRESS_PREFIX_LENGTH = 7
@@ -100,9 +107,9 @@ function Sign(msg, sk) {
  * @returns {boolean} True if the signature is valid
  */
 function VerifyJsonSignature(json) {
-  const sig = json["Signature"]
+  const sig = json['Signature']
   const copy = Object.assign({}, json)
-  delete copy["Signature"]
+  delete copy['Signature']
   const json_hash = QuarterSHA512Message(copy)
   if (rippleKeyPairs.verify(json_hash, sig, json.PublicKey)) {
     return true
@@ -140,9 +147,7 @@ function Uint32ToBuffer(num, isBigEndian = true) {
  */
 function ArrayBufferToUint32(arrayBuffer, isBigEndian = true) {
   const buf = Buffer.from(arrayBuffer)
-  return isBigEndian
-    ? buf.readUInt32BE(0)
-    : buf.readUInt32LE(0)
+  return isBigEndian ? buf.readUInt32BE(0) : buf.readUInt32LE(0)
 }
 
 /**
@@ -218,7 +223,7 @@ function trimEndCommasAndValidate(str) {
 function getMemberIndex(members, member) {
   const sortedMembers = [...members]
   sortedMembers.sort()
-  const index = sortedMembers.findIndex(m => m === member)
+  const index = sortedMembers.findIndex((m) => m === member)
   return index
 }
 
@@ -336,19 +341,14 @@ function buildFileFullPath(baseDir, fileDir, hash) {
 
 export {
   AddressToName,
-
   FileHash,
   PrivateFileEHash,
   GroupFileEHash,
-
   Sign,
   VerifyJsonSignature,
-
   DHSequence,
-
   buildFileSubPath,
   buildFileFullPath,
-
   Uint32ToBuffer,
   ArrayBufferToUint32,
   genNonce,

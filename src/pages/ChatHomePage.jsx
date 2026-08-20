@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -12,7 +12,7 @@ import MessageCard from '../components/Chat/MessageCard'
 import SessionName from '../components/Chat/SessionName'
 import EmptyState from '../components/EmptyState'
 import ErrorBoundary from '../components/ErrorBoundary'
-import { selectChatSessions, selectCurrentSession, selectCurrentSessionMessages } from '../selectors'
+import { selectChatSessions, selectCurrentSession, selectCurrentSessionMessages, selectUserAddress } from '../selectors'
 import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import { LoadCurrentSession, LoadSessionList, SendContent, SendFile } from '../store/sagas/messenger.actions'
@@ -24,18 +24,83 @@ export default function ChatHomePage() {
   const SessionList = useSelector(selectChatSessions)
   const CurrentSession = useSelector(selectCurrentSession)
   const CurrentSessionMessageList = useSelector(selectCurrentSessionMessages)
+  const GroupList = useSelector((state) => state.Messenger.GroupList)
+  const Address = useSelector(selectUserAddress)
+
+  // Last message (per side) that the other party has confirmed, for private chat read-receipt highlight.
+  // Derived from the stored message JSON (no extra DB field needed):
+  //   - A→B message's is_confirmed      = B confirmed A's message  → "remote" (A's last confirmed)
+  //   - A→B message's json.Confirm.Seq  = A confirmed B's message  → "self"   (B's last confirmed)
+  const lastConfirmedSeqs = useMemo(() => {
+    let self = 0
+    let remote = 0
+    for (const m of CurrentSessionMessageList || []) {
+      if (m.sour === Address) continue // only A→B messages carry the confirmation info
+      if (m.is_confirmed && m.sequence > remote) remote = m.sequence
+      const cseq = m.json && m.json.Confirm ? m.json.Confirm.Sequence : 0
+      if (cseq && cseq > self) self = cseq
+    }
+    return { self, remote }
+  }, [CurrentSessionMessageList, Address])
+
+  // Deleted group: keep history viewable, block sending
+  const groupDeleted =
+    CurrentSession && CurrentSession.type === SessionType.Group
+      ? GroupList.some((g) => g.hash === CurrentSession.hash && g.delete_json !== null)
+      : false
+
+  // Group owner first, larger avatar; other members after
+  const groupOwnerAddr = useMemo(() => {
+    if (!CurrentSession || CurrentSession.type !== SessionType.Group) return null
+    const g = GroupList.find((g) => g.hash === CurrentSession.hash)
+    return g?.created_by || null
+  }, [CurrentSession, GroupList])
+
+  const sortedGroupMembers = useMemo(() => {
+    if (!CurrentSession?.member || groupOwnerAddr === null) return CurrentSession?.member || []
+    return [groupOwnerAddr, ...CurrentSession.member.filter((m) => m !== groupOwnerAddr)]
+  }, [CurrentSession, groupOwnerAddr])
 
   useEffect(() => {
     dispatch(LoadSessionList())
   }, [dispatch])
 
+  // Auto-scroll to bottom: on content resize, image load, or message count change.
+  // Only scrolls if user is already near the bottom (don't yank back while reading history).
   useEffect(() => {
-    if (containerRef.current) {
-      requestAnimationFrame(() => {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight
-      })
+    const container = containerRef.current
+    if (!container) return
+
+    let isNearBottom = true
+
+    const handleScroll = () => {
+      isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80
     }
-  }, [CurrentSessionMessageList.length])
+
+    const scrollToBottom = () => {
+      if (isNearBottom) {
+        container.scrollTop = container.scrollHeight
+      }
+    }
+
+    // Fires when container's rendered size changes (content growth up to max-height)
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(scrollToBottom)
+    })
+    resizeObserver.observe(container)
+
+    // Fires when child images finish loading (height change after container hits max-height)
+    const handleLoad = () => requestAnimationFrame(scrollToBottom)
+    container.addEventListener('load', handleLoad, true)
+
+    container.addEventListener('scroll', handleScroll)
+
+    return () => {
+      resizeObserver.disconnect()
+      container.removeEventListener('load', handleLoad, true)
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [CurrentSession])
 
   const send = useCallback(
     (content) => {
@@ -104,7 +169,15 @@ export default function ChatHomePage() {
                   className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col"
                 >
                   {CurrentSessionMessageList.length > 0 ? (
-                    CurrentSessionMessageList.map((msg) => <MessageCard key={msg.hash} message={msg} mode="private" />)
+                    CurrentSessionMessageList.map((msg) => {
+                      const isSelf = msg.sour === Address
+                      const isLastConfirmed = isSelf
+                        ? msg.sequence === lastConfirmedSeqs.self && lastConfirmedSeqs.self > 0
+                        : msg.sequence === lastConfirmedSeqs.remote && lastConfirmedSeqs.remote > 0
+                      return (
+                        <MessageCard key={msg.hash} message={msg} mode="private" isLastConfirmed={isLastConfirmed} />
+                      )
+                    })
                   ) : (
                     <EmptyState
                       icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
@@ -126,13 +199,13 @@ export default function ChatHomePage() {
               <div className="flex flex-col h-full">
                 <div className="card-title flex flex-row items-center shrink-0 gap-1" title={CurrentSession.hash}>
                   <SessionName name={CurrentSession.name} />
-                  {CurrentSession.member && CurrentSession.member.length > 0 && (
+                  {sortedGroupMembers && sortedGroupMembers.length > 0 && (
                     <div className="flex items-center ml-auto gap-0.5">
-                      {CurrentSession.member.map((memberAddr) => (
+                      {sortedGroupMembers.map((memberAddr) => (
                         <div key={memberAddr} className="group relative">
                           <AvatarImage
                             address={memberAddr}
-                            classNames={'avatar-xs'}
+                            classNames={memberAddr === groupOwnerAddr ? 'avatar-sm' : 'avatar-xs'}
                             onClick={() => {
                               navigator.clipboard.writeText(memberAddr)
                               dispatch(
@@ -166,7 +239,13 @@ export default function ChatHomePage() {
                     />
                   )}
                 </div>
-                <ChatInput onSend={send} onAttach={browseFile} />
+                {groupDeleted ? (
+                  <div className="shrink-0 flex items-center justify-center py-4 text-text-secondary dark:text-dark-text-secondary text-sm italic">
+                    {t('group.deleted')}
+                  </div>
+                ) : (
+                  <ChatInput onSend={send} onAttach={browseFile} />
+                )}
               </div>
             )
           ) : (
