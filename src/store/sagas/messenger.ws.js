@@ -1253,6 +1253,12 @@ function handleControlMessage(json) {
     return setFlashNoticeMessage({ message: msgText, duration: FLASH_DURATION_MS })
   }
 
+  // Not allowed (713): Show FlashNotice warning
+  if (msgCode === MessageCode.NotAllowed) {
+    Logger.warn(`[ServerNotify] Not allowed: ${msgText}`, json)
+    return setFlashNoticeMessage({ message: msgText, duration: FLASH_DURATION_MS * 2 })
+  }
+
   // Cache confirmation codes (720/721/723): Silent — server just confirming storage
   if (
     msgCode === MessageCode.BulletinCached ||

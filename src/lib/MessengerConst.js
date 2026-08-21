@@ -117,10 +117,11 @@ const MessageCode = {
   TimestampInvalid: 703,
   AddressMismatch: 704,
 
-  // Notification codes (710-712) — informational, may disconnect
+  // Notification codes (710-713) — informational, may disconnect
   KickedByNewConn: 710,
   ServerShutdown: 711,
   SyncComplete: 712,
+  NotAllowed: 713, // Address not in whitelist — operation rejected
 
   // Cache success codes (720/721/723) — silent or subtle indicator
   BulletinCached: 720,
@@ -149,7 +150,8 @@ const ErrorMessageMap = {
   [MessageCode.AddressMismatch]: 'Address mismatch detected',
   [MessageCode.KickedByNewConn]: 'Disconnected — new login detected',
   [MessageCode.ServerShutdown]: 'Server is shutting down',
-  [MessageCode.SyncComplete]: 'Synchronization complete'
+  [MessageCode.SyncComplete]: 'Synchronization complete',
+  [MessageCode.NotAllowed]: 'You are not allowed to perform this action'
 }
 
 export {
