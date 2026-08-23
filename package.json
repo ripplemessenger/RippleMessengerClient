@@ -57,5 +57,8 @@
     "prettier": "^3.9.4",
     "tailwindcss": "^3.4.1",
     "vite": "^7.0.4"
+  },
+  "overrides": {
+    "fast-uri": "4.1.2"
   }
 }
