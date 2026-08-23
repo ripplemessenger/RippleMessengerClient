@@ -22,6 +22,9 @@ const STORAGE_KEY_CLOSE_TO_TRAY = 'closeToTray'
 const STORAGE_KEY_NOTIFICATIONS = 'enableNotifications'
 const STORAGE_KEY_MESSAGE_SOUND = 'messageSound'
 const STORAGE_KEY_START_MINIMIZED = 'startMinimized'
+const STORAGE_KEY_AUTO_DOWNLOAD_FOLLOW = 'autoDownloadFollowFiles'
+const STORAGE_KEY_AUTO_DOWNLOAD_PRIVATE = 'autoDownloadPrivateFiles'
+const STORAGE_KEY_AUTO_DOWNLOAD_GROUP = 'autoDownloadGroupFiles'
 
 const THEME_OPTIONS = [
   { value: 'light', key: 'setting.light', icon: '☀️' },
@@ -56,6 +59,21 @@ export default function TabGeneral() {
   // Start minimized — defaults to false
   const [startMinimized, setStartMinimized] = useState(() => getSettingBool(STORAGE_KEY_START_MINIMIZED, false))
 
+  // Auto-download followed files — defaults to true
+  const [autoDownloadFollow, setAutoDownloadFollow] = useState(() =>
+    getSettingBool(STORAGE_KEY_AUTO_DOWNLOAD_FOLLOW, true)
+  )
+
+  // Auto-download private chat files — defaults to true
+  const [autoDownloadPrivate, setAutoDownloadPrivate] = useState(() =>
+    getSettingBool(STORAGE_KEY_AUTO_DOWNLOAD_PRIVATE, true)
+  )
+
+  // Auto-download group chat files — defaults to true
+  const [autoDownloadGroup, setAutoDownloadGroup] = useState(() =>
+    getSettingBool(STORAGE_KEY_AUTO_DOWNLOAD_GROUP, true)
+  )
+
   // Persist close-to-tray preference
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_CLOSE_TO_TRAY, String(closeToTray))
@@ -75,6 +93,21 @@ export default function TabGeneral() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_START_MINIMIZED, String(startMinimized))
   }, [startMinimized])
+
+  // Persist auto-download follow files preference
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_AUTO_DOWNLOAD_FOLLOW, String(autoDownloadFollow))
+  }, [autoDownloadFollow])
+
+  // Persist auto-download private files preference
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_AUTO_DOWNLOAD_PRIVATE, String(autoDownloadPrivate))
+  }, [autoDownloadPrivate])
+
+  // Persist auto-download group files preference
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_AUTO_DOWNLOAD_GROUP, String(autoDownloadGroup))
+  }, [autoDownloadGroup])
 
   const handleThemeChange = (value) => {
     setTheme(value)
@@ -210,7 +243,7 @@ export default function TabGeneral() {
           </div>
 
           {/* Message Sound */}
-          <div className="flex items-center justify-between gap-4 py-2">
+          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
             <div className="flex flex-col">
               <span className="text-text-primary dark:text-dark-text-primary font-medium">
                 {t('setting.message_sound')}
@@ -236,6 +269,57 @@ export default function TabGeneral() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Auto-download Followed Files */}
+          <div className="flex items-center justify-between gap-4 py-2">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.auto_download_follow_files')}
+              </span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.auto_download_follow_files_desc')}
+              </span>
+            </div>
+            <ToggleSwitch
+              isChecked={autoDownloadFollow}
+              onClick={() => setAutoDownloadFollow((v) => !v)}
+              ariaLabel={t('setting.auto_download_follow_files')}
+            />
+          </div>
+
+          {/* Auto-download Private Chat Files */}
+          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.auto_download_private_files')}
+              </span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.auto_download_private_files_desc')}
+              </span>
+            </div>
+            <ToggleSwitch
+              isChecked={autoDownloadPrivate}
+              onClick={() => setAutoDownloadPrivate((v) => !v)}
+              ariaLabel={t('setting.auto_download_private_files')}
+            />
+          </div>
+
+          {/* Auto-download Group Chat Files */}
+          <div className="flex items-center justify-between gap-4 py-2">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.auto_download_group_files')}
+              </span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.auto_download_group_files_desc')}
+              </span>
+            </div>
+            <ToggleSwitch
+              isChecked={autoDownloadGroup}
+              onClick={() => setAutoDownloadGroup((v) => !v)}
+              ariaLabel={t('setting.auto_download_group_files')}
+            />
           </div>
         </div>
 

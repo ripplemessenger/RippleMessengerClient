@@ -715,7 +715,8 @@ function* handleBulletinObject(json) {
   try {
     if (!checkBulletinSchema(json) || !VerifyJsonSignature(json)) return null
     const ob_address = rippleKeyPairs.deriveAddress(json.PublicKey)
-    const bulletin = yield call(CacheBulletin, json)
+    const autoDownload = getSettingBool('autoDownloadFollowFiles', true)
+    const bulletin = yield call(CacheBulletin, json, autoDownload)
     const address = yield select((state) => state.User.Address)
     const follow_list = yield select((state) => state.User.FollowList)
     if (follow_list.includes(ob_address) || ob_address === address) {
@@ -746,7 +747,7 @@ function* processBulletinList(json, schemaCheck, dispatchAction) {
   for (let i = 0; i < json.List.length; i++) {
     const bulletin = json.List[i]
     if (VerifyJsonSignature(bulletin)) {
-      const b = yield call(CacheBulletin, bulletin)
+      const b = yield call(CacheBulletin, bulletin, false)
       if (b) {
         bulletins.push(b)
       }
@@ -931,9 +932,12 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     if (typeof content === 'object' && content.ObjectType === MessageObjectType.PrivateChatFile) {
-      yield fork(safeFork, FetchPrivateChatFile, {
-        payload: { remote: remote, hash: content.Hash, size: content.Size }
-      })
+      const autoDownload = getSettingBool('autoDownloadPrivateFiles', true)
+      if (autoDownload) {
+        yield fork(safeFork, FetchPrivateChatFile, {
+          payload: { remote: remote, hash: content.Hash, size: content.Size }
+        })
+      }
     }
 
     const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
@@ -1136,14 +1140,17 @@ function* handleGroupMessageListObject(json, address, seed) {
         typeof verify_json.Content === 'object' &&
         verify_json.Content.ObjectType === MessageObjectType.GroupChatFile
       ) {
-        yield call(FetchGroupChatFile, {
-          payload: {
-            key: null,
-            group_hash: json.GroupHash,
-            hash: verify_json.Content.Hash,
-            size: verify_json.Content.Size
-          }
-        })
+        const autoDownload = getSettingBool('autoDownloadGroupFiles', true)
+        if (autoDownload) {
+          yield call(FetchGroupChatFile, {
+            payload: {
+              key: null,
+              group_hash: json.GroupHash,
+              hash: verify_json.Content.Hash,
+              size: verify_json.Content.Size
+            }
+          })
+        }
       }
 
       let is_read = false

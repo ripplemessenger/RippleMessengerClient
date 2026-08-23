@@ -41,7 +41,7 @@ import i18n from '../../i18n'
 
 // ==================== Bulletin Cache & Upload ====================
 
-export function* CacheBulletin(bulletin_json) {
+export function* CacheBulletin(bulletin_json, autoDownload = true) {
   try {
     const address = rippleKeyPairs.deriveAddress(bulletin_json.PublicKey)
     let bulletin_db = yield call(() => dbAPI.getBulletinBySequence(address, bulletin_json.Sequence))
@@ -75,8 +75,8 @@ export function* CacheBulletin(bulletin_json) {
               yield call(() => dbAPI.addFile(f.Hash, f.Size, Date.now(), chunk_length, 0, false))
               file = { is_saved: false }
             }
-            // Skip fork if file is already saved or an active fetch request already exists for this hash
-            if (!file.is_saved && !pendingHashes.has(f.Hash)) {
+            // Skip fork if file is already saved, an active fetch request exists, or auto-download is disabled
+            if (autoDownload && !file.is_saved && !pendingHashes.has(f.Hash)) {
               yield fork(safeFork, FetchBulletinFile, { payload: { hash: f.Hash } })
             }
           }
@@ -95,7 +95,7 @@ export function* CacheBulletin(bulletin_json) {
 }
 
 export function* UploadBulletin({ payload }) {
-  const bulletin = yield call(CacheBulletin, payload.json)
+  const bulletin = yield call(CacheBulletin, payload.json, false)
   if (bulletin !== null) {
     yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.saved'), duration: FLASH_DURATION_MS }))
   } else {
@@ -422,7 +422,7 @@ export function* RequestRandomBulletin() {
       return
     }
     const random_bulletin_request = yield call(() => mgAPI.genRandomBulletinRequest(seed))
-    yield call(SendMessage, { flag: true, msg: random_bulletin_request })
+    yield call(SendMessage, { msg: random_bulletin_request })
   } catch (e) {
     Logger.error('[RequestRandomBulletin] failed:', e.message)
     yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_random_failed'), duration: 3000 }))
