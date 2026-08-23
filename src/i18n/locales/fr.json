@@ -207,7 +207,8 @@
     "tags": "Tags",
     "quotes": "Citations",
     "attachments": "Pièces jointes",
-    "publish": "Publier"
+    "publish": "Publier",
+    "tag_search_placeholder": "Entrée ou ,"
   },
   "auth": {
     "open_account": "Ouvrir un compte",

@@ -7,7 +7,6 @@ import TextInput from '../components/Form/TextInput'
 import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import SearchTagItem from '../components/Bulletin/SearchTagItem'
 import { selectUserAddress } from '../selectors'
-import { trimEndCommasAndValidate } from '../lib/MessengerUtil'
 import { setSearchTagList } from '../store/slices/MessengerSlice'
 import { RequestTagBulletin } from '../store/sagas/messenger.actions'
 
@@ -30,19 +29,32 @@ export default function BulletinTagPage() {
     }
   }, [dispatch, Address, MessengerConnStatus, SearchTagList])
 
-  const checkTag = (tag) => {
-    const result = trimEndCommasAndValidate(tag)
-    if (result) {
-      let tmp = [...SearchTagList]
-      tmp.push(result)
+  const addTag = (text) => {
+    const tag_list = text
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t !== '')
+    if (tag_list.length > 0) {
+      let tmp = [...SearchTagList, ...tag_list]
       tmp = [...new Set(tmp)]
       dispatch(setSearchTagList(tmp))
-      if (tmp.length > 0) {
-        dispatch(RequestTagBulletin({ tag: tmp, page: 1 }))
-      }
+      dispatch(RequestTagBulletin({ tag: tmp, page: 1 }))
       setTag('')
+    }
+  }
+
+  const checkTag = (tag) => {
+    if (tag.endsWith(',')) {
+      addTag(tag)
     } else {
       setTag(tag)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addTag(tag)
     }
   }
 
@@ -51,9 +63,10 @@ export default function BulletinTagPage() {
       title={
         <TextInput
           label=""
-          placeholder={','}
+          placeholder={t('ui.tag_search_placeholder')}
           value={tag}
           onChange={(e) => checkTag(e.target.value)}
+          onKeyDown={handleKeyDown}
           autoComplete="off"
         />
       }

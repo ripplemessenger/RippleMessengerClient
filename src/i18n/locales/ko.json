@@ -207,7 +207,8 @@
     "tags": "태그",
     "quotes": "인용",
     "attachments": "첨부 파일",
-    "publish": "발행"
+    "publish": "발행",
+    "tag_search_placeholder": "Enter 또는 ,"
   },
   "auth": {
     "open_account": "계정 열기",

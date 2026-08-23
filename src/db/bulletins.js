@@ -35,16 +35,13 @@ export const api = {
 
   async getAddressBulletinCount(address) {
     const dbInstance = await getDB()
-    const [result] = await dbInstance.select(
-      `SELECT COUNT(hash) as count FROM bulletins WHERE address = $1`,
-      [address]
-    )
+    const [result] = await dbInstance.select(`SELECT COUNT(hash) as count FROM bulletins WHERE address = $1`, [address])
     return result ? result.count : 0
   },
 
   async getBulletinListByAddresses(addresses, page, order) {
     if (!Array.isArray(addresses) || addresses.length === 0) return []
-    const sortDirection = (order && order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC'
+    const sortDirection = order && order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
     const dbInstance = await getDB()
     const placeholders = addresses.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT * FROM bulletins WHERE address IN (${placeholders}) ORDER BY signed_at ${sortDirection} LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
@@ -78,10 +75,9 @@ export const api = {
 
   async getBulletinCountByIsmark() {
     const dbInstance = await getDB()
-    const [result] = await dbInstance.select(
-      `SELECT COUNT(hash) as count FROM bulletins WHERE is_marked = $1`,
-      [Bool2Int(true)]
-    )
+    const [result] = await dbInstance.select(`SELECT COUNT(hash) as count FROM bulletins WHERE is_marked = $1`, [
+      Bool2Int(true)
+    ])
     return result ? result.count : 0
   },
 
@@ -99,19 +95,16 @@ export const api = {
 
   async getBulletinByHash(hash) {
     const dbInstance = await getDB()
-    const bulletins = await dbInstance.select(
-      'SELECT * FROM bulletins WHERE hash = $1 LIMIT 1',
-      [hash]
-    )
+    const bulletins = await dbInstance.select('SELECT * FROM bulletins WHERE hash = $1 LIMIT 1', [hash])
     return bulletins.length > 0 ? bulletin2Display(bulletins[0]) : null
   },
 
   async getBulletinBySequence(address, sequence) {
     const dbInstance = await getDB()
-    const bulletins = await dbInstance.select(
-      'SELECT * FROM bulletins WHERE address = $1 AND sequence = $2 LIMIT 1',
-      [address, sequence]
-    )
+    const bulletins = await dbInstance.select('SELECT * FROM bulletins WHERE address = $1 AND sequence = $2 LIMIT 1', [
+      address,
+      sequence
+    ])
     return bulletins.length > 0 ? bulletin2Display(bulletins[0]) : null
   },
 
@@ -160,7 +153,7 @@ export const api = {
       WHERE (address, sequence) IN (${tupleStrs})
     `
     const rows = await dbInstance.select(query, values)
-    return new Set(rows.map(r => `${r.address}:${r.sequence}`))
+    return new Set(rows.map((r) => `${r.address}:${r.sequence}`))
   },
 
   async addBulletin(hash, address, sequence, pre_hash, content, json, signed_at) {
@@ -174,10 +167,7 @@ export const api = {
 
   async toggleBulletinMark(hash, is_marked) {
     const db = await getDB()
-    await db.execute(
-      'UPDATE bulletins SET is_marked = $1 WHERE hash = $2',
-      [Bool2Int(is_marked), hash]
-    )
+    await db.execute('UPDATE bulletins SET is_marked = $1 WHERE hash = $2', [Bool2Int(is_marked), hash])
   },
 
   // bulletin reply
@@ -187,7 +177,7 @@ export const api = {
       `SELECT reply_hash FROM bulletin_replys WHERE bulletin_hash = $1 ORDER BY reply_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`,
       [hash]
     )
-    return bulletins.map(b => b.reply_hash)
+    return bulletins.map((b) => b.reply_hash)
   },
 
   async getReplyCount(hash) {
@@ -203,10 +193,14 @@ export const api = {
     if (!Array.isArray(bulletins) || bulletins.length === 0) return true
     const db = await getDB()
     for (const bulletin of bulletins) {
-      await db.execute(
-        `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ($1, $2, $3)`,
-        [bulletin.Hash, reply_hash, reply_signed_at]
-      )
+      try {
+        await db.execute(
+          `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ($1, $2, $3)`,
+          [bulletin.Hash, reply_hash, reply_signed_at]
+        )
+      } catch {
+        // FK violation: referenced bulletin not in local DB yet — skip
+      }
     }
   },
 
@@ -217,7 +211,7 @@ export const api = {
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT DISTINCT bulletin_hash FROM bulletin_tags WHERE tag_id IN(${placeholders}) ORDER BY bulletin_signed_at DESC LIMIT ${BulletinPageSize} OFFSET ${(page - 1) * BulletinPageSize}`
     const bulletins = await dbInstance.select(query, ids)
-    return bulletins.map(b => b.bulletin_hash)
+    return bulletins.map((b) => b.bulletin_hash)
   },
 
   async getBulletinHashCountByTagId(ids) {
@@ -236,7 +230,7 @@ export const api = {
       const name = rawName.trim()
       if (!name) continue
       await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ($1)`, [name])
-      const [row] = await db.select("SELECT id FROM tags WHERE name = $1", [name])
+      const [row] = await db.select('SELECT id FROM tags WHERE name = $1', [name])
       const tagId = row?.id
       if (!tagId) continue
       await db.execute(
@@ -264,12 +258,12 @@ export const api = {
     const placeholders = names.map((_, i) => `$${i + 1}`).join(', ')
     const query = `SELECT id FROM tags WHERE name IN(${placeholders})`
     const tags = await dbInstance.select(query, names)
-    return tags.map(tag => tag.id)
+    return tags.map((tag) => tag.id)
   },
 
   async addTag(name) {
     const db = await getDB()
-    await db.execute("INSERT OR IGNORE INTO tags (name) VALUES ($1)", [name])
+    await db.execute('INSERT OR IGNORE INTO tags (name) VALUES ($1)', [name])
   },
 
   // Management: delete a single bulletin by hash (CASCADE handles replies/tags/files)
@@ -293,10 +287,17 @@ export const api = {
   // Management: get all bulletins for management view with filter
   // filter: 'all' | 'mine' | 'followed' | 'bookmarked'
   // sortOrder: 'desc' (default) | 'asc'
-  async getBulletinsForManagement({ filter, address, page = 1, pageSize = BulletinPageSize, sortOrder = 'desc', addressFilter }) {
+  async getBulletinsForManagement({
+    filter,
+    address,
+    page = 1,
+    pageSize = BulletinPageSize,
+    sortOrder = 'desc',
+    addressFilter
+  }) {
     const db = await getDB()
     const offset = (page - 1) * pageSize
-    const sortDir = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC'
+    const sortDir = sortOrder && sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
     let query, params
 
     switch (filter) {
@@ -339,10 +340,10 @@ export const api = {
     }
 
     const rows = await db.select(query, params)
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...r,
       is_marked: Int2Bool(r.is_marked),
-      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false,
+      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false
     }))
   },
 
@@ -443,10 +444,10 @@ export const api = {
     }
 
     const rows = await db.select(querySql, params)
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...r,
       is_marked: Int2Bool(r.is_marked),
-      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false,
+      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false
     }))
   },
 
@@ -464,9 +465,9 @@ export const api = {
       LIMIT $2 OFFSET $3
     `
     const rows = await db.select(querySql, [tagName, pageSize, offset])
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...r,
-      is_marked: Int2Bool(r.is_marked),
+      is_marked: Int2Bool(r.is_marked)
     }))
   },
 
@@ -474,7 +475,7 @@ export const api = {
   async getAllTags() {
     const db = await getDB()
     const rows = await db.select(`SELECT DISTINCT name FROM tags ORDER BY name`)
-    return rows.map(r => r.name)
+    return rows.map((r) => r.name)
   },
 
   // Management: get all distinct bulletin addresses with count for address filter dropdown
@@ -558,5 +559,5 @@ export const api = {
       [file_hash]
     )
     return rows
-  },
+  }
 }

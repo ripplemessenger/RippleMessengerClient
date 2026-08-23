@@ -207,7 +207,8 @@
     "tags": "タグ",
     "quotes": "引用",
     "attachments": "添付ファイル",
-    "publish": "公開"
+    "publish": "公開",
+    "tag_search_placeholder": "Enterまたは ,"
   },
   "auth": {
     "open_account": "アカウントを開く",

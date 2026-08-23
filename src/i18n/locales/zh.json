@@ -207,7 +207,8 @@
     "tags": "标签",
     "quotes": "引用",
     "attachments": "附件",
-    "publish": "发布"
+    "publish": "发布",
+    "tag_search_placeholder": "回车或 ,"
   },
   "auth": {
     "open_account": "打开账户",

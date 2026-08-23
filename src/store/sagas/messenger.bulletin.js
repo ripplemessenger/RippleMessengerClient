@@ -90,6 +90,20 @@ export function* CacheBulletin(bulletin_json, autoDownload = true) {
     return bulletin_db
   } catch (e) {
     Logger.error('[CacheBulletin] failed for', bulletin_json.Hash, e.message)
+    Logger.error(
+      '[CacheBulletin] details:',
+      JSON.stringify({
+        PublicKey: bulletin_json.PublicKey,
+        Sequence: bulletin_json.Sequence,
+        PreHash: bulletin_json.PreHash,
+        Content: typeof bulletin_json.Content,
+        Tag: bulletin_json.Tag,
+        Quote: bulletin_json.Quote,
+        File: bulletin_json.File ? bulletin_json.File.length : 0,
+        Timestamp: bulletin_json.Timestamp,
+        stack: e.stack
+      })
+    )
     return null
   }
 }

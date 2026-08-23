@@ -207,7 +207,8 @@
     "tags": "Теги",
     "quotes": "Цитаты",
     "attachments": "Вложения",
-    "publish": "Опубликовать"
+    "publish": "Опубликовать",
+    "tag_search_placeholder": "Enter или ,"
   },
   "auth": {
     "open_account": "Открыть аккаунт",

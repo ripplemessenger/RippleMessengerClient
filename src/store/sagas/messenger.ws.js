@@ -153,20 +153,7 @@ function* handleBinaryAvatar(request, content) {
  * @param {object} opts.fetchNextPayload - payload to pass to fetchNext
  */
 function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchNextPayload }) {
-  Logger.info(
-    '[📥 receiveFileChunk] START hash=' +
-      request.Hash +
-      ' nonce=' +
-      request.Nonce +
-      ' cursor=' +
-      request.ChunkCursor +
-      ' db_cursor=' +
-      file.chunk_cursor +
-      '/' +
-      file.chunk_length
-  )
   if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
-    Logger.info('[📥 receiveFileChunk] Writing chunk to disk, path=' + filePath + ', contentLen=' + content.length)
     yield call(() => writeFile(filePath, content, { append: true }))
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
     const current_chunk_cursor = file.chunk_cursor + 1
@@ -175,12 +162,9 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
     yield put(
       setFileStatus({ hash: request.Hash, is_saved: false, cursor: current_chunk_cursor, length: file.chunk_length })
     )
-    Logger.info('[📥 receiveFileChunk] Updated cursor to ' + current_chunk_cursor + '/' + file.chunk_length)
     if (current_chunk_cursor < file.chunk_length) {
-      Logger.info('[📥 receiveFileChunk] More chunks needed, requesting next...')
       yield call(fetchNext, { payload: fetchNextPayload })
     } else {
-      Logger.info('[📥 receiveFileChunk] All chunks received, verifying hash...')
       const hash = FileHash(yield call(() => readFile(filePath)))
       if (hash === request.Hash) {
         Logger.info('[📥 receiveFileChunk] ✅ Hash verified, marking file as saved')
@@ -192,7 +176,6 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
           setFileStatus({ hash: request.Hash, is_saved: true, cursor: file.chunk_length, length: file.chunk_length })
         )
         // Refresh the file management UI so Pending → Saved updates immediately
-        Logger.info('[📥 receiveFileChunk] Dispatching LoadFileManagementList to refresh UI')
         yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
       } else {
         Logger.error(
@@ -218,21 +201,12 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
     yield call(fetchNext, { payload: fetchNextPayload }) // Re-request expected chunk
   } else {
     // File already fully fetched — no-op (silent success)
-    Logger.info('[📥 receiveFileChunk] File already fully fetched, skipping. nonce=' + request.Nonce)
     setFileRequestList(getFileRequestList().filter((r) => r.Nonce !== request.Nonce))
   }
 }
 
 function* handleBinaryBulletinFile(request, content) {
   try {
-    Logger.info(
-      '[📥 handleBinaryBulletinFile] START hash=' +
-        request.Hash +
-        ' nonce=' +
-        request.Nonce +
-        ' chunkCursor=' +
-        request.ChunkCursor
-    )
     const base_dir = yield call(() => path.resourceDir())
     const hash_subpath = buildFileSubPath(request.Hash)
     const file_dir = yield call(() => path.join(base_dir, FileDir, ...hash_subpath))
@@ -243,14 +217,6 @@ function* handleBinaryBulletinFile(request, content) {
       Logger.warn('[📥 handleBinaryBulletinFile] File record not found in DB for hash=' + request.Hash)
       return
     }
-    Logger.info(
-      '[📥 handleBinaryBulletinFile] DB file: cursor=' +
-        file.chunk_cursor +
-        '/' +
-        file.chunk_length +
-        ', is_saved=' +
-        file.is_saved
-    )
     yield call(receiveFileChunk, {
       filePath: file_path,
       content,
@@ -319,16 +285,13 @@ function* handleBinaryGroupFile(request, content, action) {
 function* handleBinaryMessage(action) {
   try {
     const nonce = yield call(() => ArrayBufferToUint32(action.data.slice(0, 4)))
-    Logger.info('[📥 handleBinaryMessage] Binary msg received, nonce=' + nonce + ', dataLen=' + action.data.byteLength)
     setFileRequestList(getFileRequestList().filter((r) => r.Timestamp + FILE_REQUEST_TTL_MS > Date.now()))
     const fileRequests = getFileRequestList()
-    Logger.info('[📥 handleBinaryMessage] FileRequestList size after TTL cleanup: ' + fileRequests.length)
     let matched = false
     for (let i = 0; i < fileRequests.length; i++) {
       const request = fileRequests[i]
       if (request.Nonce === nonce) {
         matched = true
-        Logger.info('[📥 handleBinaryMessage] Nonce matched! type=' + request.Type + ' hash=' + (request.Hash || 'N/A'))
         switch (request.Type) {
           case FileRequestType.Avatar:
             yield call(handleBinaryAvatar, request, new Uint8Array(action.data.slice(4)))
@@ -378,19 +341,12 @@ function* handleAvatarRequestAction(json, action) {
 
 function* handleBulletinRequestAction(json, action, address, seed) {
   try {
-    Logger.info(
-      `[handleBulletinRequestAction] Received: Address=${json.Address}, Sequence=${json.Sequence}, Hash=${json.Hash}`
-    )
     const schemaOk = checkBulletinRequestSchema(json)
-    Logger.info(`[handleBulletinRequestAction] Schema check: ${schemaOk}`)
     if (!schemaOk) {
       Logger.warn('[handleBulletinRequestAction] Schema validation FAILED, dropping message')
       return
     }
     const sigOk = VerifyJsonSignature(json)
-    Logger.info(
-      `[handleBulletinRequestAction] Signature verify: ${sigOk}, PublicKey=${json.PublicKey?.substring(0, 20)}...`
-    )
     if (!sigOk) {
       Logger.warn('[handleBulletinRequestAction] Signature verification FAILED, dropping message')
       return
@@ -401,19 +357,10 @@ function* handleBulletinRequestAction(json, action, address, seed) {
     } else {
       bulletin = yield call(() => dbAPI.getBulletinBySequence(json.Address, json.Sequence))
     }
-    Logger.info(
-      `[handleBulletinRequestAction] DB query result: ${bulletin ? 'FOUND' : 'NULL'}, address=${json.Address}, seq=${json.Sequence}`
-    )
     if (bulletin !== null) {
-      Logger.info(
-        `[handleBulletinRequestAction] Sending bulletin back, hash=${bulletin.hash}, File count=${bulletin.json?.File?.length || 0}`
-      )
       yield call(SendMessage, { key: action.key, msg: JSON.stringify(bulletin.json) })
     } else if (json.Address === address) {
       const last_bulletin = yield call(() => dbAPI.getLastBulletin(json.Address))
-      Logger.info(
-        `[handleBulletinRequestAction] Bulletin not found, last_bulletin=${last_bulletin ? last_bulletin.sequence : 'NULL'}`
-      )
       if (last_bulletin === null) {
         if (json.Sequence > 1) {
           const msg = yield call(() => mgAPI.genBulletinRequest(seed, address, 1, address))
@@ -422,10 +369,6 @@ function* handleBulletinRequestAction(json, action, address, seed) {
       } else if (last_bulletin.sequence + 1 < json.Sequence) {
         yield call(RequestNextBulletin, { key: action.key, payload: { address: address } })
       }
-    } else {
-      Logger.info(
-        `[handleBulletinRequestAction] json.Address(${json.Address}) !== cachedAddress(${address}), not our bulletin`
-      )
     }
   } catch (e) {
     Logger.error('[handleBulletinRequestAction] failed:', e.message, e.stack)
@@ -436,7 +379,6 @@ function* handleFileRequestAction(json, action, address, ob_address) {
   try {
     const schemaOk = checkFileRequestSchema(json)
     const sigOk = VerifyJsonSignature(json)
-    Logger.info(`[handleFileRequest] Hash=${json.Hash}, FileType=${json.FileType}, schema=${schemaOk}, sig=${sigOk}`)
     if (schemaOk && sigOk) {
       if (json.FileType === FileRequestType.Avatar) {
         const avatar = yield call(() => dbAPI.getAvatarByHash(json.Hash))
@@ -449,9 +391,6 @@ function* handleFileRequestAction(json, action, address, ob_address) {
         }
       } else if (json.FileType === FileRequestType.File) {
         const file = yield call(() => dbAPI.getFileByHash(json.Hash))
-        Logger.info(
-          `[handleFileRequest] DB lookup for ${json.Hash}: file=${file ? 'found' : 'null'}, is_saved=${file?.is_saved}`
-        )
         if (file !== null && file.is_saved) {
           const base_dir = yield select((state) => state.Common.AppBaseDir)
           const file_path = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, json.Hash)))
@@ -702,7 +641,11 @@ function* handleActionMessage(json, action, address, seed) {
         yield call(handleGroupMessageSyncAction, json, action, address, ob_address, seed)
         break
       default:
-        Logger.warn('[handleActionMessage] unknown ActionCode', json.Action)
+        if (json.Action === ActionCode.Declare) {
+          // Server sends its own Declare to identify itself; nothing to do
+        } else {
+          Logger.warn('[handleActionMessage] unknown ActionCode', json.Action)
+        }
     }
   } catch (e) {
     Logger.error('[handleActionMessage] failed for Action', json.Action, e.message)
@@ -1345,7 +1288,6 @@ export function* WebsocketListener() {
               yield call(handleBinaryMessage, action)
             } else {
               const json = action.data
-              Logger.info(`[WS] Received text message, keys: ${Object.keys(json).join(',')}`)
               // Control-plane messages (ActionCode 8xx) — server notifications/errors
               if (
                 json.ActionCode === ControlActionCode.ServerNotify ||
@@ -1363,12 +1305,8 @@ export function* WebsocketListener() {
                   })
                 }
               } else if (json.Action && (json.To === undefined || json.To === cachedAddress)) {
-                Logger.info(
-                  `[WS] Routing to handleActionMessage, Action=${json.Action}, To=${json.To}, cachedAddress=${cachedAddress}`
-                )
                 yield call(handleActionMessage, json, action, cachedAddress, cachedSeed)
               } else if (json.ObjectType) {
-                Logger.info(`[WS] Routing to handleObjectMessage, ObjectType=${json.ObjectType}`)
                 yield call(handleObjectMessage, json, action, cachedAddress, cachedSeed)
               } else {
                 Logger.warn(

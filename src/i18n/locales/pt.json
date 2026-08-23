@@ -207,7 +207,8 @@
     "tags": "Tags",
     "quotes": "Citações",
     "attachments": "Anexos",
-    "publish": "Publicar"
+    "publish": "Publicar",
+    "tag_search_placeholder": "Enter ou ,"
   },
   "auth": {
     "open_account": "Abrir conta",
