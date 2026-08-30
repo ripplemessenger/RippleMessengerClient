@@ -96,6 +96,8 @@
     "bulletins": "게시문",
     "tab_general": "일반",
     "tab_me": "내 정보",
+    "qr_code": "QR 코드",
+    "qr_hint": "이 QR 코드를 스캔하여 연락처로 추가하세요",
     "tab_contact": "연락처",
     "tab_group": "그룹",
     "tab_network": "네트워크",

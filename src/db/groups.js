@@ -207,9 +207,9 @@ export const api = {
     return true
   },
 
-  async confirmGroupMessage(hash) {
+  async confirmGroupMessage(group_hash, address, sequence) {
     const db = await getDB()
-    await db.execute('UPDATE group_messages SET is_confirmed = $1 WHERE hash = $2', [Bool2Int(true), hash])
+    await db.execute('UPDATE group_messages SET is_confirmed = $1 WHERE group_hash = $2 AND address = $3 AND sequence <= $4', [Bool2Int(true), group_hash, address, sequence])
   },
 
   async getGroupMessageBySequence(group_hash, address, sequence) {

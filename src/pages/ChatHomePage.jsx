@@ -172,8 +172,8 @@ export default function ChatHomePage() {
                     CurrentSessionMessageList.map((msg) => {
                       const isSelf = msg.sour === Address
                       const isLastConfirmed = isSelf
-                        ? msg.sequence === lastConfirmedSeqs.self && lastConfirmedSeqs.self > 0
-                        : msg.sequence === lastConfirmedSeqs.remote && lastConfirmedSeqs.remote > 0
+                        ? msg.sequence <= lastConfirmedSeqs.self && lastConfirmedSeqs.self > 0
+                        : msg.sequence <= lastConfirmedSeqs.remote && lastConfirmedSeqs.remote > 0
                       return (
                         <MessageCard key={msg.hash} message={msg} mode="private" isLastConfirmed={isLastConfirmed} />
                       )

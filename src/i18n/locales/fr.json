@@ -96,6 +96,8 @@
     "bulletins": "Bulletins",
     "tab_general": "Général",
     "tab_me": "Moi",
+    "qr_code": "Code QR",
+    "qr_hint": "Scannez ce code QR pour m'ajouter en contact",
     "tab_contact": "Contact",
     "tab_group": "Groupe",
     "tab_network": "Réseau",

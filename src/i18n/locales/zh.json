@@ -96,6 +96,8 @@
     "bulletins": "公告",
     "tab_general": "常规",
     "tab_me": "我的",
+    "qr_code": "二维码",
+    "qr_hint": "扫描二维码将我添加为联系人",
     "tab_contact": "联系人",
     "tab_group": "群组",
     "tab_network": "服务器网络",

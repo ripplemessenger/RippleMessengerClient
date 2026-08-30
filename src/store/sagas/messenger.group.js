@@ -172,11 +172,7 @@ export function* SendGroupContent({ payload }) {
     )
     let to_confirm_group_msg = null
 
-    if (
-      last_unconfirm_message_group_list !== null &&
-      (last_confirmed_group_msg === null ||
-        last_unconfirm_message_group_list.sequence > last_confirmed_group_msg.sequence)
-    ) {
+    if (last_unconfirm_message_group_list !== null) {
       to_confirm_group_msg = {
         Address: last_unconfirm_message_group_list.address,
         Sequence: last_unconfirm_message_group_list.sequence,
@@ -185,7 +181,7 @@ export function* SendGroupContent({ payload }) {
     }
 
     if (to_confirm_group_msg !== null) {
-      yield call(() => dbAPI.confirmGroupMessage(to_confirm_group_msg.Hash))
+      yield call(() => dbAPI.confirmGroupMessage(CurrentSession.hash, to_confirm_group_msg.Address, to_confirm_group_msg.Sequence))
     }
 
     const group_msg_json = yield call(() =>

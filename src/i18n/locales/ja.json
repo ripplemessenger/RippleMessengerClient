@@ -96,6 +96,8 @@
     "bulletins": "ブuletin",
     "tab_general": "一般",
     "tab_me": "マイページ",
+    "qr_code": "QRコード",
+    "qr_hint": "このQRコードをスキャンして連絡先を追加してください",
     "tab_contact": "連絡先",
     "tab_group": "グループ",
     "tab_network": "ネットワーク",

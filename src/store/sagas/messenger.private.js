@@ -219,10 +219,7 @@ export function* SendPrivateContent({ payload }) {
       )
       let to_confirm_msg = null
 
-      if (
-        last_unconfirmed_msg !== null &&
-        (last_confirmed_msg === null || last_unconfirmed_msg.sequence > last_confirmed_msg.sequence)
-      ) {
+      if (last_unconfirmed_msg !== null) {
         to_confirm_msg = {
           Sequence: last_unconfirmed_msg.sequence,
           Hash: last_unconfirmed_msg.hash
@@ -230,7 +227,7 @@ export function* SendPrivateContent({ payload }) {
       }
 
       if (to_confirm_msg !== null) {
-        yield call(() => dbAPI.confirmPrivateMessage(to_confirm_msg.Hash))
+        yield call(() => dbAPI.confirmPrivateMessage(CurrentSession.remote, self_address, to_confirm_msg.Sequence))
       }
 
       const msg_json = yield call(() =>

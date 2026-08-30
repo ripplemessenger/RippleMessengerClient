@@ -96,6 +96,8 @@
     "bulletins": "Boletins",
     "tab_general": "Geral",
     "tab_me": "Perfil",
+    "qr_code": "Código QR",
+    "qr_hint": "Escaneie este código QR para me adicionar como contato",
     "tab_contact": "Contato",
     "tab_group": "Grupo",
     "tab_network": "Rede",
