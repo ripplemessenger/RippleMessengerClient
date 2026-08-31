@@ -18,7 +18,7 @@ import {
   SessionType,
   DefaultPartition
 } from '../../lib/AppConst'
-import { filesize_format } from '../../lib/AppUtil'
+import { filesize_format, FileHashAsync } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { FileRequestType, MessageObjectType } from '../../lib/MessengerConst'
@@ -423,7 +423,7 @@ export function* SendFile({ payload }) {
     }
 
     const content = yield call(() => readFile(file_path))
-    const hash = FileHash(content)
+    const hash = yield call(FileHashAsync, content)
     yield call(() => saveLocalFile(hash, content))
 
     const chunk_length = Math.ceil(file_info.size / FileChunkSize)

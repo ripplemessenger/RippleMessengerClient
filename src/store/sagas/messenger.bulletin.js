@@ -15,7 +15,7 @@ import {
   FLASH_DURATION_MS,
   Hour
 } from '../../lib/AppConst'
-import { AesDecryptBuffer, filesize_format, QuarterSHA512Message } from '../../lib/AppUtil'
+import { AesDecryptBuffer, filesize_format, QuarterSHA512Message, FileHashAsync } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { Epoch, FileRequestType, GenesisHash, ListItemMax, ObjectType } from '../../lib/MessengerConst'
@@ -676,7 +676,7 @@ export function* BulletinFileAdd({ payload }) {
       )
     } else {
       const content = yield call(() => readFile(file_path))
-      const hash = FileHash(content)
+      const hash = yield call(FileHashAsync, content)
 
       const chunk_length = Math.ceil(file_info.size / FileChunkSize)
       const file = yield call(() => dbAPI.getFileByHash(hash))

@@ -3,28 +3,28 @@ import Logger from './Logger'
 import { GenesisHash } from './MessengerConst'
 
 const ConsoleColors = {
-  'bright': '\x1B[1m%s\x1B[0m',
-  'grey': '\x1B[2m%s\x1B[0m',
-  'italic': '\x1B[3m%s\x1B[0m',
-  'underline': '\x1B[4m%s\x1B[0m',
-  'reverse': '\x1B[7m%s\x1B[0m',
-  'hidden': '\x1B[8m%s\x1B[0m',
-  'black': '\x1B[30m%s\x1B[0m',
-  'red': '\x1B[31m%s\x1B[0m',
-  'green': '\x1B[32m%s\x1B[0m',
-  'yellow': '\x1B[33m%s\x1B[0m',
-  'blue': '\x1B[34m%s\x1B[0m',
-  'magenta': '\x1B[35m%s\x1B[0m',
-  'cyan': '\x1B[36m%s\x1B[0m',
-  'white': '\x1B[37m%s\x1B[0m',
-  'blackBG': '\x1B[40m%s\x1B[0m',
-  'redBG': '\x1B[41m%s\x1B[0m',
-  'greenBG': '\x1B[42m%s\x1B[0m',
-  'yellowBG': '\x1B[43m%s\x1B[0m',
-  'blueBG': '\x1B[44m%s\x1B[0m',
-  'magentaBG': '\x1B[45m%s\x1B[0m',
-  'cyanBG': '\x1B[46m%s\x1B[0m',
-  'whiteBG': '\x1B[47m%s\x1B[0m'
+  bright: '\x1B[1m%s\x1B[0m',
+  grey: '\x1B[2m%s\x1B[0m',
+  italic: '\x1B[3m%s\x1B[0m',
+  underline: '\x1B[4m%s\x1B[0m',
+  reverse: '\x1B[7m%s\x1B[0m',
+  hidden: '\x1B[8m%s\x1B[0m',
+  black: '\x1B[30m%s\x1B[0m',
+  red: '\x1B[31m%s\x1B[0m',
+  green: '\x1B[32m%s\x1B[0m',
+  yellow: '\x1B[33m%s\x1B[0m',
+  blue: '\x1B[34m%s\x1B[0m',
+  magenta: '\x1B[35m%s\x1B[0m',
+  cyan: '\x1B[36m%s\x1B[0m',
+  white: '\x1B[37m%s\x1B[0m',
+  blackBG: '\x1B[40m%s\x1B[0m',
+  redBG: '\x1B[41m%s\x1B[0m',
+  greenBG: '\x1B[42m%s\x1B[0m',
+  yellowBG: '\x1B[43m%s\x1B[0m',
+  blueBG: '\x1B[44m%s\x1B[0m',
+  magentaBG: '\x1B[45m%s\x1B[0m',
+  cyanBG: '\x1B[46m%s\x1B[0m',
+  whiteBG: '\x1B[47m%s\x1B[0m'
 }
 
 /**
@@ -47,7 +47,9 @@ const kb = 1024
 const mb = 1024 * 1024
 const gb = 1024 * 1024 * 1024
 
-function add0(m) { return m < 10 ? '0' + m : m }
+function add0(m) {
+  return m < 10 ? '0' + m : m
+}
 
 /**
  * Format a timestamp into a human-readable relative string.
@@ -142,6 +144,22 @@ function QuarterSHA512WordArray(wa) {
 }
 
 /**
+ * Async file hash using Web Crypto API (native SHA-512, non-blocking).
+ * Returns the first 32 hex characters (16 bytes) of SHA-512, matching FileHash.
+ * @param {Uint8Array|ArrayBuffer} buffer - Raw file data
+ * @returns {Promise<string>} 32-character uppercase hex hash
+ */
+async function FileHashAsync(buffer) {
+  const hashBuffer = await crypto.subtle.digest('SHA-512', buffer)
+  const hashArray = new Uint8Array(hashBuffer)
+  const first16 = hashArray.slice(0, 16)
+  return Array.from(first16)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()
+}
+
+/**
  * Calculate a percentage rate rounded to 2 decimal places.
  * Returns 100 if the result is NaN (e.g., division by zero).
  * @param {number} numerator - Part value
@@ -149,7 +167,7 @@ function QuarterSHA512WordArray(wa) {
  * @returns {number} Rate as a percentage (0-100)
  */
 function calcRate(numerator, denominator) {
-  let rate = Math.round(numerator / denominator * 10000) / 100
+  let rate = Math.round((numerator / denominator) * 10000) / 100
   if (Number.isNaN(rate)) {
     rate = 100
   }
@@ -313,7 +331,7 @@ function AesDecrypt(cipherData, aes_key) {
  */
 function hkdf(ikm, salt, length) {
   if (!salt || salt.sigBytes === 0) {
-    salt = CryptoJS.lib.WordArray.create(new Uint8Array(32));
+    salt = CryptoJS.lib.WordArray.create(new Uint8Array(32))
   }
   const prk = CryptoJS.HmacSHA256(ikm, salt)
 
@@ -329,7 +347,7 @@ function hkdf(ikm, salt, length) {
       .concat(CryptoJS.lib.WordArray.create([(i + 1) << 24]))
 
     lastBlock = CryptoJS.HmacSHA256(input, prk)
-    t = t.concat(lastBlock);
+    t = t.concat(lastBlock)
   }
 
   return CryptoJS.lib.WordArray.create(t.words, length)
@@ -360,13 +378,13 @@ function genAESKey(shared_key, address1, address2, sequence) {
  * @returns {Uint8Array} Binary data
  */
 function wordArrayToUint8Array(wordArray) {
-  const words = wordArray.words;
-  const sigBytes = wordArray.sigBytes;
-  const u8 = new Uint8Array(sigBytes);
+  const words = wordArray.words
+  const sigBytes = wordArray.sigBytes
+  const u8 = new Uint8Array(sigBytes)
   for (let i = 0; i < sigBytes; i++) {
-    u8[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+    u8[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff
   }
-  return u8;
+  return u8
 }
 
 /**
@@ -375,11 +393,11 @@ function wordArrayToUint8Array(wordArray) {
  * @returns {import('crypto-js').Lib.WordArray} WordArray
  */
 function uint8ArrayToWordArray(u8arr) {
-  const words = [];
+  const words = []
   for (let i = 0; i < u8arr.length; i++) {
-    words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8);
+    words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8)
   }
-  return CryptoJS.lib.WordArray.create(words, u8arr.length);
+  return CryptoJS.lib.WordArray.create(words, u8arr.length)
 }
 
 /**
@@ -418,9 +436,7 @@ function AesDecryptBuffer(buffer, aes_key) {
     const cipherParams = CryptoJS.lib.CipherParams.create({
       ciphertext: wordArray
     })
-    const decrypted = CryptoJS.AES.decrypt(
-      cipherParams,
-      keyWa, {
+    const decrypted = CryptoJS.AES.decrypt(cipherParams, keyWa, {
       iv: ivWa,
       mode: CryptoJS.mode.CBC,
       padding: CryptoJS.pad.Pkcs7
@@ -440,14 +456,18 @@ function AesDecryptBuffer(buffer, aes_key) {
  * @param {*} intVal - Value to convert
  * @returns {boolean} True if value is 1, false otherwise
  */
-function Int2Bool(intVal) { return intVal === 1 }
+function Int2Bool(intVal) {
+  return intVal === 1
+}
 
 /**
  * Convert a boolean to an integer (0 or 1).
  * @param {*} boolVal - Value to convert
  * @returns {number} 1 if true, 0 otherwise
  */
-function Bool2Int(boolVal) { return Number(boolVal) }
+function Bool2Int(boolVal) {
+  return Number(boolVal)
+}
 
 export {
   ConsoleWarn,
@@ -455,25 +475,20 @@ export {
   timestamp_format,
   timestamp2Number,
   filesize_format,
-
   HalfSHA512,
   QuarterSHA512Message,
   QuarterSHA512WordArray,
-
+  FileHashAsync,
   calcRate,
-
   genSalt,
   encryptWithPassword,
   decryptWithPassword,
   AesEncrypt,
   AesDecrypt,
-
   sortedAddressPair,
   genAESKey,
-
   AesEncryptBuffer,
   AesDecryptBuffer,
-
   Int2Bool,
   Bool2Int
 }
