@@ -22,6 +22,8 @@ const MAIN_WINDOW_LABEL: &str = "main";
 /* ── shared state ──────────────────────────────────────────── */
 static IS_FLASHING: AtomicBool = AtomicBool::new(false);
 static FLASH_TASK: Mutex<Option<tokio::task::AbortHandle>> = Mutex::new(None);
+/// Flash icon queue: (sender address, avatar PNG bytes; empty bytes = no avatar → default alert icon)
+static FLASH_ICONS: Mutex<Vec<(String, Vec<u8>)>> = Mutex::new(Vec::new());
 
 /// true  = close → hide to tray (default)
 /// false = close → quit the app
@@ -88,7 +90,19 @@ fn refresh_tray_menu_internal(app: &AppHandle) {
     }
 }
 
-async fn start_message_flash_internal(app: &AppHandle) {
+async fn start_message_flash_internal(app: &AppHandle, sender: String, icon: Vec<u8>) {
+    // Upsert sender into the flash icon queue (newest message wins the icon)
+    {
+        let mut icons = match FLASH_ICONS.lock() {
+            Ok(i) => i,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        match icons.iter_mut().find(|(s, _)| *s == sender) {
+            Some(entry) => entry.1 = icon,
+            None => icons.push((sender, icon)),
+        }
+    }
+
     // Abort any existing flash task before starting a new one
     {
         let mut task = match FLASH_TASK.lock() {
@@ -122,17 +136,32 @@ async fn start_message_flash_internal(app: &AppHandle) {
 
     let tray_clone = tray.clone();
     let handle = tokio::spawn(async move {
-        let mut count: u32 = 0;
+        // Cycle through senders: icon[0], normal, icon[1], normal, ...
+        let mut step: u64 = 0;
         while IS_FLASHING.load(Ordering::SeqCst) {
-            let icon_bytes = if count % 2 == 0 { alert_icon_bytes } else { normal_icon_bytes };
-            let icon = Image::from_bytes(icon_bytes).ok();
-            if let Some(ic) = icon {
+            let icons = match FLASH_ICONS.lock() {
+                Ok(i) => i.clone(),
+                Err(poisoned) => poisoned.into_inner().clone(),
+            };
+            let icon_bytes: &[u8] = if icons.is_empty() {
+                alert_icon_bytes
+            } else if step.is_multiple_of(2) {
+                let sender_icon = &icons[(step / 2) as usize % icons.len()].1;
+                if sender_icon.is_empty() {
+                    alert_icon_bytes
+                } else {
+                    sender_icon
+                }
+            } else {
+                normal_icon_bytes
+            };
+            if let Ok(ic) = Image::from_bytes(icon_bytes) {
                 if let Err(e) = tray_clone.set_icon(Some(ic)) {
                     log::warn!("Failed to set tray icon during flash: {}", e);
                 }
             }
+            step += 1;
             tokio::time::sleep(Duration::from_millis(FLASH_INTERVAL_MS)).await;
-            count += 1;
         }
         // Restore normal icon when flash stops
         if let Ok(ic) = Image::from_bytes(normal_icon_bytes) {
@@ -150,8 +179,8 @@ async fn start_message_flash_internal(app: &AppHandle) {
 }
 
 #[tauri::command]
-async fn start_message_flash(app: AppHandle) {
-    start_message_flash_internal(&app).await;
+async fn start_message_flash(app: AppHandle, sender: String, icon: Vec<u8>) {
+    start_message_flash_internal(&app, sender, icon).await;
 }
 
 fn stop_message_flash_internal(app: &AppHandle) {
@@ -167,6 +196,11 @@ fn stop_message_flash_internal(app: &AppHandle) {
     };
     if let Some(handle) = task.take() {
         handle.abort();
+    }
+
+    // Clear the flash icon queue
+    if let Ok(mut icons) = FLASH_ICONS.lock() {
+        icons.clear();
     }
 
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
@@ -194,11 +228,6 @@ fn show_main_window_internal(app: &AppHandle) {
         }
         stop_message_flash_internal(app);
     }
-}
-
-#[tauri::command]
-fn show_main_window(app: AppHandle) {
-    show_main_window_internal(&app);
 }
 
 /// Toggle the "close to tray" behaviour from the frontend.

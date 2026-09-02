@@ -28,6 +28,7 @@ import {
   HalfSHA512,
   QuarterSHA512Message
 } from '../../lib/AppUtil'
+import { getAvatarIconBytes } from '../../lib/TrayFlashUtil'
 import Logger from '../../lib/Logger'
 import { playNotificationSound } from '../../lib/SoundUtil'
 import { mgAPI } from '../../lib/MessageGenerator'
@@ -951,7 +952,9 @@ function* processPrivateMessage(json, address, ob_address) {
       }
       yield call(LoadSessionList)
       if (getSettingBool('enableNotifications', true)) {
-        yield call(invoke, 'start_message_flash')
+        const appBaseDir = yield select((state) => state.Common.AppBaseDir)
+        const icon = yield call(() => getAvatarIconBytes(remote, appBaseDir))
+        yield call(invoke, 'start_message_flash', { sender: remote, icon: icon ? Array.from(icon) : [] })
       }
       playNotificationSound(getSettingString('messageSound', 'chime'))
     }
@@ -1127,7 +1130,9 @@ function* handleGroupMessageListObject(json, address, seed) {
         }
         yield call(LoadSessionList)
         if (getSettingBool('enableNotifications', true)) {
-          yield call(invoke, 'start_message_flash')
+          const appBaseDir = yield select((state) => state.Common.AppBaseDir)
+          const icon = yield call(() => getAvatarIconBytes(msg_address, appBaseDir))
+          yield call(invoke, 'start_message_flash', { sender: msg_address, icon: icon ? Array.from(icon) : [] })
         }
         playNotificationSound(getSettingString('messageSound', 'chime'))
       }
