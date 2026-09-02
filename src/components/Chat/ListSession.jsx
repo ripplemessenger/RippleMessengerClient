@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import AvatarName from '../AvatarName'
 import TextTimestamp from '../TextTimestamp'
 import SessionName from './SessionName'
@@ -6,6 +7,7 @@ import { SessionType } from '../../lib/AppConst'
 import AvatarWithBadger from './AvatarWithBadger'
 
 const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
+  const { t } = useTranslation()
   const rowClass = `flex flex-row mx-1.5 mt-2 cursor-pointer rounded-lg px-2 py-1 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors`
   const handleClick = () => onSessionClick?.(session)
 
@@ -20,7 +22,7 @@ const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
           }}
           role="button"
           tabIndex={0}
-          aria-label={`Open chat with ${session.address}`}
+          aria-label={t('chat.open_chat', { address: session.address })}
         >
           <AvatarWithBadger
             session_type={session.type}
@@ -42,7 +44,7 @@ const ListSession = ({ session, onSessionClick, textSize = 'text-base' }) => {
           }}
           role="button"
           tabIndex={0}
-          aria-label={`Open group chat ${session.name}`}
+          aria-label={t('chat.open_group', { name: session.name })}
         >
           <AvatarWithBadger session_type={session.type} member={session.member} new_msg_count={session.new_msg_count} />
           <div className="flex flex-col justify-between px-1">

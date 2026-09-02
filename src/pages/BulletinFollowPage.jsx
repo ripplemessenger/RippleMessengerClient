@@ -20,7 +20,7 @@ export default function BulletinFollowPage() {
   const { showPublish: ShowPublishFlag, showForward: ShowForwardFlag } = useSelector(selectPublishFlags)
 
   return (
-    <div className="bulletin-page-wrapper">
+    <div className="page-wrapper">
       {ShowPublishFlag && <BulletinPublish />}
       {ShowForwardFlag && <BulletinForward />}
       <BulletinListPage

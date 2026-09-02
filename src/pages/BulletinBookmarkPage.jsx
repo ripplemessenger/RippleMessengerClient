@@ -10,7 +10,11 @@ export default function BookmarkAddressPage() {
   const { t } = useTranslation()
   useBulletinLoad('LoadBookmarkBulletin', { page: 1 })
 
-  const { list: BookmarkBulletinList, page: BookmarkBulletinPage, totalPage: BookmarkBulletinTotalPage } = useSelector(selectBookmarkBulletins)
+  const {
+    list: BookmarkBulletinList,
+    page: BookmarkBulletinPage,
+    totalPage: BookmarkBulletinTotalPage
+  } = useSelector(selectBookmarkBulletins)
 
   return (
     <BulletinListPage
@@ -22,7 +26,7 @@ export default function BookmarkAddressPage() {
       wrapperStyle={'card'}
       showEmpty
       emptyIcon={<IoStar className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-      emptyTitle="No bookmarked bulletins"
+      emptyTitle={t('page.no_bookmarked')}
       emptyDescription={t('ui.bookmark_bulletins')}
     />
   )

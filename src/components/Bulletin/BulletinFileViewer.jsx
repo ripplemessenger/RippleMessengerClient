@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveBulletinFile } from '../../store/sagas/messenger.actions'
 import { IoAttachSharp } from 'react-icons/io5'
@@ -9,6 +10,7 @@ import { useAppBaseDir } from '../../hooks/useAppBaseDir'
 import { useFileBlobUrl } from '../../hooks/useFileBlobUrl'
 
 const BulletinFileViewer = ({ name, ext, size, hash }) => {
+  const { t } = useTranslation()
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
   // Distinguish single-click (save only) vs double-click (save + open)
@@ -51,7 +53,7 @@ const BulletinFileViewer = ({ name, ext, size, hash }) => {
               }, 300)
             }
           }}
-          aria-label={`Download ${name}${ext}`}
+          aria-label={t('file.download', { name: `${name}${ext}` })}
         >
           <IoAttachSharp className="icon-sm" />↓{name}
           {ext}

@@ -1,10 +1,11 @@
 import React from 'react'
 import { createSearchParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AvatarName from '../AvatarName'
-import { AiOutlineLink } from "react-icons/ai"
+import { AiOutlineLink } from 'react-icons/ai'
 
 const BulletinLink = ({ address, sequence, hash, sour_address, timestamp }) => {
-
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const goto_bulletin = () => {
     const params = { hash: hash, address: address, sequence: sequence, sour_address: sour_address }
@@ -15,7 +16,15 @@ const BulletinLink = ({ address, sequence, hash, sour_address, timestamp }) => {
   }
 
   return (
-    <button className='flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-md border border-primary/30 dark:border-primary/40 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors focus:outline-none' title={hash} onClick={() => { goto_bulletin() }} aria-label={`View bulletin #${sequence}`} key={hash}>
+    <button
+      className="flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-md border border-primary/30 dark:border-primary/40 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:bg-primary/10 dark:hover:bg-primary/20 hover:border-primary/60 dark:hover:border-primary/50 hover:text-text-primary dark:hover:text-dark-text-primary transition-colors focus:outline-none"
+      title={hash}
+      onClick={() => {
+        goto_bulletin()
+      }}
+      aria-label={t('bulletin.view_bulletin', { seq: sequence })}
+      key={hash}
+    >
       <AiOutlineLink className="icon-sm" />
       <AvatarName address={address} short_flag={true} />#{sequence}
     </button>

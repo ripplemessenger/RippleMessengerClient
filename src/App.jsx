@@ -14,9 +14,9 @@ const AboutPage = React.lazy(() => import('./pages/AboutPage'))
 const BulletinAddressPage = React.lazy(() => import('./pages/BulletinAddressPage'))
 const BookmarkAddressPage = React.lazy(() => import('./pages/BulletinBookmarkPage'))
 const BulletinFollowPage = React.lazy(() => import('./pages/BulletinFollowPage'))
-const BulletinRandomPage = React.lazy(() => import('./pages/BulletinRandomPage'))
-const BulletinTagPage = React.lazy(() => import('./pages/BulletinTagPage'))
 const BulletinViewPage = React.lazy(() => import('./pages/BulletinViewPage'))
+const BulletinPage = React.lazy(() => import('./pages/BulletinPage'))
+const ContactPage = React.lazy(() => import('./pages/ContactPage'))
 const ChatHomePage = React.lazy(() => import('./pages/ChatHomePage'))
 const PortalPage = React.lazy(() => import('./pages/PortalPage'))
 const ServerAddressPage = React.lazy(() => import('./pages/ServerAddressPage'))
@@ -25,7 +25,7 @@ const SettingPage = React.lazy(() => import('./pages/SettingPage'))
 function App() {
   // Sync persisted settings to Rust backend on startup
   useEffect(() => {
-    invoke('set_close_to_tray', { closeToTray: getSettingBool('closeToTray', false) }).catch(() => {})
+    invoke('set_close_to_tray', { closeToTray: getSettingBool('closeToTray', true) }).catch(() => {})
     invoke('set_start_minimized', { startMinimized: getSettingBool('startMinimized', false) }).catch(() => {})
   }, [])
 
@@ -38,11 +38,11 @@ function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/bulletin_follow" element={<BulletinFollowPage />} />
-            <Route path="/bulletin_tag" element={<BulletinTagPage />} />
-            <Route path="/bulletin_random" element={<BulletinRandomPage />} />
             <Route path="/bulletin_address" element={<BulletinAddressPage />} />
             <Route path="/bulletin_bookmark" element={<BookmarkAddressPage />} />
             <Route path="/bulletin_view" element={<BulletinViewPage />} />
+            <Route path="/bulletin" element={<BulletinPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             {/* <Route path="/bulletin_view/:bulletin_hash" element={<BulletinViewPage />} /> */}
             <Route path="/server_address" element={<ServerAddressPage />} />
             <Route path="/chat" element={<ChatHomePage />} />
@@ -61,7 +61,7 @@ function RootRouter() {
   const { IsAuth, loading } = useAuth()
 
   if (loading) {
-    return <LoadingDiv isLoading={true} text="Loading..." />
+    return <LoadingDiv isLoading={true} />
   }
 
   return IsAuth ? <PortalPage /> : <OpenPage />

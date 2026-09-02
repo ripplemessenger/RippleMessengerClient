@@ -23,12 +23,15 @@ export default function ServerAddressPage() {
     <div className="flex justify-center items-center">
       <div className="tab-page">
         <div className="mx-auto w-full flex flex-col mt-4">
-          <div className="card-title">
-            {url}
-          </div>
+          <div className="card-title">{url}</div>
 
           {ServerAddressTotalPage > 1 && (
-            <PageList current_page={ServerAddressPage} total_page={ServerAddressTotalPage} dispatch_type={'RequestServerAddress'} payload={{}} />
+            <PageList
+              current_page={ServerAddressPage}
+              total_page={ServerAddressTotalPage}
+              dispatch_type={'RequestServerAddress'}
+              payload={{}}
+            />
           )}
           <div className="min-w-full p-4 rounded-xl card">
             {ServerAddressList.length > 0 ? (
@@ -36,22 +39,23 @@ export default function ServerAddressPage() {
                 <table className="min-w-full divide-y divide-primary/10 dark:divide-primary/20">
                   <thead>
                     <tr className="text-center font-bold text-sm text-primary dark:text-dark-primary tracking-wider">
-                      <th>Avatar</th>
-                      <th>Bulletin Count</th>
+                      <th>{t('ui.avatar')}</th>
+                      <th>{t('ui.bulletin_count')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/10 dark:divide-primary/20">
                     {ServerAddressList.map((account) => (
-                      <tr key={account.Address} className='table-tr'>
-                        <td className="p-3 whitespace-nowrap text-base text-text-primary dark:text-dark-text-primary" title={account.Address}>
-                          <div className='flex flex-col justify-center items-center gap-1'>
+                      <tr key={account.Address} className="table-tr">
+                        <td
+                          className="p-3 whitespace-nowrap text-base text-text-primary dark:text-dark-text-primary"
+                          title={account.Address}
+                        >
+                          <div className="flex flex-col justify-center items-center gap-1">
                             <BulletinAvatarLink address={account.Address} classNames={'avatar'} />
                             <AvatarName address={account.Address} />
                           </div>
                         </td>
-                        <td className="p-3 text-base text-text-primary dark:text-dark-text-primary">
-                          {account.Count}
-                        </td>
+                        <td className="p-3 text-base text-text-primary dark:text-dark-text-primary">{account.Count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -66,7 +70,12 @@ export default function ServerAddressPage() {
             )}
           </div>
           {ServerAddressTotalPage > 1 && (
-            <PageList current_page={ServerAddressPage} total_page={ServerAddressTotalPage} dispatch_type={'RequestServerAddress'} payload={{}} />
+            <PageList
+              current_page={ServerAddressPage}
+              total_page={ServerAddressTotalPage}
+              dispatch_type={'RequestServerAddress'}
+              payload={{}}
+            />
           )}
         </div>
       </div>

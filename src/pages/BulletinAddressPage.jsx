@@ -14,7 +14,15 @@ import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
 export default function BulletinAddressPage() {
   const { t } = useTranslation()
   const Address = useSelector(selectUserAddress)
-  const { AddressBulletinList, AddressBulletinTotalPage, AddressBulletinPage, BulletinAddress, ShowPublishFlag, ShowForwardFlag, MessengerConnStatus } = useSelector(selectBulletinAddressData)
+  const {
+    AddressBulletinList,
+    AddressBulletinTotalPage,
+    AddressBulletinPage,
+    BulletinAddress,
+    ShowPublishFlag,
+    ShowForwardFlag,
+    MessengerConnStatus
+  } = useSelector(selectBulletinAddressData)
 
   const dispatch = useDispatch()
 
@@ -25,18 +33,22 @@ export default function BulletinAddressPage() {
   }, [dispatch, BulletinAddress, MessengerConnStatus])
 
   return (
-    <div className="bulletin-page-wrapper">
+    <div className="page-wrapper">
       {ShowPublishFlag && <BulletinPublish />}
       {ShowForwardFlag && <BulletinForward />}
       <BulletinListPage
         title={
           <>
             <AvatarName address={BulletinAddress} />
-            {BulletinAddress === Address &&
-              <button className="icon-action-btn" onClick={() => dispatch(setPublishFlag(true))} aria-label={t('common.publish_bulletin')}>
+            {BulletinAddress === Address && (
+              <button
+                className="icon-action-btn"
+                onClick={() => dispatch(setPublishFlag(true))}
+                aria-label={t('common.publish_bulletin')}
+              >
                 <MdPostAdd className="card-icon" />
               </button>
-            }
+            )}
           </>
         }
         bulletins={AddressBulletinList}
@@ -45,8 +57,8 @@ export default function BulletinAddressPage() {
         pageListPayload={{ address: BulletinAddress }}
         showEmpty
         emptyIcon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-        emptyTitle="No bulletins from this account"
-        emptyDescription="This account has not posted yet"
+        emptyTitle={t('page.no_bulletins_from_account')}
+        emptyDescription={t('page.account_not_posted')}
         renderWrapper={false}
       />
     </div>

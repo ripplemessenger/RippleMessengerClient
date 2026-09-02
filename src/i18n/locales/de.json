@@ -16,6 +16,8 @@
     "bookmark": "Lesezeichen",
     "follow": "Folgen",
     "chat": "Chat",
+    "bulletin": "Mitteilungen",
+    "contact": "Kontakt",
     "setting": "Einstellungen",
     "toggle_theme": "Thema wechseln",
     "previous_page": "Vorherige Seite",
@@ -35,8 +37,16 @@
     "view_server_stats": "Serverstatistik anzeigen",
     "language": "Sprache wechseln",
     "add_contact": "Kontakt hinzufügen",
+    "add": "Hinzufügen",
     "view_group_requests": "Gruppenanfragen anzeigen",
-    "copied_to_clipboard": "In die Zwischenablage kopiert!"
+    "copied_to_clipboard": "In die Zwischenablage kopiert!",
+    "error": "Etwas ist schiefgelaufen",
+    "unknown_error": "Unbekannter Fehler",
+    "try_again": "Erneut versuchen",
+    "connecting": "Verbinde mit dem Server...",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "page": "Seite {{page}} / {{total}}"
   },
   "file": {
     "saved_to_download": "Datei im Download-Verzeichnis gespeichert",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "Fremde Referenzen gelöscht",
     "failed_to_delete_others_refs": "Fremde Referenzen konnten nicht gelöscht werden",
     "avatars_cleared": "{{count}} Avatar(s) gelöscht",
-    "failed_to_clear_avatars": "Avatar-Cache konnte nicht geleert werden"
+    "failed_to_clear_avatars": "Avatar-Cache konnte nicht geleert werden",
+    "downloading": "{{size}} (wird heruntergeladen)",
+    "downloaded": "{{size}} (heruntergeladen)",
+    "download_failed": "{{size}} (Download fehlgeschlagen, klicken zum erneuten Versuch)",
+    "hint_open": "Doppelklick zum Öffnen",
+    "hint_save_open": "Klicken zum Speichern, Doppelklick zum Speichern und Öffnen",
+    "download": "Herunterladen {{name}}"
   },
   "chat": {
     "content_empty": "Inhalt ist leer...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "Verschlüsselungsschlüssel konnte nicht abgerufen werden, Dateianfrage nicht gesendet, bitte erneut versuchen",
     "hash_mismatch_retrying": "Dateiverifizierung fehlgeschlagen, neuer Versuch...",
     "group_members": "Gruppenmitglieder",
-    "peer": "Peer"
+    "peer": "Peer",
+    "error_title": "Chat-Fehler",
+    "handshake_not_ready": "Handshake läuft noch...",
+    "open_chat": "Chat mit {{address}} öffnen",
+    "open_group": "Gruppenchat {{name}} öffnen"
   },
   "bulletin": {
     "saved": "Bulletin gespeichert",
@@ -83,7 +103,17 @@
     "delete_failed": "Bulletin konnte nicht gelöscht werden",
     "cleared": "{{count}} Bulletins gelöscht",
     "clear_failed": "Bulletins konnten nicht gelöscht werden",
-    "deleted_single": "Bulletin gelöscht"
+    "deleted_single": "Bulletin gelöscht",
+    "bulk_deleted": "{{count}} Bulletin(s) gelöscht",
+    "forward": "Bulletin weiterleiten",
+    "show_raw": "Rohtext anzeigen",
+    "show_markdown": "Markdown anzeigen",
+    "view_bulletin": "Bulletin #{{seq}} anzeigen",
+    "unmark": "Markierung entfernen",
+    "mark": "Bulletin markieren",
+    "remove_file": "Datei entfernen {{name}}",
+    "remove_tag": "Tag entfernen {{tag}}",
+    "search_tag": "Tag suchen {{tag}}"
   },
   "setting": {
     "theme_changed": "Thema geändert zu {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "Bulletins",
     "tab_general": "Allgemein",
     "tab_me": "Profil",
+    "avatar_desc": "Avatar anklicken, um ihn zu ändern",
+    "nickname": "Spitzname",
+    "nickname_desc": "Wird anderen Benutzern angezeigt",
+    "copy_seed_desc": "Kontoseed in die Zwischenablage kopieren",
+    "remove_account_desc": "Dieses Konto und alle lokalen Daten entfernen",
     "qr_code": "QR-Code",
     "qr_hint": "Scanne diesen QR-Code, um mich als Kontakt hinzuzufügen",
     "tab_contact": "Kontakt",
@@ -161,9 +196,31 @@
     "file_name": "Name",
     "file_refs": "Refs",
     "already_saved": "Bereits gespeichert",
-    "download_chunks": "{cursor}/{total} Blöcke heruntergeladen — klicken zum Herunterladen"
+    "download_chunks": "{cursor}/{total} Blöcke heruntergeladen — klicken zum Herunterladen",
+    "remove_account_confirm": "Dieses Konto entfernen? Alle lokalen Daten werden gelöscht.",
+    "copy_seed_confirm": "Konto-Samen in die Zwischenablage kopieren?",
+    "default_server": "Standard",
+    "delete_selected": "Ausgewählte löschen ({{count}})",
+    "all_tags": "Alle Tags",
+    "protected_bulletin": "Geschütztes Bulletin",
+    "address": "Adresse",
+    "seq": "Nr.",
+    "content": "Inhalt",
+    "all_types": "Alle Typen",
+    "no_owned_files": "Keine eigenen Dateien",
+    "no_cached_files": "Keine zwischengespeicherten Dateien",
+    "cached_files_desc": "Heruntergeladene Dateien aus Bulletins anderer erscheinen hier",
+    "bulletins_using_file": "Bulletins, die diese Datei verwenden",
+    "no_file_refs": "Keine Referenzen gefunden",
+    "referenced_by": "Von {{count}} Bulletin(s) referenziert"
   },
   "ui": {
+    "search_bulletin": "Bulletin durchsuchen",
+    "search_message": "Nachrichten durchsuchen",
+    "search_chat": "Kontakte, Gruppen und Nachrichten durchsuchen",
+    "no_results": "Keine Ergebnisse",
+    "msg_type_private": "Privat",
+    "msg_type_group": "Gruppe",
     "no_sessions": "Keine Sitzungen",
     "start_conversation": "Starten Sie eine Unterhaltung mit einem Kontakt",
     "no_messages": "Noch keine Nachrichten",
@@ -210,7 +267,14 @@
     "quotes": "Zitate",
     "attachments": "Anhänge",
     "publish": "Veröffentlichen",
-    "tag_search_placeholder": "Enter oder ,"
+    "tag_search_placeholder": "Enter oder ,",
+    "loading_bulletin": "Bulletin wird geladen...",
+    "view_message_details": "Details zu Nachricht #{{seq}} anzeigen",
+    "bulletin_number": "Bulletin #{{seq}}",
+    "search_contact": "Kontakte suchen...",
+    "search_group": "Gruppen suchen...",
+    "avatar": "Avatar",
+    "bulletin_count": "Anzahl der Bulletins"
   },
   "auth": {
     "open_account": "Konto öffnen",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "Gruppenname:",
-    "deleted": "Diese Gruppe wurde gelöscht, das Senden ist deaktiviert"
+    "deleted": "Diese Gruppe wurde gelöscht, das Senden ist deaktiviert",
+    "create_group": "Gruppe erstellen",
+    "no_member_yet": "Noch keine Mitglieder",
+    "tap_contact_add": "Tippe unten auf einen Kontakt, um ihn hinzuzufügen",
+    "no_contact_available": "Keine Kontakte verfügbar",
+    "add_contact_first": "Füge zuerst Kontakte hinzu, um Gruppen zu erstellen",
+    "create": "Erstellen",
+    "requests": "Gruppeneinladungen",
+    "name": "Name",
+    "created_by": "Erstellt von",
+    "member": "Mitglied",
+    "member_count": "{{count}} Mitglieder",
+    "created_at": "Erstellt am",
+    "join": "Beitreten",
+    "remove_member": "Mitglied entfernen {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,35 @@
     "content": "# Regeln  \n1. Keine menschliche Überprüfung\n2. Keine Inhaltsmoderation\n3. Keine Empfehlung\n4. Kein Rückruf\n5. Daten auf meinen Geräten\n6. Verschlüsselter Chat\n7. Bulletins frei veröffentlichen(Kommentieren)\n\n## Spenden\n{{address}}"
   },
   "page": {
+    "chat": "Chat",
     "portal": "Portal",
+    "bulletin": "Mitteilungen",
     "random": "Zufällig",
     "no_random_bulletins": "Keine zufälligen Bulletins",
     "refresh_to_discover": "Aktualisieren, um zufällige Beiträge zu entdecken",
+    "loading_more": "Weitere werden geladen…",
+    "no_more_new": "Keine weiteren neuen Bulletins",
     "no_tagged_bulletins": "Keine Bulletins mit Tags",
     "tags_will_appear": "Bulletin-Tags werden hier angezeigt",
     "no_followed_bulletins": "Keine gefolgten Bulletins",
-    "enable_follow_to_see": "Aktivieren Sie das Folgen eines Kontakts, um dessen Bulletins hier zu sehen"
+    "enable_follow_to_see": "Aktivieren Sie das Folgen eines Kontakts, um dessen Bulletins hier zu sehen",
+    "no_bookmarked": "Keine markierten Bulletins",
+    "no_bulletins_from_account": "Keine Bulletins von diesem Konto",
+    "account_not_posted": "Dieses Konto hat noch nichts veröffentlicht"
+  },
+  "search": {
+    "address": "Adresse",
+    "address_all": "Alle Adressen",
+    "content": "Inhalt",
+    "content_placeholder": "Inhalt suchen...",
+    "tags": "Tags",
+    "tags_none": "Keine Tags",
+    "attachment": "Anhang",
+    "attachment_any": "Beliebig",
+    "attachment_with": "Anhang",
+    "attachment_without": "Ohne Anhang",
+    "search": "Suchen",
+    "clear": "Leeren",
+    "reset": "Zurücksetzen"
   }
 }

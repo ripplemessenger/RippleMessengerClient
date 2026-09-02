@@ -16,6 +16,8 @@
     "bookmark": "Signet",
     "follow": "Suivre",
     "chat": "Chat",
+    "bulletin": "Bulletin",
+    "contact": "Contact",
     "setting": "Paramètres",
     "toggle_theme": "Changer de thème",
     "previous_page": "Page précédente",
@@ -35,8 +37,16 @@
     "view_server_stats": "Voir les statistiques du serveur",
     "language": "Changer de langue",
     "add_contact": "Ajouter un contact",
+    "add": "Ajouter",
     "view_group_requests": "Voir les demandes de groupe",
-    "copied_to_clipboard": "Copié dans le presse-papiers !"
+    "copied_to_clipboard": "Copié dans le presse-papiers !",
+    "error": "Une erreur s'est produite",
+    "unknown_error": "Erreur inconnue",
+    "try_again": "Réessayer",
+    "connecting": "Connexion au serveur...",
+    "prev": "Préc.",
+    "next": "Suiv.",
+    "page": "Page {{page}} / {{total}}"
   },
   "file": {
     "saved_to_download": "Fichier enregistré dans le répertoire de téléchargement",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "Références d'autres supprimées",
     "failed_to_delete_others_refs": "Échec de la suppression des références d'autres",
     "avatars_cleared": "{{count}} avatar(s) supprimé(s)",
-    "failed_to_clear_avatars": "Échec de la suppression du cache d'avatars"
+    "failed_to_clear_avatars": "Échec de la suppression du cache d'avatars",
+    "downloading": "{{size}} (téléchargement)",
+    "downloaded": "{{size}} (téléchargé)",
+    "download_failed": "{{size}} (échec du téléchargement, cliquez pour réessayer)",
+    "hint_open": "double-cliquer pour ouvrir",
+    "hint_save_open": "cliquer pour enregistrer, double-cliquer pour enregistrer et ouvrir",
+    "download": "Télécharger {{name}}"
   },
   "chat": {
     "content_empty": "Le contenu est vide...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "Impossible d'obtenir la clé de chiffrement, demande de fichier non envoyée, veuillez réessayer",
     "hash_mismatch_retrying": "Échec de la vérification du fichier, nouvelle tentative...",
     "group_members": "membres du groupe",
-    "peer": "pair"
+    "peer": "pair",
+    "error_title": "Erreur de chat",
+    "handshake_not_ready": "Poignée de main non terminée...",
+    "open_chat": "Ouvrir la discussion avec {{address}}",
+    "open_group": "Ouvrir le groupe {{name}}"
   },
   "bulletin": {
     "saved": "Bulletin enregistré",
@@ -83,7 +103,17 @@
     "delete_failed": "Échec de la suppression du bulletin",
     "cleared": "{{count}} bulletins supprimés",
     "clear_failed": "Échec de la suppression des bulletins",
-    "deleted_single": "Bulletin supprimé"
+    "deleted_single": "Bulletin supprimé",
+    "bulk_deleted": "{{count}} bulletin(s) supprimé(s)",
+    "forward": "Transférer le bulletin",
+    "show_raw": "Afficher le texte brut",
+    "show_markdown": "Afficher le Markdown",
+    "view_bulletin": "Voir le bulletin #{{seq}}",
+    "unmark": "Retirer le marqueur",
+    "mark": "Marquer le bulletin",
+    "remove_file": "Supprimer le fichier {{name}}",
+    "remove_tag": "Supprimer le tag {{tag}}",
+    "search_tag": "Rechercher le tag {{tag}}"
   },
   "setting": {
     "theme_changed": "Thème changé en {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "Bulletins",
     "tab_general": "Général",
     "tab_me": "Moi",
+    "avatar_desc": "Cliquez sur l'avatar pour le changer",
+    "nickname": "Pseudo",
+    "nickname_desc": "Affiché aux autres utilisateurs",
+    "copy_seed_desc": "Copie la graine de votre compte dans le presse-papiers",
+    "remove_account_desc": "Supprimez ce compte et toutes les données locales",
     "qr_code": "Code QR",
     "qr_hint": "Scannez ce code QR pour m'ajouter en contact",
     "tab_contact": "Contact",
@@ -161,9 +196,31 @@
     "file_name": "Nom",
     "file_refs": "Réfs",
     "already_saved": "Déjà sauvegardé",
-    "download_chunks": "Téléchargé {cursor}/{total} blocs — cliquez pour télécharger"
+    "download_chunks": "Téléchargé {cursor}/{total} blocs — cliquez pour télécharger",
+    "remove_account_confirm": "Supprimer ce compte ? Toutes les données locales seront supprimées.",
+    "copy_seed_confirm": "Copier la graine de votre compte dans le presse-papiers ?",
+    "default_server": "Par défaut",
+    "delete_selected": "Supprimer la sélection ({{count}})",
+    "all_tags": "Toutes les étiquettes",
+    "protected_bulletin": "Bulletin protégé",
+    "address": "Adresse",
+    "seq": "N°",
+    "content": "Contenu",
+    "all_types": "Tous les types",
+    "no_owned_files": "Aucun fichier propre",
+    "no_cached_files": "Aucun fichier en cache",
+    "cached_files_desc": "Les fichiers téléchargés des bulletins d'autres apparaîtront ici",
+    "bulletins_using_file": "Bulletins utilisant ce fichier",
+    "no_file_refs": "Aucune référence trouvée",
+    "referenced_by": "Référencé par {{count}} bulletin(s)"
   },
   "ui": {
+    "search_bulletin": "Rechercher un bulletin",
+    "search_message": "Rechercher des messages",
+    "search_chat": "Rechercher contacts, groupes et messages",
+    "no_results": "Aucun résultat",
+    "msg_type_private": "Privé",
+    "msg_type_group": "Groupe",
     "no_sessions": "Aucune session",
     "start_conversation": "Commencer une conversation avec un contact",
     "no_messages": "Pas encore de messages",
@@ -210,7 +267,14 @@
     "quotes": "Citations",
     "attachments": "Pièces jointes",
     "publish": "Publier",
-    "tag_search_placeholder": "Entrée ou ,"
+    "tag_search_placeholder": "Entrée ou ,",
+    "loading_bulletin": "Chargement du bulletin...",
+    "view_message_details": "Voir les détails du message n°{{seq}}",
+    "bulletin_number": "Bulletin n°{{seq}}",
+    "search_contact": "Rechercher des contacts...",
+    "search_group": "Rechercher des groupes...",
+    "avatar": "Avatar",
+    "bulletin_count": "Nombre de bulletins"
   },
   "auth": {
     "open_account": "Ouvrir un compte",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "Nom du groupe :",
-    "deleted": "Ce groupe a été supprimé, l’envoi est désactivé"
+    "deleted": "Ce groupe a été supprimé, l’envoi est désactivé",
+    "create_group": "Créer un groupe",
+    "no_member_yet": "Pas encore de membre",
+    "tap_contact_add": "Touchez un contact ci-dessous pour l'ajouter",
+    "no_contact_available": "Aucun contact disponible",
+    "add_contact_first": "Ajoutez des contacts pour créer des groupes",
+    "create": "Créer",
+    "requests": "Invitations de groupe",
+    "name": "Nom",
+    "created_by": "Créé par",
+    "member": "Membre",
+    "member_count": "{{count}} membres",
+    "created_at": "Créé le",
+    "join": "Rejoindre",
+    "remove_member": "Retirer {{member}}"
   },
   "network": {
     "url": "URL :"
@@ -255,13 +333,35 @@
     "content": "# Règles  \n1. Pas de vérification humaine\n2. Pas de modération de contenu\n3. Pas de recommandation\n4. Pas de rappel\n5. Données sur mes appareils\n6. Chat crypté\n7. Publier(commenter) des bulletins librement\n\n## Faire un don\n{{address}}"
   },
   "page": {
+    "chat": "Chat",
     "portal": "Portail",
+    "bulletin": "Bulletin",
     "random": "Aléatoire",
     "no_random_bulletins": "Aucun bulletin aléatoire",
     "refresh_to_discover": "Actualisez pour découvrir des publications aléatoires",
+    "loading_more": "Chargement…",
+    "no_more_new": "Plus de nouveaux bulletins",
     "no_tagged_bulletins": "Aucun bulletin avec tag",
     "tags_will_appear": "Les tags de bulletin apparaîtront ici",
     "no_followed_bulletins": "Aucun bulletin suivi",
-    "enable_follow_to_see": "Activez le suivi sur un contact pour voir ses bulletins ici"
+    "enable_follow_to_see": "Activez le suivi sur un contact pour voir ses bulletins ici",
+    "no_bookmarked": "Aucun bulletin marqué",
+    "no_bulletins_from_account": "Aucun bulletin de ce compte",
+    "account_not_posted": "Ce compte n'a pas encore publié"
+  },
+  "search": {
+    "address": "Adresse",
+    "address_all": "Toutes les adresses",
+    "content": "Contenu",
+    "content_placeholder": "Rechercher du contenu...",
+    "tags": "Étiquettes",
+    "tags_none": "Aucune étiquette",
+    "attachment": "Pièce jointe",
+    "attachment_any": "Toutes",
+    "attachment_with": "Pièce jointe",
+    "attachment_without": "Sans pièce jointe",
+    "search": "Rechercher",
+    "clear": "Effacer",
+    "reset": "Réinitialiser"
   }
 }

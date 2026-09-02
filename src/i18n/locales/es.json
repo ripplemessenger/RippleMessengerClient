@@ -16,6 +16,8 @@
     "bookmark": "Marcador",
     "follow": "Seguir",
     "chat": "Chat",
+    "bulletin": "Boletín",
+    "contact": "Contacto",
     "setting": "Configuración",
     "toggle_theme": "Cambiar tema",
     "previous_page": "Página anterior",
@@ -35,8 +37,16 @@
     "view_server_stats": "Ver estadísticas del servidor",
     "language": "Cambiar idioma",
     "add_contact": "Añadir contacto",
+    "add": "Añadir",
     "view_group_requests": "Ver solicitudes de grupo",
-    "copied_to_clipboard": "¡Copiado al portapapeles!"
+    "copied_to_clipboard": "¡Copiado al portapapeles!",
+    "error": "Algo salió mal",
+    "unknown_error": "Error desconocido",
+    "try_again": "Reintentar",
+    "connecting": "Conectando al servidor...",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "page": "Página {{page}} / {{total}}"
   },
   "file": {
     "saved_to_download": "Archivo guardado en el directorio de descargas",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "Referencias de otros eliminadas",
     "failed_to_delete_others_refs": "Error al eliminar referencias de otros",
     "avatars_cleared": "{{count}} avatar(es) eliminado(s)",
-    "failed_to_clear_avatars": "Error al eliminar la caché de avatares"
+    "failed_to_clear_avatars": "Error al eliminar la caché de avatares",
+    "downloading": "{{size}} (descargando)",
+    "downloaded": "{{size}} (descargado)",
+    "download_failed": "{{size}} (error de descarga, haz clic para reintentar)",
+    "hint_open": "doble clic para abrir",
+    "hint_save_open": "clic para guardar, doble clic para guardar y abrir",
+    "download": "Descargar {{name}}"
   },
   "chat": {
     "content_empty": "El contenido está vacío...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "No se puede obtener la clave de cifrado, solicitud de archivo no enviada, intente de nuevo",
     "hash_mismatch_retrying": "Error en la verificación del archivo, reintentando...",
     "group_members": "miembros del grupo",
-    "peer": "par"
+    "peer": "par",
+    "error_title": "Error de chat",
+    "handshake_not_ready": "Apretón de manos en curso...",
+    "open_chat": "Abrir chat con {{address}}",
+    "open_group": "Abrir grupo {{name}}"
   },
   "bulletin": {
     "saved": "Boletín guardado",
@@ -83,7 +103,17 @@
     "delete_failed": "Error al eliminar el boletín",
     "cleared": "{{count}} boletines eliminados",
     "clear_failed": "Error al eliminar boletines",
-    "deleted_single": "Boletín eliminado"
+    "deleted_single": "Boletín eliminado",
+    "bulk_deleted": "Se eliminaron {{count}} boletín(s)",
+    "forward": "Reenviar boletín",
+    "show_raw": "Mostrar texto plano",
+    "show_markdown": "Mostrar Markdown",
+    "view_bulletin": "Ver boletín #{{seq}}",
+    "unmark": "Quitar marca",
+    "mark": "Marcar boletín",
+    "remove_file": "Eliminar archivo {{name}}",
+    "remove_tag": "Eliminar etiqueta {{tag}}",
+    "search_tag": "Buscar etiqueta {{tag}}"
   },
   "setting": {
     "theme_changed": "Tema cambiado a {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "Boletines",
     "tab_general": "General",
     "tab_me": "Perfil",
+    "avatar_desc": "Haz clic en el avatar para cambiarlo",
+    "nickname": "Apodo",
+    "nickname_desc": "Se muestra a otros usuarios",
+    "copy_seed_desc": "Copia la semilla de tu cuenta al portapapeles",
+    "remove_account_desc": "Suprime este usuario y todos los datos locales",
     "qr_code": "Código QR",
     "qr_hint": "Escanea este código QR para añadirme como contacto",
     "tab_contact": "Contacto",
@@ -161,9 +196,31 @@
     "file_name": "Nombre",
     "file_refs": "Refs",
     "already_saved": "Ya guardado",
-    "download_chunks": "Descargados {cursor}/{total} bloques — haz clic para descargar"
+    "download_chunks": "Descargados {cursor}/{total} bloques — haz clic para descargar",
+    "remove_account_confirm": "¿Eliminar esta cuenta? Se eliminarán todos los datos locales.",
+    "copy_seed_confirm": "¿Copiar la semilla de tu cuenta al portapapeles?",
+    "default_server": "Predeterminado",
+    "delete_selected": "Eliminar seleccionados ({{count}})",
+    "all_tags": "Todas las etiquetas",
+    "protected_bulletin": "Boletín protegido",
+    "address": "Dirección",
+    "seq": "N°",
+    "content": "Contenido",
+    "all_types": "Todos los tipos",
+    "no_owned_files": "Sin archivos propios",
+    "no_cached_files": "Sin archivos en caché",
+    "cached_files_desc": "Los archivos descargados de boletines de otros aparecerán aquí",
+    "bulletins_using_file": "Boletines que usan este archivo",
+    "no_file_refs": "No se encontraron referencias",
+    "referenced_by": "Referenciado por {{count}} boletín(es)"
   },
   "ui": {
+    "search_bulletin": "Buscar boletín",
+    "search_message": "Buscar mensajes",
+    "search_chat": "Buscar contactos, grupos y mensajes",
+    "no_results": "Sin resultados",
+    "msg_type_private": "Privado",
+    "msg_type_group": "Grupo",
     "no_sessions": "No hay sesiones",
     "start_conversation": "Inicie una conversación con un contacto",
     "no_messages": "Aún no hay mensajes",
@@ -210,7 +267,14 @@
     "quotes": "Citas",
     "attachments": "Archivos adjuntos",
     "publish": "Publicar",
-    "tag_search_placeholder": "Enter o ,"
+    "tag_search_placeholder": "Enter o ,",
+    "loading_bulletin": "Cargando boletín...",
+    "view_message_details": "Ver detalles del mensaje #{{seq}}",
+    "bulletin_number": "Boletín #{{seq}}",
+    "search_contact": "Buscar contactos...",
+    "search_group": "Buscar grupos...",
+    "avatar": "Avatar",
+    "bulletin_count": "Número de boletines"
   },
   "auth": {
     "open_account": "Abrir cuenta",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "Nombre del grupo:",
-    "deleted": "Este grupo ha sido eliminado, el envío está deshabilitado"
+    "deleted": "Este grupo ha sido eliminado, el envío está deshabilitado",
+    "create_group": "Crear grupo",
+    "no_member_yet": "Aún no hay miembros",
+    "tap_contact_add": "Toca un contacto abajo para añadirlo",
+    "no_contact_available": "No hay contactos disponibles",
+    "add_contact_first": "Añade contactos para crear grupos",
+    "create": "Crear",
+    "requests": "Invitaciones de grupo",
+    "name": "Nombre",
+    "created_by": "Creado por",
+    "member": "Miembro",
+    "member_count": "{{count}} miembros",
+    "created_at": "Creado el",
+    "join": "Unirse",
+    "remove_member": "Eliminar {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,35 @@
     "content": "# Reglas  \n1. Sin verificación humana\n2. Sin moderación de contenido\n3. Sin recomendación\n4. Sin retirada\n5. Datos en mis dispositivos\n6. Chat cifrado\n7. Publicar(comentar) boletines libremente\n\n## Donar\n{{address}}"
   },
   "page": {
+    "chat": "Chat",
     "portal": "Portal",
+    "bulletin": "Boletín",
     "random": "Aleatorio",
     "no_random_bulletins": "No hay boletines aleatorios",
     "refresh_to_discover": "Actualice para descubrir publicaciones aleatorias",
+    "loading_more": "Cargando más…",
+    "no_more_new": "No hay más boletines nuevos",
     "no_tagged_bulletins": "No hay boletines con etiquetas",
     "tags_will_appear": "Las etiquetas de boletín aparecerán aquí",
     "no_followed_bulletins": "No hay boletines seguidos",
-    "enable_follow_to_see": "Active el seguimiento en un contacto para ver sus boletines aquí"
+    "enable_follow_to_see": "Active el seguimiento en un contacto para ver sus boletines aquí",
+    "no_bookmarked": "Sin boletines marcados",
+    "no_bulletins_from_account": "Sin boletines de esta cuenta",
+    "account_not_posted": "Esta cuenta aún no ha publicado"
+  },
+  "search": {
+    "address": "Dirección",
+    "address_all": "Todas las direcciones",
+    "content": "Contenido",
+    "content_placeholder": "Buscar contenido...",
+    "tags": "Etiquetas",
+    "tags_none": "Sin etiquetas",
+    "attachment": "Adjunto",
+    "attachment_any": "Cualquiera",
+    "attachment_with": "Adjunto",
+    "attachment_without": "Sin adjunto",
+    "search": "Buscar",
+    "clear": "Limpiar",
+    "reset": "Restablecer"
   }
 }

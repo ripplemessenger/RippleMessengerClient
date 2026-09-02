@@ -4,13 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
 import {
   IoColorPaletteOutline,
-  IoCloseOutline,
   IoNotificationsOutline,
   IoNotificationsOffOutline,
   IoInformationCircleOutline
 } from 'react-icons/io5'
+import { TbAdjustments } from 'react-icons/tb'
 
 import ToggleSwitch from '../../components/ToggleSwitch'
+import ProfileSection from './ProfileSection'
+import ServerNetworkSection from './ServerNetworkSection'
 
 import { useTheme } from '../../components/ThemeProvider'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
@@ -121,218 +123,220 @@ export default function TabGeneral() {
   }
 
   return (
-    <div className="tab-page">
-      <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
-        <div className="card-title">{t('setting.tab_general')}</div>
+    <>
+      {/* Profile Section */}
+      <ProfileSection />
 
-        {/* Theme Section */}
-        <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-2 mb-2">
-            <IoColorPaletteOutline className="text-xl text-primary dark:text-dark-primary" />
-            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
-              {t('setting.appearance')}
-            </h3>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <span className="label">{t('setting.theme')}</span>
-            <div className="flex gap-3 flex-wrap">
-              {THEME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleThemeChange(opt.value)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                    theme === opt.value
-                      ? 'border-primary dark:border-dark-primary bg-primary/10 dark:bg-dark-primary/10 text-text-primary dark:text-dark-text-primary shadow-sm'
-                      : 'border-primary/20 dark:border-primary/30 hover:border-primary/40 dark:hover:border-primary/50 text-text-secondary dark:text-dark-text-secondary'
-                  }`}
-                >
-                  <span className="text-base">{opt.icon}</span>
-                  <span className="text-sm font-medium">{t(opt.key)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Theme Section */}
+      <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <IoColorPaletteOutline className="text-xl text-primary dark:text-dark-primary" />
+          <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
+            {t('setting.appearance')}
+          </h3>
         </div>
 
-        {/* Behavior Section */}
-        <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <IoCloseOutline className="text-xl text-primary dark:text-dark-primary" />
-            <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
-              {t('setting.behavior')}
-            </h3>
-          </div>
-
-          {/* Close to Tray */}
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.close_to_tray')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.close_to_tray_desc')}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={closeToTray}
-              onClick={async () => {
-                const next = !closeToTray
-                setCloseToTray(next)
-                try {
-                  await invoke('set_close_to_tray', { closeToTray: next })
-                } catch (e) {
-                  console.error('Failed to set close to tray:', e)
-                }
-              }}
-              ariaLabel={t('setting.close_to_tray')}
-            />
-          </div>
-
-          {/* Start Minimized */}
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.start_minimized')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.start_minimized_desc')}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={startMinimized}
-              onClick={async () => {
-                const next = !startMinimized
-                setStartMinimized(next)
-                try {
-                  await invoke('set_start_minimized', { startMinimized: next })
-                } catch (e) {
-                  console.error('Failed to set start minimized:', e)
-                }
-              }}
-              ariaLabel={t('setting.start_minimized')}
-            />
-          </div>
-
-          {/* Desktop Notifications */}
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.desktop_notifications')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {enableNotifications ? (
-                  <>
-                    <IoNotificationsOutline className="inline mr-1 text-status-success" />
-                    {t('setting.notifications_enabled')}
-                  </>
-                ) : (
-                  <>
-                    <IoNotificationsOffOutline className="inline mr-1 text-text-secondary/60" />
-                    {t('setting.notifications_disabled')}
-                  </>
-                )}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={enableNotifications}
-              onClick={() => setEnableNotifications((v) => !v)}
-              ariaLabel={t('setting.desktop_notifications')}
-            />
-          </div>
-
-          {/* Message Sound */}
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.message_sound')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.message_sound_desc')}
-              </span>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {SOUND_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleMessageSoundChange(opt.value)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
-                    messageSound === opt.value
-                      ? 'border-primary dark:border-dark-primary bg-primary/10 dark:bg-dark-primary/10 text-text-primary dark:text-dark-text-primary shadow-sm'
-                      : 'border-primary/20 dark:border-primary/30 hover:border-primary/40 dark:hover:border-primary/50 text-text-secondary dark:text-dark-text-secondary'
-                  }`}
-                >
-                  <span className="text-sm">{opt.icon}</span>
-                  <span className="text-xs font-medium">{opt.key ? t(opt.key) : opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Auto-download Followed Files */}
-          <div className="flex items-center justify-between gap-4 py-2">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.auto_download_follow_files')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.auto_download_follow_files_desc')}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={autoDownloadFollow}
-              onClick={() => setAutoDownloadFollow((v) => !v)}
-              ariaLabel={t('setting.auto_download_follow_files')}
-            />
-          </div>
-
-          {/* Auto-download Private Chat Files */}
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.auto_download_private_files')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.auto_download_private_files_desc')}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={autoDownloadPrivate}
-              onClick={() => setAutoDownloadPrivate((v) => !v)}
-              ariaLabel={t('setting.auto_download_private_files')}
-            />
-          </div>
-
-          {/* Auto-download Group Chat Files */}
-          <div className="flex items-center justify-between gap-4 py-2">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.auto_download_group_files')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.auto_download_group_files_desc')}
-              </span>
-            </div>
-            <ToggleSwitch
-              isChecked={autoDownloadGroup}
-              onClick={() => setAutoDownloadGroup((v) => !v)}
-              ariaLabel={t('setting.auto_download_group_files')}
-            />
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="w-full max-w-full min-w-0 rounded-xl card p-4 flex flex-col gap-2 mt-4">
-          <div className="flex items-center gap-2">
-            <IoInformationCircleOutline className="text-base text-primary dark:text-dark-primary" />
-            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-              {t('setting.settings_saved')}
-            </span>
+        <div className="flex flex-col gap-3">
+          <span className="label">{t('setting.theme')}</span>
+          <div className="flex gap-3 flex-wrap">
+            {THEME_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleThemeChange(opt.value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                  theme === opt.value
+                    ? 'border-primary dark:border-dark-primary bg-primary/10 dark:bg-dark-primary/10 text-text-primary dark:text-dark-text-primary shadow-sm'
+                    : 'border-primary/20 dark:border-primary/30 hover:border-primary/40 dark:hover:border-primary/50 text-text-secondary dark:text-dark-text-secondary'
+                }`}
+              >
+                <span className="text-base">{opt.icon}</span>
+                <span className="text-sm font-medium">{t(opt.key)}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Behavior Section */}
+      <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <TbAdjustments className="text-xl text-primary dark:text-dark-primary" />
+          <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
+            {t('setting.behavior')}
+          </h3>
+        </div>
+
+        {/* Close to Tray */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.close_to_tray')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.close_to_tray_desc')}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={closeToTray}
+            onClick={async () => {
+              const next = !closeToTray
+              setCloseToTray(next)
+              try {
+                await invoke('set_close_to_tray', { closeToTray: next })
+              } catch (e) {
+                console.error('Failed to set close to tray:', e)
+              }
+            }}
+            ariaLabel={t('setting.close_to_tray')}
+          />
+        </div>
+
+        {/* Start Minimized */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.start_minimized')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.start_minimized_desc')}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={startMinimized}
+            onClick={async () => {
+              const next = !startMinimized
+              setStartMinimized(next)
+              try {
+                await invoke('set_start_minimized', { startMinimized: next })
+              } catch (e) {
+                console.error('Failed to set start minimized:', e)
+              }
+            }}
+            ariaLabel={t('setting.start_minimized')}
+          />
+        </div>
+
+        {/* Desktop Notifications */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.desktop_notifications')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {enableNotifications ? (
+                <>
+                  <IoNotificationsOutline className="inline mr-1 text-status-success" />
+                  {t('setting.notifications_enabled')}
+                </>
+              ) : (
+                <>
+                  <IoNotificationsOffOutline className="inline mr-1 text-text-secondary/60" />
+                  {t('setting.notifications_disabled')}
+                </>
+              )}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={enableNotifications}
+            onClick={() => setEnableNotifications((v) => !v)}
+            ariaLabel={t('setting.desktop_notifications')}
+          />
+        </div>
+
+        {/* Message Sound */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.message_sound')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.message_sound_desc')}
+            </span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {SOUND_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleMessageSoundChange(opt.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
+                  messageSound === opt.value
+                    ? 'border-primary dark:border-dark-primary bg-primary/10 dark:bg-dark-primary/10 text-text-primary dark:text-dark-text-primary shadow-sm'
+                    : 'border-primary/20 dark:border-primary/30 hover:border-primary/40 dark:hover:border-primary/50 text-text-secondary dark:text-dark-text-secondary'
+                }`}
+              >
+                <span className="text-sm">{opt.icon}</span>
+                <span className="text-xs font-medium">{opt.key ? t(opt.key) : opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Auto-download Followed Files */}
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.auto_download_follow_files')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.auto_download_follow_files_desc')}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={autoDownloadFollow}
+            onClick={() => setAutoDownloadFollow((v) => !v)}
+            ariaLabel={t('setting.auto_download_follow_files')}
+          />
+        </div>
+
+        {/* Auto-download Private Chat Files */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.auto_download_private_files')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.auto_download_private_files_desc')}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={autoDownloadPrivate}
+            onClick={() => setAutoDownloadPrivate((v) => !v)}
+            ariaLabel={t('setting.auto_download_private_files')}
+          />
+        </div>
+
+        {/* Auto-download Group Chat Files */}
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
+              {t('setting.auto_download_group_files')}
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.auto_download_group_files_desc')}
+            </span>
+          </div>
+          <ToggleSwitch
+            isChecked={autoDownloadGroup}
+            onClick={() => setAutoDownloadGroup((v) => !v)}
+            ariaLabel={t('setting.auto_download_group_files')}
+          />
+        </div>
+      </div>
+
+      {/* Server Network Section */}
+      <ServerNetworkSection />
+
+      {/* Info */}
+      <div className="w-full max-w-full min-w-0 rounded-xl card p-4 flex flex-col gap-2 mt-4">
+        <div className="flex items-center gap-2">
+          <IoInformationCircleOutline className="text-base text-primary dark:text-dark-primary" />
+          <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+            {t('setting.settings_saved')}
+          </span>
+        </div>
+      </div>
+    </>
   )
 }

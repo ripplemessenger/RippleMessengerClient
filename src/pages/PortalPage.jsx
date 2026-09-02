@@ -1,96 +1,9 @@
-import { useCallback } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { BiSolidFileJson } from 'react-icons/bi'
-import { GiPerspectiveDiceSixFacesRandom } from 'react-icons/gi'
-import { HiHashtag } from 'react-icons/hi2'
-import { IoStar } from 'react-icons/io5'
-import { MdPostAdd } from 'react-icons/md'
-import { SlUserFollowing } from 'react-icons/sl'
-
-import BulletinForward from '../components/Bulletin/BulletinForward'
-import BulletinPaste from '../components/Bulletin/BulletinPaste'
-import BulletinPublish from '../components/Bulletin/BulletinPublish'
-import BulletinListPage from '../components/Bulletin/BulletinListPage'
-import { selectPortalBulletins, selectPublishFlags } from '../selectors'
-import { setPasteFlag, setPublishFlag, setSearchTagList } from '../store/slices/MessengerSlice'
+import RandomFeed from '../components/Bulletin/RandomFeed'
 
 export default function PortalPage() {
-  const { t } = useTranslation()
-  const {
-    list: PortalBulletinList,
-    totalPage: PortalBulletinTotalPage,
-    page: PortalBulletinPage
-  } = useSelector(selectPortalBulletins)
-  const {
-    showPublish: ShowPublishFlag,
-    showForward: ShowForwardFlag,
-    showPaste: ShowPasteFlag
-  } = useSelector(selectPublishFlags)
-
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-
-  const handleShowPublish = useCallback(() => dispatch(setPublishFlag(true)), [dispatch])
-  const handleShowPaste = useCallback(() => dispatch(setPasteFlag(true)), [dispatch])
-
-  const goto_tag = () => {
-    dispatch(setSearchTagList([]))
-    navigate('/bulletin_tag')
-  }
-
   return (
-    <div className="bulletin-page-wrapper">
-      {ShowPublishFlag && <BulletinPublish />}
-      {ShowForwardFlag && <BulletinForward />}
-      {ShowPasteFlag && <BulletinPaste />}
-      <BulletinListPage
-        title={
-          <>
-            {t('page.portal')}
-            <button className="icon-action-btn" onClick={handleShowPublish} aria-label={t('common.publish_bulletin')}>
-              <MdPostAdd className="card-icon" />
-            </button>
-            <button
-              className="icon-action-btn"
-              onClick={() => navigate('/bulletin_follow')}
-              aria-label={t('common.followed_bulletins')}
-            >
-              <SlUserFollowing className="card-icon" />
-            </button>
-            <button className="icon-action-btn" onClick={() => goto_tag()} aria-label={t('common.search_tags')}>
-              <HiHashtag className="card-icon" />
-            </button>
-            <button
-              className="icon-action-btn"
-              onClick={() => navigate('/bulletin_bookmark')}
-              aria-label={t('common.bookmarks')}
-            >
-              <IoStar className="card-icon" />
-            </button>
-            <button
-              className="icon-action-btn"
-              onClick={() => navigate('/bulletin_random')}
-              aria-label={t('common.random_bulletin')}
-            >
-              <GiPerspectiveDiceSixFacesRandom className="card-icon" />
-            </button>
-            <button className="icon-action-btn" onClick={handleShowPaste} aria-label={t('common.paste_bulletin')}>
-              <BiSolidFileJson className="card-icon" />
-            </button>
-          </>
-        }
-        bulletins={PortalBulletinList}
-        bulletinData={{ page: PortalBulletinPage, totalPage: PortalBulletinTotalPage }}
-        pageListType={'LoadPortalBulletin'}
-        pageListPayload={{}}
-        showEmpty
-        emptyIcon={<MdPostAdd className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-        emptyTitle={t('ui.no_bulletin_yet')}
-        emptyDescription={t('ui.publish_first_post')}
-        renderWrapper={false}
-      />
+    <div className="page-wrapper">
+      <RandomFeed />
     </div>
   )
 }

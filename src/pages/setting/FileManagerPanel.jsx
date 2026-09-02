@@ -162,7 +162,7 @@ export default function FileManagerPanel() {
               }}
               className="px-3 py-1.5 text-sm border rounded-lg bg-white dark:bg-gray-900 border-primary/20 dark:border-primary/30 text-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-primary/40"
             >
-              <option value="">All Types</option>
+              <option value="">{t('setting.all_types')}</option>
               {fileTypeOptions.map((ext) => (
                 <option key={ext} value={ext}>
                   {ext}
@@ -175,7 +175,7 @@ export default function FileManagerPanel() {
         <div className="flex items-center gap-2">
           {!isOwnedTab && selectedFileHashes.length > 0 && (
             <button onClick={() => handleBulkDeleteOthersRefs()} className="btn-sm btn-danger">
-              Delete Selected ({selectedFileHashes.length})
+              {t('setting.delete_selected', { count: selectedFileHashes.length })}
             </button>
           )}
         </div>
@@ -237,7 +237,7 @@ export default function FileManagerPanel() {
                     <td className="table-cell text-center">
                       <span
                         className="text-sm cursor-pointer text-primary dark:text-dark-primary hover:underline"
-                        title={`Referenced by ${item.total_refs} bulletin(s)`}
+                        title={t('setting.referenced_by', { count: item.total_refs })}
                         onClick={() => handleShowFileRefs(item.hash, buildFileName(item.file_name, item.file_ext))}
                       >
                         📎 {item.total_refs || 0}
@@ -294,27 +294,23 @@ export default function FileManagerPanel() {
               disabled={page <= 1}
               className="px-3 py-1.5 rounded-lg border border-primary/20 dark:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Prev
+              {t('common.prev')}
             </button>
-            <span>
-              Page {page} / {totalPage}
-            </span>
+            <span>{t('common.page', { page, total: totalPage })}</span>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPage}
               className="px-3 py-1.5 rounded-lg border border-primary/20 dark:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </>
       ) : (
         <EmptyState
           icon={<MdInsertDriveFile className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-          title={isOwnedTab ? 'No owned files' : 'No cached files'}
-          description={
-            isOwnedTab ? t('storage.files_from_bulletins') : "Downloaded files from others' bulletins will appear here"
-          }
+          title={isOwnedTab ? t('setting.no_owned_files') : t('setting.no_cached_files')}
+          description={isOwnedTab ? t('storage.files_from_bulletins') : t('setting.cached_files_desc')}
           className="mx-auto max-w-sm mt-8"
         />
       )}
@@ -328,7 +324,7 @@ export default function FileManagerPanel() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
-                Bulletins using this file
+                {t('setting.bulletins_using_file')}
               </h3>
               <button
                 onClick={handleCloseRefModal}
@@ -366,7 +362,7 @@ export default function FileManagerPanel() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">No bulletin references found</p>
+              <p className="text-sm text-gray-400">{t('setting.no_file_refs')}</p>
             )}
           </div>
         </div>

@@ -2,16 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, createSearchParams } from 'react-router-dom'
 import { MdOutlineArticle } from 'react-icons/md'
+import { BiSolidFileJson } from 'react-icons/bi'
 import { useTranslation } from 'react-i18next'
 import TextTimestamp from '../../components/TextTimestamp'
 import EmptyState from '../../components/EmptyState'
+import BulletinPaste from '../../components/Bulletin/BulletinPaste'
 import {
   selectBulletinManagementData,
   selectAllTagsList,
   selectUserAddress,
-  selectAllBulletinAddressesList
+  selectAllBulletinAddressesList,
+  selectPublishFlags
 } from '../../selectors'
-import { setBulletinAddress } from '../../store/slices/MessengerSlice'
+import { setBulletinAddress, setPasteFlag } from '../../store/slices/MessengerSlice'
 import {
   LoadBulletinManagementList,
   DeleteBulletinItem,
@@ -37,6 +40,7 @@ export default function BulletinManagerPanel() {
   const allTags = useSelector(selectAllTagsList)
   const allAddresses = useSelector(selectAllBulletinAddressesList)
   const userAddress = useSelector(selectUserAddress)
+  const { showPaste: ShowPasteFlag } = useSelector(selectPublishFlags)
   const [currentFilter, setCurrentFilter] = useState('all')
   const [selectedHashes, setSelectedHashes] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -208,7 +212,7 @@ export default function BulletinManagerPanel() {
               onChange={(e) => handleTagChange(e.target.value)}
               className="px-3 py-1.5 text-sm border rounded-lg bg-white dark:bg-gray-900 border-primary/20 dark:border-primary/30 text-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-primary/40"
             >
-              <option value="">All Tags</option>
+              <option value="">{t('setting.all_tags')}</option>
               {allTags.map((tag) => (
                 <option key={tag} value={tag}>
                   {tag}
@@ -240,10 +244,20 @@ export default function BulletinManagerPanel() {
             </svg>
           </div>
 
+          {/* Paste JSON */}
+          <button
+            onClick={() => dispatch(setPasteFlag(true))}
+            className="btn-sm btn-secondary flex items-center gap-1.5"
+            title={t('common.paste_bulletin')}
+          >
+            <BiSolidFileJson className="w-4 h-4" />
+            {t('common.paste_bulletin')}
+          </button>
+
           {/* Bulk delete */}
           {selectedHashes.length > 0 && (
             <button onClick={() => handleBulkDelete()} className="btn-sm btn-danger">
-              Delete Selected ({selectedHashes.length})
+              {t('setting.delete_selected', { count: selectedHashes.length })}
             </button>
           )}
         </div>
@@ -266,14 +280,14 @@ export default function BulletinManagerPanel() {
                       disabled={
                         protectedFilters.has(currentFilter) || list.filter((item) => !isProtected(item)).length === 0
                       }
-                      title={protectedFilters.has(currentFilter) ? 'These bulletins cannot be deleted' : undefined}
+                      title={protectedFilters.has(currentFilter) ? t('setting.cannot_delete_bulletin') : undefined}
                       className="rounded disabled:opacity-40 disabled:cursor-not-allowed"
                     />
                   </th>
-                  <th style={{ width: 160 }}>Address</th>
-                  <th style={{ width: 72 }}>Seq</th>
-                  <th>Content</th>
-                  <th style={{ width: 128 }}>Timestamp</th>
+                  <th style={{ width: 160 }}>{t('setting.address')}</th>
+                  <th style={{ width: 72 }}>{t('setting.seq')}</th>
+                  <th>{t('setting.content')}</th>
+                  <th style={{ width: 128 }}>{t('setting.timestamp')}</th>
                   <th style={{ width: 108 }}></th>
                 </tr>
               </thead>
@@ -291,7 +305,7 @@ export default function BulletinManagerPanel() {
                           checked={selectedHashes.includes(item.hash)}
                           onChange={() => toggleSelect(item.hash)}
                           disabled={protected_}
-                          title={protected_ ? 'Protected bulletin' : undefined}
+                          title={protected_ ? t('setting.protected_bulletin') : undefined}
                           className="rounded disabled:opacity-40 disabled:cursor-not-allowed"
                         />
                       </td>
@@ -349,17 +363,15 @@ export default function BulletinManagerPanel() {
               disabled={page <= 1}
               className="px-3 py-1.5 rounded-lg border border-primary/20 dark:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Prev
+              {t('common.prev')}
             </button>
-            <span>
-              Page {page} / {totalPage}
-            </span>
+            <span>{t('common.page', { page, total: totalPage })}</span>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPage}
               className="px-3 py-1.5 rounded-lg border border-primary/20 dark:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </>
@@ -371,6 +383,8 @@ export default function BulletinManagerPanel() {
           className="mx-auto max-w-sm mt-8"
         />
       )}
+
+      {ShowPasteFlag && <BulletinPaste />}
     </>
   )
 }

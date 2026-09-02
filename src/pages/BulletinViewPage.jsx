@@ -26,7 +26,8 @@ export default function BulletinViewPage() {
   const dispatch = useDispatch()
 
   const { ShowPublishFlag, ShowForwardFlag } = useSelector(selectPublishFlags)
-  const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } = useSelector(selectDisplayBulletins)
+  const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } =
+    useSelector(selectDisplayBulletins)
 
   useEffect(() => {
     if (DisplayBulletin?.hash === bulletin_hash) {
@@ -35,45 +36,48 @@ export default function BulletinViewPage() {
   }, [dispatch, DisplayBulletin?.hash, bulletin_hash])
 
   useEffect(() => {
-    dispatch(LoadBulletin({
-      hash: bulletin_hash,
-      address: bulletin_address,
-      sequence: parseInt(bulletin_sequence),
-      to: sour_address
-    }))
+    dispatch(
+      LoadBulletin({
+        hash: bulletin_hash,
+        address: bulletin_address,
+        sequence: parseInt(bulletin_sequence),
+        to: sour_address
+      })
+    )
   }, [bulletin_hash, bulletin_address, bulletin_sequence, sour_address])
 
   return (
     <div className="flex justify-center items-start">
       <div className="w-full max-w-6xl p-4 mt-2 rounded-xl card">
         <ErrorBoundary fallbackTitle="Bulletin View Error">
-{ShowPublishFlag && <BulletinPublish />}
-      {ShowForwardFlag && <BulletinForward />}
-      {
-        DisplayBulletin && DisplayBulletinReplyTotalPage > 1 &&
-        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
-      }
-      {DisplayBulletin && (
-        <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />
-      )}
-      {DisplayBulletinReplyList.length > 0 &&
-        DisplayBulletinReplyList.map((bulletin) => (
-          <BulletinViewer bulletin={bulletin} key={bulletin.hash} />
-        ))
-      }
-      {DisplayBulletinReplyList.length === 0 && !(!DisplayBulletin && bulletin_hash) && (
-        <EmptyState
-          icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
-          title={t('ui.no_replies')}
-        />
-      )}
-      {!DisplayBulletin && bulletin_hash && (
-        <LoadingDiv isLoading={true} text="Loading bulletin..." />
-      )}
-      {
-        DisplayBulletin && DisplayBulletinReplyTotalPage > 1 &&
-        <PageList current_page={DisplayBulletinReplyPage} total_page={DisplayBulletinReplyTotalPage} dispatch_type={'RequestReplyBulletin'} payload={{ hash: DisplayBulletin.hash }} />
-      }
+          {ShowPublishFlag && <BulletinPublish />}
+          {ShowForwardFlag && <BulletinForward />}
+          {DisplayBulletin && DisplayBulletinReplyTotalPage > 1 && (
+            <PageList
+              current_page={DisplayBulletinReplyPage}
+              total_page={DisplayBulletinReplyTotalPage}
+              dispatch_type={'RequestReplyBulletin'}
+              payload={{ hash: DisplayBulletin.hash }}
+            />
+          )}
+          {DisplayBulletin && <BulletinViewer bulletin={DisplayBulletin} key={DisplayBulletin.hash} />}
+          {DisplayBulletinReplyList.length > 0 &&
+            DisplayBulletinReplyList.map((bulletin) => <BulletinViewer bulletin={bulletin} key={bulletin.hash} />)}
+          {DisplayBulletinReplyList.length === 0 && !(!DisplayBulletin && bulletin_hash) && (
+            <EmptyState
+              icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
+              title={t('ui.no_replies')}
+            />
+          )}
+          {!DisplayBulletin && bulletin_hash && <LoadingDiv isLoading={true} text={t('ui.loading_bulletin')} />}
+          {DisplayBulletin && DisplayBulletinReplyTotalPage > 1 && (
+            <PageList
+              current_page={DisplayBulletinReplyPage}
+              total_page={DisplayBulletinReplyTotalPage}
+              dispatch_type={'RequestReplyBulletin'}
+              payload={{ hash: DisplayBulletin.hash }}
+            />
+          )}
         </ErrorBoundary>
       </div>
     </div>

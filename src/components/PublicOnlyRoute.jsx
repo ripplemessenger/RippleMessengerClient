@@ -1,11 +1,13 @@
 import { Navigate, Outlet } from 'react-router-dom'
+
+import LoadingDiv from './LoadingDiv'
 import useAuth from '../hooks/useAuth'
 
 export default function PublicOnlyRoute() {
   const { IsAuth, loading } = useAuth()
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return <LoadingDiv isLoading={true} />
   }
 
   return IsAuth ? <Navigate to="/" replace /> : <Outlet />

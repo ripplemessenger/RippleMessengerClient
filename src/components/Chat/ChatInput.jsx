@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
  *
  * @param {object} props
  * @param {boolean} [props.disabled=false] - Disable all inputs when true
- * @param {(content: string) => void} [props.onSend] - Called on send button click or Ctrl+Enter with message content
+ * @param {(content: string) => void} [props.onSend] - Called on send button click or Enter with message content (Shift+Enter inserts a newline)
  * @param {() => void} [props.onAttach] - Called on attach button click
  */
 const ChatInput = ({ disabled = false, onSend, onAttach }) => {
@@ -15,7 +15,7 @@ const ChatInput = ({ disabled = false, onSend, onAttach }) => {
   const [message, setMessage] = useState('')
 
   const handleKeyDown = (e) => {
-    if (e.ctrlKey && e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
@@ -39,10 +39,22 @@ const ChatInput = ({ disabled = false, onSend, onAttach }) => {
         placeholder={t('ui.type_message')}
       />
       <div className="flex flex-col gap-2">
-        <button onClick={onAttach} disabled={disabled} className="p-3 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors shadow-sm" title={t('ui.send_file')} aria-label={t('ui.send_file')}>
+        <button
+          onClick={onAttach}
+          disabled={disabled}
+          className="p-3 rounded-lg text-text-secondary dark:text-dark-text-secondary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors shadow-sm"
+          title={t('ui.send_file')}
+          aria-label={t('ui.send_file')}
+        >
           <IoAttachOutline className="text-xl" />
         </button>
-        <button onClick={handleSend} disabled={disabled} className="p-3 rounded-lg text-white bg-primary hover:bg-primary-dark transition-all shadow-gold hover:shadow-gold-lg active:scale-95" title={t('ui.send_message')} aria-label={t('ui.send_message')}>
+        <button
+          onClick={handleSend}
+          disabled={disabled}
+          className="p-3 rounded-lg text-white bg-primary hover:bg-primary-dark transition-all shadow-gold hover:shadow-gold-lg active:scale-95"
+          title={t('ui.send_message')}
+          aria-label={t('ui.send_message')}
+        >
           <IoSendOutline className="text-xl" />
         </button>
       </div>

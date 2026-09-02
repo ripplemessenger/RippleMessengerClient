@@ -105,7 +105,7 @@ const BulletinPublish = ({}) => {
       <div ref={dialogRef} className="max-w-3xl w-full mx-4 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="modal-header-bar">
-          <span className={`label text-base`}>{`Bulletin #${CurrentBulletinSequence + 1}`}</span>
+          <span className={`label text-base`}>{t('ui.bulletin_number', { seq: CurrentBulletinSequence + 1 })}</span>
           <button
             onClick={handleCancel}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"

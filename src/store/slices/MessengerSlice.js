@@ -25,6 +25,7 @@ const MessengerSlice = createSlice({
     PortalBulletinTotalPage: 1,
 
     RandomBulletinList: [],
+    RandomBulletinLoading: false,
 
     // bulletin display
     BulletinAddress: null,
@@ -81,7 +82,11 @@ const MessengerSlice = createSlice({
     FileManagementFileExt: '',
     FileManagementOwnership: 'others', // default to others' files (the deletable cache)
     AllTagsList: [],
+    CooccurringTagsList: [],
     AllBulletinAddressesList: [],
+    MessageSearchList: [],
+    MessageSearchPage: 1,
+    MessageSearchTotalPage: 1,
 
     // hash -> timestamp of files that finished downloading this session;
     // chat/bulletin image components subscribe to this to re-try loading after download completes
@@ -143,6 +148,14 @@ const MessengerSlice = createSlice({
     },
     setRandomBulletinList: (state, action) => {
       state.RandomBulletinList = action.payload
+    },
+    appendRandomBulletins: (state, action) => {
+      const existing = new Set(state.RandomBulletinList.map((b) => b.hash))
+      const fresh = action.payload.filter((b) => !existing.has(b.hash))
+      state.RandomBulletinList = [...state.RandomBulletinList, ...fresh]
+    },
+    setRandomBulletinLoading: (state, action) => {
+      state.RandomBulletinLoading = action.payload
     },
     setPortalBulletinList: (state, action) => {
       state.PortalBulletinPage = action.payload.Page
@@ -236,6 +249,11 @@ const MessengerSlice = createSlice({
       state.BulletinManagementTotalPage = action.payload.TotalPage
       state.BulletinManagementList = action.payload.List
     },
+    setMessageSearchList: (state, action) => {
+      state.MessageSearchPage = action.payload.Page
+      state.MessageSearchTotalPage = action.payload.TotalPage
+      state.MessageSearchList = action.payload.List
+    },
     setFileManagementList: (state, action) => {
       state.FileManagementPage = action.payload.Page
       state.FileManagementTotalPage = action.payload.TotalPage
@@ -249,6 +267,9 @@ const MessengerSlice = createSlice({
     },
     setAllTagsList: (state, action) => {
       state.AllTagsList = action.payload
+    },
+    setCooccurringTagsList: (state, action) => {
+      state.CooccurringTagsList = action.payload
     },
     setAllBulletinAddressesList: (state, action) => {
       state.AllBulletinAddressesList = action.payload
@@ -279,6 +300,8 @@ export const {
   setDisplayBulletin,
   setDisplayBulletinReplyList,
   setRandomBulletinList,
+  appendRandomBulletins,
+  setRandomBulletinLoading,
   setPortalBulletinList,
 
   setBulletinAddress,
@@ -303,8 +326,10 @@ export const {
   // storage management
   setStorageSummary,
   setBulletinManagementList,
+  setMessageSearchList,
   setFileManagementList,
   setAllTagsList,
+  setCooccurringTagsList,
   setAllBulletinAddressesList,
   markFileSaved,
   setFileStatus

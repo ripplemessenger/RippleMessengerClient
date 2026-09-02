@@ -1,26 +1,40 @@
 import { memo } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { HiHashtag } from 'react-icons/hi2'
 
 import { setSearchTagList } from '../../store/slices/MessengerSlice'
 
 const TagLink = ({ tag }) => {
-
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   const goto_tag = (tag) => {
     dispatch(setSearchTagList([tag]))
     navigate({
-      pathname: '/bulletin_tag',
+      pathname: '/bulletin',
+      state: { openTagSearch: true }
     })
   }
 
   return (
-    <div className='flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-full border border-primary/30 dark:border-primary/50 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:border-primary-60 dark:hover:border-primary/70 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors' title={tag}
-      role="button" tabIndex={0} onClick={() => { goto_tag(tag) }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goto_tag(tag) }} aria-label={`Search tag ${tag}`}>
-      <HiHashtag className="icon-sm" />{tag}
+    <div
+      className="flex flex-row items-center gap-1 cursor-pointer text-text-secondary dark:text-dark-text-secondary rounded-full border border-primary/30 dark:border-primary/50 px-2 py-0.5 min-w-0 overflow-hidden break-all hover:border-primary-60 dark:hover:border-primary/70 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
+      title={tag}
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        goto_tag(tag)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') goto_tag(tag)
+      }}
+      aria-label={t('bulletin.search_tag', { tag })}
+    >
+      <HiHashtag className="icon-sm" />
+      {tag}
     </div>
   )
 }

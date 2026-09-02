@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useTranslation } from 'react-i18next'
 import { BsFiletypeTxt, BsMarkdown } from 'react-icons/bs'
 
 import BulletinAvatarLink from './BulletinAvatarLink'
@@ -20,7 +21,7 @@ const markdownComponents = {
 }
 
 const BulletinViewer = React.memo(({ bulletin }) => {
-
+  const { t } = useTranslation()
   const [isMarkdown, setIsMarkdown] = useState(false)
 
   return (
@@ -31,8 +32,8 @@ const BulletinViewer = React.memo(({ bulletin }) => {
         <button
           className="p-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
           onClick={() => setIsMarkdown(!isMarkdown)}
-          title={isMarkdown ? "Show raw text" : "Show markdown"}
-          aria-label={isMarkdown ? "Show raw text" : "Show markdown"}
+          title={isMarkdown ? t('bulletin.show_raw') : t('bulletin.show_markdown')}
+          aria-label={isMarkdown ? t('bulletin.show_raw') : t('bulletin.show_markdown')}
         >
           {isMarkdown ? <BsFiletypeTxt className="icon-sm" /> : <BsMarkdown className="icon-sm" />}
         </button>
@@ -79,7 +80,13 @@ const BulletinViewer = React.memo(({ bulletin }) => {
         {bulletin.quote?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {bulletin.quote.map((quote) => (
-              <BulletinLink key={quote.Hash} address={quote.Address} sequence={quote.Sequence} hash={quote.Hash} sour_address={bulletin.address} />
+              <BulletinLink
+                key={quote.Hash}
+                address={quote.Address}
+                sequence={quote.Sequence}
+                hash={quote.Hash}
+                sour_address={bulletin.address}
+              />
             ))}
           </div>
         )}
@@ -95,6 +102,6 @@ const BulletinViewer = React.memo(({ bulletin }) => {
       </div>
     </div>
   )
-});
+})
 
 export default BulletinViewer

@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { SettingPageTab } from '../../lib/AppConst'
 
 const UserSlice = createSlice({
   name: 'User',
@@ -15,12 +14,11 @@ const UserSlice = createSlice({
     // contact
     ContactList: [],
     ContactMap: {},
-    activeTabSetting: SettingPageTab.Me,
 
     // follow
     FollowList: [],
     // friend
-    FriendList: [],
+    FriendList: []
   },
   reducers: {
     loginStart: (state) => {
@@ -70,10 +68,6 @@ const UserSlice = createSlice({
 
     setUserError: (state, action) => {
       state.UserError = action.payload
-    },
-
-    setActiveTabSetting: (state, action) => {
-      state.activeTabSetting = action.payload
     }
   }
 })
@@ -91,8 +85,6 @@ export const {
   setFollowList,
   setFriendList,
 
-  setUserError,
-
-  setActiveTabSetting
+  setUserError
 } = UserSlice.actions
 export default UserSlice.reducer

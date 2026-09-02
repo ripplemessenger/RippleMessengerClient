@@ -34,7 +34,8 @@ import {
   setBookmarkBulletinList,
   setPortalBulletinList,
   setAddressBulletinList,
-  setRandomBulletinList
+  setRandomBulletinList,
+  setRandomBulletinLoading
 } from '../slices/MessengerSlice'
 import { deleteFile, statFile, getFileFullPath } from '../../services/fileService'
 import i18n from '../../i18n'
@@ -430,15 +431,17 @@ export function* LoadBulletin(action) {
 
 export function* RequestRandomBulletin() {
   try {
-    yield put(setRandomBulletinList([]))
+    yield put(setRandomBulletinLoading(true))
     const seed = yield select((state) => state.User.Seed)
     if (!seed) {
+      yield put(setRandomBulletinLoading(false))
       return
     }
     const random_bulletin_request = yield call(() => mgAPI.genRandomBulletinRequest(seed))
     yield call(SendMessage, { msg: random_bulletin_request })
   } catch (e) {
     Logger.error('[RequestRandomBulletin] failed:', e.message)
+    yield put(setRandomBulletinLoading(false))
     yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_random_failed'), duration: 3000 }))
   }
 }
@@ -852,13 +855,9 @@ export function* LoadCachedFiles({ payload: { page, category } }) {
     const cat = category || 'all'
     const pageSize = BulletinPageSize
 
-    let files, categoryCounts
+    let files
 
-    // Get paginated file records and category counts in parallel
-    ;[files, categoryCounts] = yield all([
-      call(() => dbAPI.getFilesForManagement({ category: cat, page: p, pageSize })),
-      call(() => dbAPI.getFileCountByCategory())
-    ])
+    files = yield call(() => dbAPI.getFilesForManagement({ category: cat, page: p, pageSize }))
 
     const total = yield call(() => dbAPI.getFileCountForManagement({ category: cat }))
     const total_page = calcTotalPage(total, BulletinPageSize)

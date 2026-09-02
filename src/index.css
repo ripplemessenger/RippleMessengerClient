@@ -482,14 +482,14 @@
     @apply p-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors focus:outline-none;
   }
 
-  /* ==================== Bulletin Page Layout ==================== */
-  /* Outer wrapper for bulletin list pages (portal, follow, bookmark, tag, random, address) */
-  .bulletin-page-wrapper {
+  /* ==================== Page Layout ==================== */
+  /* Outer wrapper shared by list-style pages (portal, follow, bookmark, tag, random, address, contact) */
+  .page-wrapper {
     @apply flex justify-center items-center w-full max-w-full overflow-hidden;
   }
 
   /* Inner column container inside tab-page */
-  .bulletin-page-inner {
+  .page-inner {
     @apply mx-auto w-full max-w-full min-w-0 flex flex-col mt-4;
   }
 

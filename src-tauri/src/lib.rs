@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -208,10 +210,31 @@ fn set_close_to_tray(close_to_tray: bool) -> bool {
 }
 
 /// Toggle "start minimized to tray" behaviour.
+/// Persists to a file so the setting survives app restarts.
 #[tauri::command]
-fn set_start_minimized(start_minimized: bool) -> bool {
+fn set_start_minimized(app: AppHandle, start_minimized: bool) -> bool {
     START_MINIMIZED.store(start_minimized, Ordering::SeqCst);
+    // Persist to file
+    if let Ok(path) = settings_path(&app) {
+        let _ = fs::write(&path, start_minimized.to_string());
+    }
     start_minimized
+}
+
+/// Read the persisted start-minimized setting from disk.
+fn read_start_minimized(app: &AppHandle) -> bool {
+    if let Ok(path) = settings_path(app) {
+        if let Ok(content) = fs::read_to_string(&path) {
+            return content.trim() == "true";
+        }
+    }
+    false
+}
+
+/// Get the path to the settings file in the app config directory.
+fn settings_path(app: &AppHandle) -> tauri::Result<PathBuf> {
+    let config_dir = app.path().app_config_dir()?;
+    Ok(config_dir.join("settings.json"))
 }
 
 pub fn setup_tray(app: &App) -> tauri::Result<()> {
@@ -255,8 +278,10 @@ pub fn run() {
             setup_tray(app).map_err(|e| format!("Failed to setup tray: {}", e))?;
 
             if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
-                // If start-minimized is enabled, hide the window immediately
-                if START_MINIMIZED.load(Ordering::SeqCst) {
+                // Read persisted setting from disk (survives restarts)
+                let start_min = read_start_minimized(app.handle());
+                if start_min {
+                    START_MINIMIZED.store(true, Ordering::SeqCst);
                     if let Err(e) = window.hide() {
                         log::warn!("Failed to hide window on startup: {}", e);
                     }

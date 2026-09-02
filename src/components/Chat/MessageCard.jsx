@@ -1,5 +1,6 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 
 import { selectUserAddress } from '../../selectors'
 import { MessageObjectType } from '../../lib/MessengerConst'
@@ -16,6 +17,7 @@ import ChatFileLink from './ChatFileLink'
  * @param {'private'|'group'} props.mode - Chat mode to determine field names
  */
 const MessageCard = ({ message, mode = 'private', isLastConfirmed = false }) => {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const Address = useSelector(selectUserAddress)
 
@@ -39,7 +41,7 @@ const MessageCard = ({ message, mode = 'private', isLastConfirmed = false }) => 
             onClick={() => {
               dispatch(setDisplayJson({ json: message.json, isExpand: true }))
             }}
-            aria-label={`View message #${message.sequence} details`}
+            aria-label={t('ui.view_message_details', { seq: message.sequence })}
           >
             <span
               className={`text-xs text-left ${isLastConfirmed ? 'text-white' : 'text-text-secondary/60 dark:text-dark-text-secondary/60'}`}

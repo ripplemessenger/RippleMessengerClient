@@ -1,14 +1,19 @@
 import { useState, useCallback, memo } from 'react'
 import { useDispatch } from 'react-redux'
-import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from "react-icons/io5"
-import { AiOutlineLink } from "react-icons/ai"
-import { MdPostAdd } from "react-icons/md"
+import { IoStar, IoStarOutline, IoCopyOutline, IoArrowRedoOutline, IoInformationCircleOutline } from 'react-icons/io5'
+import { AiOutlineLink } from 'react-icons/ai'
+import { MdPostAdd } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import { FLASH_DURATION_MS } from '../../lib/AppConst'
 import { MessageObjectType } from '../../lib/MessengerConst'
 import { useClipboard } from '../../hooks/useClipboard'
 import { setDisplayJson, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
-import { BulletinMarkToggle, BulletinQuote, BulletinReply, ShowForwardBulletin } from '../../store/sagas/messenger.actions'
+import {
+  BulletinMarkToggle,
+  BulletinQuote,
+  BulletinReply,
+  ShowForwardBulletin
+} from '../../store/sagas/messenger.actions'
 
 const BulletinTools = ({ address, sequence, hash, content, json, is_marked = false }) => {
   const { t } = useTranslation()
@@ -17,7 +22,9 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
 
   const dispatch = useDispatch()
 
-  const copyText = useClipboard(useCallback((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })), [dispatch]))
+  const copyText = useClipboard(
+    useCallback((msg) => dispatch(setFlashNoticeMessage({ message: msg, duration: FLASH_DURATION_MS })), [dispatch])
+  )
 
   const toggleMarkDisplay = () => {
     setDisplayMark(!displayMark)
@@ -25,22 +32,54 @@ const BulletinTools = ({ address, sequence, hash, content, json, is_marked = fal
 
   return (
     <div className={`flex flex-row gap-1`}>
-      <button className="icon-action-btn" onClick={() => { dispatch(BulletinMarkToggle({ hash })); toggleMarkDisplay() }} aria-label={displayMark ? "Unmark bulletin" : "Mark bulletin"}>
+      <button
+        className="icon-action-btn"
+        onClick={() => {
+          dispatch(BulletinMarkToggle({ hash }))
+          toggleMarkDisplay()
+        }}
+        aria-label={displayMark ? t('bulletin.unmark') : t('bulletin.mark')}
+      >
         {displayMark ? <IoStar className="icon-sm" /> : <IoStarOutline className="icon-sm" />}
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(BulletinReply({ Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('ui.reply')}>
+      <button
+        className="icon-action-btn"
+        onClick={() => dispatch(BulletinReply({ Address: address, Sequence: sequence, Hash: hash }))}
+        aria-label={t('ui.reply')}
+      >
         <MdPostAdd className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(BulletinQuote({ Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('ui.quote')}>
+      <button
+        className="icon-action-btn"
+        onClick={() => dispatch(BulletinQuote({ Address: address, Sequence: sequence, Hash: hash }))}
+        aria-label={t('ui.quote')}
+      >
         <AiOutlineLink className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(ShowForwardBulletin({ ObjectType: MessageObjectType.Bulletin, Address: address, Sequence: sequence, Hash: hash }))} aria-label={t('common.forward')}>
+      <button
+        className="icon-action-btn"
+        onClick={() =>
+          dispatch(
+            ShowForwardBulletin({
+              ObjectType: MessageObjectType.Bulletin,
+              Address: address,
+              Sequence: sequence,
+              Hash: hash
+            })
+          )
+        }
+        aria-label={t('common.forward')}
+      >
         <IoArrowRedoOutline className="icon-sm" />
       </button>
       <button className="icon-action-btn" onClick={() => copyText(content)} aria-label={t('ui.copy_content')}>
         <IoCopyOutline className="icon-sm" />
       </button>
-      <button className="icon-action-btn" onClick={() => dispatch(setDisplayJson({ json, isExpand: true }))} aria-label={t('ui.view_details')}>
+      <button
+        className="icon-action-btn"
+        onClick={() => dispatch(setDisplayJson({ json, isExpand: true }))}
+        aria-label={t('ui.view_details')}
+      >
         <IoInformationCircleOutline className="icon-sm" />
       </button>
     </div>

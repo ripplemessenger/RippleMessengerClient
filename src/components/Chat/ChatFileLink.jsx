@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { filesize_format } from '../../lib/AppUtil'
 import { SaveChatFile, CheckFileStatus } from '../../store/sagas/messenger.actions'
 import { IoAttachSharp, IoSyncOutline, IoCloudDownloadOutline, IoAlertCircleOutline } from 'react-icons/io5'
@@ -10,6 +11,7 @@ import { useAppBaseDir } from '../../hooks/useAppBaseDir'
 import { useFileBlobUrl } from '../../hooks/useFileBlobUrl'
 
 const ChatFileLink = ({ address, name, ext, size, hash }) => {
+  const { t } = useTranslation()
   const Address = useSelector(selectUserAddress)
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
@@ -65,7 +67,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
                 }, 300)
               }
             }}
-            aria-label={`Download ${name}${ext}`}
+            aria-label={t('file.download', { name: `${name}${ext}` })}
           >
             <IoAttachSharp className="icon-sm" />
             {name}
@@ -76,7 +78,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
       ) : inProgress ? (
         <div
           className={`flex flex-row items-center gap-1 ${isSelf ? 'justify-end' : 'justify-start'}`}
-          title={`${filesize_format(size)} (downloading)`}
+          title={t('file.downloading', { size: filesize_format(size) })}
         >
           <IoSyncOutline className="icon-sm animate-spin" />
           <span className="opacity-70">
@@ -87,7 +89,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
       ) : saved ? (
         <button
           className="flex flex-row justify-start file-link"
-          title={`${filesize_format(size)} (downloaded)`}
+          title={`${t('file.downloaded', { size: filesize_format(size) })} · ${t('file.hint_open')}`}
           onClick={() => {
             if (clickTimerRef.current) {
               // Double-click: save + open (or reveal for risky files)
@@ -111,7 +113,7 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
               }, 300)
             }
           }}
-          aria-label={`Download ${name}${ext}`}
+          aria-label={t('file.download', { name: `${name}${ext}` })}
         >
           <IoAttachSharp className="icon-sm" />
           {name}
@@ -120,9 +122,13 @@ const ChatFileLink = ({ address, name, ext, size, hash }) => {
       ) : (
         <button
           className="flex flex-row justify-start file-link"
-          title={failed ? `${filesize_format(size)} (download failed, click to retry)` : filesize_format(size)}
+          title={
+            failed
+              ? t('file.download_failed', { size: filesize_format(size) })
+              : `${filesize_format(size)} · ${t('file.hint_save_open')}`
+          }
           onClick={() => dispatch(SaveChatFile({ hash, size, name, ext }))}
-          aria-label={`Download ${name}${ext}`}
+          aria-label={t('file.download', { name: `${name}${ext}` })}
         >
           {failed ? <IoAlertCircleOutline className="icon-sm" /> : <IoCloudDownloadOutline className="icon-sm" />}
           {name}

@@ -56,8 +56,10 @@ import {
   DeleteBulletinItem,
   BulkDeleteBulletins,
   SearchBulletinManagementList,
+  SearchMessages,
   LoadBulletinManagementByTag,
   LoadAllTags,
+  FetchCooccurringTags,
   LoadAllBulletinAddresses,
   LoadFileManagementList,
   DeleteFileItem,
@@ -136,8 +138,10 @@ import {
   DeleteBulletinItem as DeleteBulletinItemHandler,
   BulkDeleteBulletins as BulkDeleteBulletinsHandler,
   SearchBulletinManagementList as SearchBulletinManagementListHandler,
+  SearchMessagesHandler,
   LoadBulletinManagementByTag as LoadBulletinManagementByTagHandler,
   LoadAllTags as LoadAllTagsHandler,
+  FetchCooccurringTagsHandler,
   LoadAllBulletinAddresses as LoadAllBulletinAddressesHandler,
   LoadFileManagementList as LoadFileManagementListHandler,
   DeleteFileItem as DeleteFileItemHandler,
@@ -251,8 +255,10 @@ export function* watchMessenger() {
   yield takeLatest(DeleteBulletinItem.type, DeleteBulletinItemHandler)
   yield takeLatest(BulkDeleteBulletins.type, BulkDeleteBulletinsHandler)
   yield takeLatest(SearchBulletinManagementList.type, SearchBulletinManagementListHandler)
+  yield takeLatest(SearchMessages.type, SearchMessagesHandler)
   yield takeLatest(LoadBulletinManagementByTag.type, LoadBulletinManagementByTagHandler)
   yield takeLatest(LoadAllTags.type, LoadAllTagsHandler)
+  yield takeLatest(FetchCooccurringTags.type, FetchCooccurringTagsHandler)
   yield takeLatest(LoadAllBulletinAddresses.type, LoadAllBulletinAddressesHandler)
   yield takeLatest(LoadFileManagementList.type, LoadFileManagementListHandler)
   yield takeLatest(DeleteFileItem.type, DeleteFileItemHandler)

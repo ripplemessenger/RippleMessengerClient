@@ -12,17 +12,6 @@ const FileDir = 'file'
 /** @type {string} Directory name for avatar images */
 const AvatarDir = 'avatar'
 
-// Settings page tab identifiers
-/** @type {{Me: string, Contact: string, Group: string, MessengerNetwork: string, Storage: string}} */
-const SettingPageTab = {
-  Me: 'Me',
-  Contact: 'Contact',
-  Group: 'Group',
-  MessengerNetwork: 'Network',
-  Storage: 'Storage',
-  General: 'General'
-}
-
 /** @type {number} Maximum bulletin cache entries; 0 means no caching */
 const DefaultBulletinCacheSize = 0
 
@@ -89,7 +78,6 @@ export {
   Day,
   FileDir,
   AvatarDir,
-  SettingPageTab,
   DefaultBulletinCacheSize,
   MessageInterval,
   MaxSpeaker,

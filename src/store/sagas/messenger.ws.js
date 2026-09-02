@@ -58,7 +58,8 @@ import {
   setServerAddressList,
   setDisplayBulletinReplyList,
   setTagBulletinList,
-  setRandomBulletinList,
+  appendRandomBulletins,
+  setRandomBulletinLoading,
   markFileSaved,
   setFileStatus
 } from '../slices/MessengerSlice'
@@ -721,9 +722,11 @@ function* handleTagBulletinListObject(json) {
 
 function* handleRandomBulletinListObject(json) {
   try {
-    yield call(processBulletinList, json, checkRandomBulletinListSchema, (list) => setRandomBulletinList(list))
+    yield call(processBulletinList, json, checkRandomBulletinListSchema, (list) => appendRandomBulletins(list))
+    yield put(setRandomBulletinLoading(false))
   } catch (e) {
     Logger.error('[handleRandomBulletinListObject] failed:', e.message)
+    yield put(setRandomBulletinLoading(false))
   }
 }
 

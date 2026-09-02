@@ -14,7 +14,9 @@ import {
   setBulletinManagementList,
   setFileManagementList,
   setAllTagsList,
-  setAllBulletinAddressesList
+  setCooccurringTagsList,
+  setAllBulletinAddressesList,
+  setMessageSearchList
 } from '../slices/MessengerSlice'
 
 const StorageManagementPageSize = 20
@@ -250,26 +252,43 @@ export function* ClearOrphanedFiles() {
 export function* SearchBulletinManagementList({ payload }) {
   try {
     const address = yield select((state) => state.User.Address)
-    const { query, filter, page = 1, addressFilter } = payload
+    const { query, filter, page = 1, addressFilter, tags, hasAttachment } = payload
+
+    const searchParams = {
+      query: query || '',
+      filter,
+      address,
+      addressFilter,
+      tags: Array.isArray(tags) ? tags : [],
+      hasAttachment: hasAttachment || 'any'
+    }
 
     const bulletins = yield call(() =>
-      dbAPI.searchBulletinsForManagement({
-        query: query || '',
-        filter,
-        address,
-        page,
-        pageSize: StorageManagementPageSize,
-        addressFilter
-      })
+      dbAPI.searchBulletinsForManagement({ ...searchParams, page, pageSize: StorageManagementPageSize })
     )
-    const total = yield call(() =>
-      dbAPI.getBulletinSearchCountForManagement({ query: query || '', filter, address, addressFilter })
-    )
+    const total = yield call(() => dbAPI.getBulletinSearchCountForManagement(searchParams))
     const totalPage = calcTotalPage(total, StorageManagementPageSize)
 
     yield put(setBulletinManagementList({ List: bulletins, Page: page, TotalPage: totalPage }))
   } catch (e) {
     Logger.error('[SearchBulletinManagementList] failed:', e.message)
+  }
+}
+
+export function* SearchMessagesHandler({ payload }) {
+  try {
+    const address = yield select((state) => state.User.Address)
+    const { query, page = 1 } = payload
+
+    const messages = yield call(() =>
+      dbAPI.searchMessages({ query: query || '', address, page, pageSize: StorageManagementPageSize })
+    )
+    const total = yield call(() => dbAPI.getMessageSearchCount({ query: query || '', address }))
+    const totalPage = calcTotalPage(total, StorageManagementPageSize)
+
+    yield put(setMessageSearchList({ List: messages, Page: page, TotalPage: totalPage }))
+  } catch (e) {
+    Logger.error('[SearchMessages] failed:', e.message)
   }
 }
 
@@ -293,6 +312,16 @@ export function* LoadAllTags() {
     yield put(setAllTagsList(tags))
   } catch (e) {
     Logger.error('[LoadAllTags] failed:', e.message)
+  }
+}
+
+export function* FetchCooccurringTagsHandler(action) {
+  try {
+    const { selectedTags } = action.payload
+    const tags = yield call(() => dbAPI.getCooccurringTags(selectedTags))
+    yield put(setCooccurringTagsList(tags))
+  } catch (e) {
+    Logger.error('[FetchCooccurringTags] failed:', e.message)
   }
 }
 
@@ -348,7 +377,7 @@ export function* DeleteOthersFileReferences({ payload }) {
     const { hash } = payload
 
     // Step 1: Delete only the "others" bulletin_files references
-    const { deletedRefs, remainingRefs } = yield call(() => dbAPI.deleteOthersReferences(hash))
+    const { deletedRefs: _deletedRefs, remainingRefs } = yield call(() => dbAPI.deleteOthersReferences(hash))
 
     if (remainingRefs === 0) {
       // No more references — clean up files record and disk file

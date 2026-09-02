@@ -10,9 +10,23 @@ import { api as bulletinsAPI } from './bulletins'
 import { api as filesAPI } from './files'
 import { api as handshakesAPI } from './handshakes'
 import { api as privateMessagesAPI } from './privateMessages'
+import { api as messagesAPI } from './messages'
 import { api as groupsAPI } from './groups'
 
-export { serversAPI, contactsAPI, accountsAPI, followsAPI, friendsAPI, avatarsAPI, bulletinsAPI, filesAPI, handshakesAPI, privateMessagesAPI, groupsAPI }
+export {
+  serversAPI,
+  contactsAPI,
+  accountsAPI,
+  followsAPI,
+  friendsAPI,
+  avatarsAPI,
+  bulletinsAPI,
+  filesAPI,
+  handshakesAPI,
+  privateMessagesAPI,
+  messagesAPI,
+  groupsAPI
+}
 
 export const dbAPI = {
   ...serversAPI,
@@ -25,5 +39,6 @@ export const dbAPI = {
   ...filesAPI,
   ...handshakesAPI,
   ...privateMessagesAPI,
-  ...groupsAPI,
+  ...messagesAPI,
+  ...groupsAPI
 }

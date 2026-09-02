@@ -16,6 +16,8 @@
     "bookmark": "Bookmark",
     "follow": "Follow",
     "chat": "Chat",
+    "bulletin": "Bulletin",
+    "contact": "Contact",
     "setting": "Setting",
     "toggle_theme": "Toggle theme",
     "previous_page": "Previous page",
@@ -35,8 +37,16 @@
     "view_server_stats": "View server statistics",
     "language": "Switch language",
     "add_contact": "Add contact",
+    "add": "Add",
     "view_group_requests": "View group requests",
-    "copied_to_clipboard": "Copied to clipboard!"
+    "copied_to_clipboard": "Copied to clipboard!",
+    "error": "Something went wrong",
+    "unknown_error": "Unknown error",
+    "try_again": "Try Again",
+    "connecting": "Connecting to server...",
+    "prev": "Prev",
+    "next": "Next",
+    "page": "Page {{page}} / {{total}}"
   },
   "file": {
     "saved_to_download": "File saved to download directory",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "Others' references deleted",
     "failed_to_delete_others_refs": "Failed to delete others' references",
     "avatars_cleared": "Cleared {{count}} avatar(s)",
-    "failed_to_clear_avatars": "Failed to clear avatar cache"
+    "failed_to_clear_avatars": "Failed to clear avatar cache",
+    "downloading": "{{size}} (downloading)",
+    "downloaded": "{{size}} (downloaded)",
+    "download_failed": "{{size}} (download failed, click to retry)",
+    "hint_open": "double-click to open",
+    "hint_save_open": "click to save, double-click to save and open",
+    "download": "Download {{name}}"
   },
   "chat": {
     "content_empty": "Content is empty...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "Cannot get encryption key, file request not sent, please retry",
     "hash_mismatch_retrying": "File verification failed, retrying...",
     "group_members": "group members",
-    "peer": "peer"
+    "peer": "peer",
+    "error_title": "Chat Error",
+    "handshake_not_ready": "Handshake not ready...",
+    "open_chat": "Open chat with {{address}}",
+    "open_group": "Open group chat {{name}}"
   },
   "bulletin": {
     "saved": "Bulletin saved",
@@ -83,7 +103,17 @@
     "delete_failed": "Failed to delete bulletin",
     "cleared": "Cleared {{count}} bulletins",
     "clear_failed": "Failed to clear bulletins",
-    "deleted_single": "Bulletin deleted"
+    "deleted_single": "Bulletin deleted",
+    "bulk_deleted": "Deleted {{count}} bulletin(s)",
+    "forward": "Forward Bulletin",
+    "show_raw": "Show raw text",
+    "show_markdown": "Show markdown",
+    "view_bulletin": "View bulletin #{{seq}}",
+    "unmark": "Unmark bulletin",
+    "mark": "Mark bulletin",
+    "remove_file": "Remove file {{name}}",
+    "remove_tag": "Remove tag {{tag}}",
+    "search_tag": "Search tag {{tag}}"
   },
   "setting": {
     "theme_changed": "Theme changed to {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "Bulletins",
     "tab_general": "General",
     "tab_me": "Me",
+    "avatar_desc": "Click the avatar to change it",
+    "nickname": "Nickname",
+    "nickname_desc": "Shown to other users",
+    "copy_seed_desc": "Copy your account seed to clipboard",
+    "remove_account_desc": "Remove this account and all local data",
     "qr_code": "QR Code",
     "qr_hint": "Scan this QR code to add me as a contact",
     "tab_contact": "Contact",
@@ -161,9 +196,31 @@
     "file_name": "Name",
     "file_refs": "Refs",
     "already_saved": "Already saved",
-    "download_chunks": "Downloaded {cursor}/{total} chunks — click to download"
+    "download_chunks": "Downloaded {cursor}/{total} chunks — click to download",
+    "remove_account_confirm": "Remove this account? All local data will be deleted.",
+    "copy_seed_confirm": "Copy your account seed to clipboard?",
+    "default_server": "Default",
+    "delete_selected": "Delete Selected ({{count}})",
+    "all_tags": "All Tags",
+    "protected_bulletin": "Protected bulletin",
+    "address": "Address",
+    "seq": "Seq",
+    "content": "Content",
+    "all_types": "All Types",
+    "no_owned_files": "No owned files",
+    "no_cached_files": "No cached files",
+    "cached_files_desc": "Downloaded files from others' bulletins will appear here",
+    "bulletins_using_file": "Bulletins using this file",
+    "no_file_refs": "No bulletin references found",
+    "referenced_by": "Referenced by {{count}} bulletin(s)"
   },
   "ui": {
+    "search_bulletin": "Search bulletin",
+    "search_message": "Search message",
+    "search_chat": "Search contacts, groups & messages",
+    "no_results": "No results",
+    "msg_type_private": "Private",
+    "msg_type_group": "Group",
     "no_sessions": "No sessions",
     "start_conversation": "Start a conversation with a contact",
     "no_messages": "No messages yet",
@@ -210,7 +267,14 @@
     "quotes": "Quotes",
     "attachments": "Attachments",
     "publish": "Publish",
-    "tag_search_placeholder": "Enter or ,"
+    "tag_search_placeholder": "Enter or ,",
+    "loading_bulletin": "Loading bulletin...",
+    "view_message_details": "View message #{{seq}} details",
+    "bulletin_number": "Bulletin #{{seq}}",
+    "search_contact": "Search contacts...",
+    "search_group": "Search groups...",
+    "avatar": "Avatar",
+    "bulletin_count": "Bulletin Count"
   },
   "auth": {
     "open_account": "Open Account",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "Group Name:",
-    "deleted": "This group has been deleted, sending is disabled"
+    "deleted": "This group has been deleted, sending is disabled",
+    "create_group": "Create Group",
+    "no_member_yet": "No group member yet",
+    "tap_contact_add": "Tap a contact below to add them",
+    "no_contact_available": "No contact available",
+    "add_contact_first": "Add contacts first to create groups",
+    "create": "Create",
+    "requests": "Group Requests",
+    "name": "Name",
+    "created_by": "Created By",
+    "member": "Member",
+    "member_count": "{{count}} members",
+    "created_at": "Created At",
+    "join": "Join",
+    "remove_member": "Remove {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,36 @@
     "content": "# Rules  \n1. No Human Verification\n2. No Content Moderation\n3. No Recommendation\n4. No Recall\n5. Data on My Devices\n6. Encrypted Chat\n7. Publish(Comment) bulletin freely\n\n## Donate\n{{address}}"
   },
   "page": {
+    "chat": "Chat",
     "portal": "Portal",
+    "bulletin": "Bulletin",
     "random": "Random",
     "no_random_bulletins": "No random bulletins",
     "refresh_to_discover": "Refresh to discover random posts",
+    "loading_more": "Loading more…",
+    "no_more_new": "No more new bulletins",
     "no_tagged_bulletins": "No tagged bulletins",
     "tags_will_appear": "Bulletin tags will appear here",
     "no_followed_bulletins": "No followed bulletins",
-    "enable_follow_to_see": "Enable follow on a contact to see their bulletins here"
+    "enable_follow_to_see": "Enable follow on a contact to see their bulletins here",
+    "no_bookmarked": "No bookmarked bulletins",
+    "no_bulletins_from_account": "No bulletins from this account",
+    "account_not_posted": "This account has not posted yet",
+    "chat": "Chat"
+  },
+  "search": {
+    "address": "Address",
+    "address_all": "All addresses",
+    "content": "Content",
+    "content_placeholder": "Search content...",
+    "tags": "Tags",
+    "tags_none": "No tags",
+    "attachment": "Attachment",
+    "attachment_any": "Any",
+    "attachment_with": "Attachment",
+    "attachment_without": "Without attachment",
+    "search": "Search",
+    "clear": "Clear",
+    "reset": "Reset"
   }
 }

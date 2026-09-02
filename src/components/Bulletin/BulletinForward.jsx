@@ -40,7 +40,7 @@ const BulletinForward = ({}) => {
     <div className={`modal-overlay`} role="dialog" aria-modal="true">
       <div ref={dialogRef} className="max-w-md w-full mx-4 flex flex-col">
         <div className="modal-header-bar">
-          <span className={`label text-base`}>Forward Bulletin</span>
+          <span className={`label text-base`}>{t('bulletin.forward')}</span>
           <button
             onClick={() => dispatch(setForwardFlag(false))}
             className="p-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"

@@ -4,11 +4,11 @@ import PageList from '../PageList'
 
 /**
  * Shared bulletin list renderer extracted from PortalPage, BulletinFollowPage,
- * BulletinBookmarkPage, BulletinRandomPage, BulletinTagPage, BulletinAddressPage.
+ * BulletinBookmarkPage, BulletinAddressPage.
  *
- * Renders the inner shell (tab-page > bulletin-page-inner) shared by all these pages.
+ * Renders the inner shell (tab-page > page-inner) shared by all these pages.
  * Pages that need modals (Publish/Forward/Paste) should wrap this component in
- * `bulletin-page-wrapper` and render modals before <BulletinListPage />.
+ * `page-wrapper` and render modals before <BulletinListPage />.
  * Pages without modals can use this component directly — it renders its own wrapper.
  *
  * @param {object} props
@@ -23,7 +23,7 @@ import PageList from '../PageList'
  * @param {string} [props.emptyDescription] - Description text for EmptyState
  * @param {'card'|'list'} [props.wrapperStyle] - 'list': bulletin-card-list div, 'card': max-w-full card div
  * @param {React.ReactNode} [props.extraContent] - Optional content between title and list (e.g. tag chips)
- * @param {boolean} [props.renderWrapper] - Whether to render bulletin-page-wrapper div (default: true). Set false when page wraps itself.
+ * @param {boolean} [props.renderWrapper] - Whether to render page-wrapper div (default: true). Set false when page wraps itself.
  */
 export default function BulletinListPage({
   title,
@@ -37,7 +37,7 @@ export default function BulletinListPage({
   emptyDescription,
   wrapperStyle = 'list',
   extraContent,
-  renderWrapper = true,
+  renderWrapper = true
 }) {
   const hasBulletins = bulletins.length > 0
   const shouldShowPagination = bulletinData && pageListType && bulletinData.totalPage > 1
@@ -53,40 +53,33 @@ export default function BulletinListPage({
 
   const listContent = (
     <div className="bulletin-list-content">
-      {(!hasBulletins && showEmpty) ? (
-        <EmptyState
-          icon={emptyIcon}
-          title={emptyTitle}
-          description={emptyDescription}
-        />
+      {!hasBulletins && showEmpty ? (
+        <EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />
       ) : (
-        bulletins.map((bulletin) => (
-          <ListBulletin key={bulletin.hash} bulletin={bulletin} />
-        ))
+        bulletins.map((bulletin) => <ListBulletin key={bulletin.hash} bulletin={bulletin} />)
       )}
     </div>
   )
 
-  const innerContent = wrapperStyle === 'card' ? (
-    <div className="max-w-full min-w-0 p-4 rounded-xl card">
-      {pageListElement}
-      {listContent}
-      {pageListElement}
-    </div>
-  ) : (
-    <div className="bulletin-card-list">
-      {pageListElement}
-      {listContent}
-      {pageListElement}
-    </div>
-  )
+  const innerContent =
+    wrapperStyle === 'card' ? (
+      <div className="max-w-full min-w-0 p-4 rounded-xl card">
+        {pageListElement}
+        {listContent}
+        {pageListElement}
+      </div>
+    ) : (
+      <div className="bulletin-card-list">
+        {pageListElement}
+        {listContent}
+        {pageListElement}
+      </div>
+    )
 
   const innerShell = (
     <div className="tab-page">
-      <div className="bulletin-page-inner">
-        <div className="card-title flex flex-row items-center">
-          {title}
-        </div>
+      <div className="page-inner">
+        <div className="card-title flex flex-row items-center">{title}</div>
         {extraContent}
         {innerContent}
       </div>
@@ -94,11 +87,7 @@ export default function BulletinListPage({
   )
 
   if (renderWrapper) {
-    return (
-      <div className="bulletin-page-wrapper">
-        {innerShell}
-      </div>
-    )
+    return <div className="page-wrapper">{innerShell}</div>
   }
 
   return innerShell

@@ -16,6 +16,8 @@
     "bookmark": "Закладка",
     "follow": "Подписаться",
     "chat": "Чат",
+    "bulletin": "Бюллетень",
+    "contact": "Контакты",
     "setting": "Настройки",
     "toggle_theme": "Сменить тему",
     "previous_page": "Предыдущая страница",
@@ -35,8 +37,16 @@
     "view_server_stats": "Просмотр статистики сервера",
     "language": "Сменить язык",
     "add_contact": "Добавить контакт",
+    "add": "Добавить",
     "view_group_requests": "Просмотр запросов в группы",
-    "copied_to_clipboard": "Скопировано в буфер обмена!"
+    "copied_to_clipboard": "Скопировано в буфер обмена!",
+    "error": "Что-то пошло не так",
+    "unknown_error": "Неизвестная ошибка",
+    "try_again": "Повторить",
+    "connecting": "Подключение к серверу...",
+    "prev": "Назад",
+    "next": "Вперёд",
+    "page": "Стр. {{page}} / {{total}}"
   },
   "file": {
     "saved_to_download": "Файл сохранён в папку загрузок",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "Чужие ссылки удалены",
     "failed_to_delete_others_refs": "Не удалось удалить чужие ссылки",
     "avatars_cleared": "Очищено {{count}} аватар(ов)",
-    "failed_to_clear_avatars": "Не удалось очистить кэш аватаров"
+    "failed_to_clear_avatars": "Не удалось очистить кэш аватаров",
+    "downloading": "{{size}} (загрузка)",
+    "downloaded": "{{size}} (загружено)",
+    "download_failed": "{{size}} (ошибка загрузки, нажмите для повтора)",
+    "hint_open": "двойной клик для открытия",
+    "hint_save_open": "клик для сохранения, двойной клик для сохранения и открытия",
+    "download": "Скачать {{name}}"
   },
   "chat": {
     "content_empty": "Содержимое пусто...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "Не удалось получить ключ шифрования, запрос файла не отправлен, попробуйте снова",
     "hash_mismatch_retrying": "Ошибка проверки файла, повторная попытка...",
     "group_members": "участников группы",
-    "peer": "пир"
+    "peer": "пир",
+    "error_title": "Ошибка чата",
+    "handshake_not_ready": "Рукопожатие не завершено...",
+    "open_chat": "Открыть чат с {{address}}",
+    "open_group": "Открыть групповой чат {{name}}"
   },
   "bulletin": {
     "saved": "Бюллетень сохранён",
@@ -83,7 +103,17 @@
     "delete_failed": "Не удалось удалить бюллетень",
     "cleared": "Удалено {{count}} бюллетеней",
     "clear_failed": "Не удалось очистить бюллетени",
-    "deleted_single": "Бюллетень удалён"
+    "deleted_single": "Бюллетень удалён",
+    "bulk_deleted": "Удалено {{count}} бюллетеней",
+    "forward": "Переслать бюллетень",
+    "show_raw": "Показать исходный текст",
+    "show_markdown": "Показать Markdown",
+    "view_bulletin": "Просмотреть объявление #{{seq}}",
+    "unmark": "Убрать отметку",
+    "mark": "Отметить объявление",
+    "remove_file": "Удалить файл {{name}}",
+    "remove_tag": "Удалить тег {{tag}}",
+    "search_tag": "Поиск тега {{tag}}"
   },
   "setting": {
     "theme_changed": "Тема изменена на {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "Бюллетени",
     "tab_general": "Общие",
     "tab_me": "Профиль",
+    "avatar_desc": "Нажмите на аватар, чтобы изменить",
+    "nickname": "Никнейм",
+    "nickname_desc": "Отображается другим пользователям",
+    "copy_seed_desc": "Скопировать сид аккаунта в буфер обмена",
+    "remove_account_desc": "Удалить этот аккаунт и все локальные данные",
     "qr_code": "QR-код",
     "qr_hint": "Отсканируйте этот QR-код, чтобы добавить меня в контакты",
     "tab_contact": "Контакты",
@@ -161,9 +196,31 @@
     "file_name": "Имя",
     "file_refs": "Ссылки",
     "already_saved": "Уже сохранено",
-    "download_chunks": "Загружено {cursor}/{total} блоков — нажмите для загрузки"
+    "download_chunks": "Загружено {cursor}/{total} блоков — нажмите для загрузки",
+    "remove_account_confirm": "Удалить этот аккаунт? Все локальные данные будут удалены.",
+    "copy_seed_confirm": "Скопировать сид аккаунта в буфер обмена?",
+    "default_server": "По умолчанию",
+    "delete_selected": "Удалить выбранные ({{count}})",
+    "all_tags": "Все теги",
+    "protected_bulletin": "Защищённый бюллетень",
+    "address": "Адрес",
+    "seq": "№",
+    "content": "Содержание",
+    "all_types": "Все типы",
+    "no_owned_files": "Нет собственных файлов",
+    "no_cached_files": "Нет кэшированных файлов",
+    "cached_files_desc": "Файлы из бюллетеней других появятся здесь",
+    "bulletins_using_file": "Бюллетени, использующие этот файл",
+    "no_file_refs": "Ссылки не найдены",
+    "referenced_by": "Используется в {{count}} бюллетен(я/ей)"
   },
   "ui": {
+    "search_bulletin": "Поиск бюллетеня",
+    "search_message": "Поиск сообщений",
+    "search_chat": "Поиск контактов, групп и сообщений",
+    "no_results": "Нет результатов",
+    "msg_type_private": "Личное",
+    "msg_type_group": "Группа",
     "no_sessions": "Нет сессий",
     "start_conversation": "Начните разговор с контактом",
     "no_messages": "Сообщений пока нет",
@@ -210,7 +267,14 @@
     "quotes": "Цитаты",
     "attachments": "Вложения",
     "publish": "Опубликовать",
-    "tag_search_placeholder": "Enter или ,"
+    "tag_search_placeholder": "Enter или ,",
+    "loading_bulletin": "Загрузка бюллетеня...",
+    "view_message_details": "Подробнее о сообщении #{{seq}}",
+    "bulletin_number": "Бюллетень #{{seq}}",
+    "search_contact": "Поиск контактов...",
+    "search_group": "Поиск групп...",
+    "avatar": "Аватар",
+    "bulletin_count": "Количество объявлений"
   },
   "auth": {
     "open_account": "Открыть аккаунт",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "Название группы:",
-    "deleted": "Эта группа была удалена, отправка отключена"
+    "deleted": "Эта группа была удалена, отправка отключена",
+    "create_group": "Создать группу",
+    "no_member_yet": "Пока нет участников",
+    "tap_contact_add": "Нажмите на контакт ниже, чтобы добавить",
+    "no_contact_available": "Нет доступных контактов",
+    "add_contact_first": "Сначала добавьте контакты",
+    "create": "Создать",
+    "requests": "Приглашения в группы",
+    "name": "Имя",
+    "created_by": "Создатель",
+    "member": "Участник",
+    "member_count": "{{count}} участников",
+    "created_at": "Создано",
+    "join": "Вступить",
+    "remove_member": "Удалить {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,35 @@
     "content": "# Правила  \n1. Без проверки человеком\n2. Без модерации контента\n3. Без рекомендаций\n4. Без отзыва\n5. Данные на моих устройствах\n6. Зашифрованный чат\n7. Свободная публикация(комментариев) бюллетеней\n\n## Донат\n{{address}}"
   },
   "page": {
+    "chat": "Чат",
     "portal": "Портал",
+    "bulletin": "Бюллетень",
     "random": "Случайные",
     "no_random_bulletins": "Нет случайных бюллетеней",
     "refresh_to_discover": "Обновите, чтобы найти случайные публикации",
+    "loading_more": "Загрузка…",
+    "no_more_new": "Больше нет новых бюллетеней",
     "no_tagged_bulletins": "Нет бюллетеней с тегами",
     "tags_will_appear": "Теги бюллетеней появятся здесь",
     "no_followed_bulletins": "Нет подписок на бюллетени",
-    "enable_follow_to_see": "Включите подписку на контакт, чтобы видеть его бюллетени здесь"
+    "enable_follow_to_see": "Включите подписку на контакт, чтобы видеть его бюллетени здесь",
+    "no_bookmarked": "Нет отмеченных объявлений",
+    "no_bulletins_from_account": "Нет объявлений от этого аккаунта",
+    "account_not_posted": "Этот аккаунт ещё не публиковал"
+  },
+  "search": {
+    "address": "Адрес",
+    "address_all": "Все адреса",
+    "content": "Содержимое",
+    "content_placeholder": "Поиск по содержимому...",
+    "tags": "Теги",
+    "tags_none": "Без тегов",
+    "attachment": "Вложение",
+    "attachment_any": "Любое",
+    "attachment_with": "Вложение",
+    "attachment_without": "Без вложения",
+    "search": "Найти",
+    "clear": "Очистить",
+    "reset": "Сбросить"
   }
 }

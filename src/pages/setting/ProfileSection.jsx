@@ -4,13 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
 import QRCode from 'qrcode'
-import { IoCloseOutline } from 'react-icons/io5'
+import { IoCloseOutline, IoPersonOutline } from 'react-icons/io5'
 import AvatarImage from '../../components/AvatarImage'
-import TextInput from '../../components/Form/TextInput'
 
 import { useConfirmPopup } from '../../hooks/useConfirmPopup'
 import { selectUserTabMe } from '../../selectors'
-import { ConfirmContentOptions, FLASH_DURATION_MS, SettingPageTab } from '../../lib/AppConst'
+import { ConfirmContentOptions, FLASH_DURATION_MS } from '../../lib/AppConst'
 import { DefaultServer } from '../../lib/MessengerConst'
 import Logger from '../../lib/Logger'
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
@@ -19,7 +18,7 @@ import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
 
 const AvatarCropper = lazy(() => import('../../components/AvatarCropper'))
 
-export default function TabMe() {
+export default function ProfileSection() {
   const { t } = useTranslation()
   const [displayNickname, setDisplayNickname] = useState('')
   const [imageSrc, setImageSrc] = useState(null)
@@ -28,7 +27,7 @@ export default function TabMe() {
   const [showRemoveButton, setShowRemoveButton] = useState(false)
 
   const dispatch = useDispatch()
-  const { Address, Nickname, Seed, AccountList, activeTabSetting } = useSelector(selectUserTabMe)
+  const { Address, Nickname, Seed, AccountList } = useSelector(selectUserTabMe)
   const ServerList = useSelector((state) => state.Messenger.ServerList)
   const [showQrCode, setShowQrCode] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
@@ -45,10 +44,8 @@ export default function TabMe() {
   }, [showQrCode, qrValue])
 
   useEffect(() => {
-    if (activeTabSetting === SettingPageTab.Me) {
-      setDisplayNickname(Nickname)
-    }
-  }, [activeTabSetting, Nickname])
+    setDisplayNickname(Nickname)
+  }, [Nickname])
 
   useEffect(() => {
     setShowRemoveButton(AccountList.some((a) => a.address === Address))
@@ -119,7 +116,7 @@ export default function TabMe() {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.RemoveAccount,
-        Message: 'Remove this account? All local data will be deleted.',
+        Message: t('setting.remove_account_confirm'),
         Result: false
       })
     )
@@ -129,14 +126,14 @@ export default function TabMe() {
     dispatch(
       setConfirmPopup({
         Content: ConfirmContentOptions.CopySeed,
-        Message: 'Copy your account seed to clipboard?',
+        Message: t('setting.copy_seed_confirm'),
         Result: false
       })
     )
   }
 
   return (
-    <div className="tab-page">
+    <>
       {showQrCode && (
         <div className={`modal-overlay`} role="dialog" aria-modal="true">
           <div className="max-w-sm w-full mx-4 flex flex-col mt-4">
@@ -168,9 +165,20 @@ export default function TabMe() {
           </div>
         </div>
       )}
-      <div className="mx-auto flex flex-col mt-4 w-full max-w-full min-w-0">
-        <div className="card-title">{t('setting.tab_me')}</div>
-        <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col items-center gap-4">
+      <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <IoPersonOutline className="text-xl text-primary dark:text-dark-primary" />
+          <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">{t('setting.tab_me')}</h3>
+        </div>
+
+        {/* Avatar */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">{t('setting.avatar')}</span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.avatar_desc')}
+            </span>
+          </div>
           {Address && (
             <AvatarImage
               address={Address}
@@ -179,33 +187,75 @@ export default function TabMe() {
               classNames={'avatar'}
             />
           )}
-          <TextInput
-            label={t('ui.nickname')}
+        </div>
+
+        {/* Nickname */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">{t('setting.nickname')}</span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.nickname_desc')}
+            </span>
+          </div>
+          <input
+            type="text"
             value={displayNickname}
             autoComplete={'off'}
             placeholder={'Alice'}
             onChange={(e) => updateNickname(e.target.value)}
+            className="w-48 px-3 py-2 border rounded-lg shadow-sm appearance-none focus:outline-none input-hover border-primary/30 dark:border-primary/40 input-color"
           />
-          {imageSrc && (
-            <Suspense fallback={null}>
-              <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
-            </Suspense>
-          )}
-          {Address && (
-            <button onClick={() => setShowQrCode(true)} className="btn-primary btn-gold">
+        </div>
+
+        {/* QR Code */}
+        {Address && (
+          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">{t('setting.qr_code')}</span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">{t('setting.qr_hint')}</span>
+            </div>
+            <button onClick={() => setShowQrCode(true)} className="btn-sm btn-gold">
               {t('setting.qr_code')}
             </button>
-          )}
-          <button onClick={() => confirmCopySeed()} className="btn-primary btn-yellow">
+          </div>
+        )}
+
+        {/* Copy Seed */}
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">{t('auth.copy_seed')}</span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.copy_seed_desc')}
+            </span>
+          </div>
+          <button onClick={() => confirmCopySeed()} className="btn-sm btn-yellow">
             {t('auth.copy_seed')}
           </button>
-          {showRemoveButton && (
-            <button onClick={() => confirmDelAccount()} className="btn-primary btn-red">
+        </div>
+
+        {/* Remove Account */}
+        {showRemoveButton && (
+          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('auth.remove_account')}
+              </span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.remove_account_desc')}
+              </span>
+            </div>
+            <button onClick={() => confirmDelAccount()} className="btn-sm btn-danger">
               {t('auth.remove_account')}
             </button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {imageSrc && (
+          <Suspense fallback={null}>
+            <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />
+          </Suspense>
+        )}
       </div>
-    </div>
+    </>
   )
 }

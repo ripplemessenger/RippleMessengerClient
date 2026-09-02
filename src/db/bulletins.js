@@ -303,37 +303,37 @@ export const api = {
     switch (filter) {
       case 'mine':
         if (addressFilter) {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [address, addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [address, pageSize, offset]
         }
         break
       case 'followed':
         if (addressFilter) {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [address, addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [address, pageSize, offset]
         }
         break
       case 'bookmarked':
         if (addressFilter) {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [Bool2Int(true), addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [Bool2Int(true), pageSize, offset]
         }
         break
       default:
         if (addressFilter) {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [address, addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [address, pageSize, offset]
         }
         break
@@ -396,59 +396,84 @@ export const api = {
   },
 
   // Management: search bulletins with LIKE query and filter
-  async searchBulletinsForManagement({ query, filter, address, page = 1, pageSize = BulletinPageSize, addressFilter }) {
+  // Composite local bulletin search.
+  // Supported dimensions (all optional, combined with AND):
+  //   filter        - scope: 'all' | 'mine' | 'bookmarked' | 'followed'
+  //   addressFilter - publisher address (exact match)
+  //   query         - content substring (LIKE)
+  //   tags          - array of tag names; bulletin must have ALL of them
+  //   hasAttachment - 'any' | 'with' | 'without'
+  async searchBulletinsForManagement({
+    query,
+    filter,
+    address,
+    page = 1,
+    pageSize = BulletinPageSize,
+    addressFilter,
+    tags = [],
+    hasAttachment = 'any'
+  }) {
     const db = await getDB()
     const offset = (page - 1) * pageSize
-    let querySql, params
 
-    const hasSearch = query && query.trim().length > 0
-    const likePattern = `%${query.trim()}%`
-
-    switch (filter) {
-      case 'mine':
-        if (hasSearch) {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
-          params = [address, likePattern, pageSize, offset]
-        } else {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
-          params = [address, pageSize, offset]
-        }
-        break
-      case 'followed':
-        if (hasSearch) {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
-          params = [address, likePattern, pageSize, offset]
-        } else {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
-          params = [address, pageSize, offset]
-        }
-        break
-      case 'bookmarked':
-        if (hasSearch) {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 AND b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
-          params = [Bool2Int(true), likePattern, pageSize, offset]
-        } else {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.is_marked = $1 ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
-          params = [Bool2Int(true), pageSize, offset]
-        }
-        break
-      default: // 'all'
-        if (hasSearch) {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.content LIKE $2 ORDER BY b.signed_at DESC LIMIT $3 OFFSET $4`
-          params = [address, likePattern, pageSize, offset]
-        } else {
-          querySql = `SELECT b.hash, b.address, b.sequence, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, b.signed_at, b.is_marked, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at DESC LIMIT $2 OFFSET $3`
-          params = [address, pageSize, offset]
-        }
-        break
+    let paramIndex = 0
+    const params = []
+    const where = []
+    const addParam = (value) => {
+      paramIndex++
+      params.push(value)
+      return `$${paramIndex}`
     }
 
+    // is_followed subquery param lives in the SELECT clause, so it must be $1
+    const isFollowedParam = addParam(address)
+
+    // Scope filter
+    if (filter === 'mine') {
+      where.push(`b.address = ${addParam(address)}`)
+    } else if (filter === 'followed') {
+      where.push(`EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)})`)
+    } else if (filter === 'bookmarked') {
+      where.push(`b.is_marked = ${addParam(Bool2Int(true))}`)
+    }
+
+    // Publisher address filter
+    if (addressFilter && addressFilter.trim()) {
+      where.push(`b.address = ${addParam(addressFilter.trim())}`)
+    }
+
+    // Content search
+    if (query && query.trim()) {
+      where.push(`b.content LIKE ${addParam(`%${query.trim()}%`)}`)
+    }
+
+    // Multi-tag filter (AND semantics: bulletin must carry every selected tag)
+    if (tags && tags.length > 0) {
+      const tagPlaceholders = tags.map((tag) => addParam(tag)).join(', ')
+      where.push(
+        `b.hash IN (SELECT bt.bulletin_hash FROM bulletin_tags bt JOIN tags t ON bt.tag_id = t.id WHERE t.name IN (${tagPlaceholders}) GROUP BY bt.bulletin_hash HAVING COUNT(DISTINCT t.name) = ${addParam(tags.length)})`
+      )
+    }
+
+    // Attachment filter
+    if (hasAttachment === 'with') {
+      where.push('EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.bulletin_hash = b.hash)')
+    } else if (hasAttachment === 'without') {
+      where.push('NOT EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.bulletin_hash = b.hash)')
+    }
+
+    const whereSql = where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''
+    const limitParam = addParam(pageSize)
+    const offsetParam = addParam(offset)
+
+    const querySql = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = ${isFollowedParam}) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ${whereSql} ORDER BY b.signed_at DESC LIMIT ${limitParam} OFFSET ${offsetParam}`
+
     const rows = await db.select(querySql, params)
-    return rows.map((r) => ({
-      ...r,
-      is_marked: Int2Bool(r.is_marked),
-      is_followed: r.is_followed !== undefined ? Int2Bool(r.is_followed) : false
-    }))
+    return rows.map((r) => {
+      const b = bulletin2Display(r)
+      b.is_followed = r.is_followed !== undefined ? Int2Bool(r.is_followed) : false
+      return b
+    })
   },
 
   // Management: get bulletins associated with a specific tag
@@ -478,6 +503,50 @@ export const api = {
     return rows.map((r) => r.name)
   },
 
+  // Management: get tags that co-occur with the given selected tags
+  // Returns all distinct tag names that appear on bulletins having ALL of the selected tags,
+  // excluding the already-selected tags themselves.
+  async getCooccurringTags(selectedTags) {
+    if (!Array.isArray(selectedTags) || selectedTags.length === 0) {
+      return []
+    }
+    const db = await getDB()
+
+    let paramIndex = 0
+    const params = []
+    const addParam = (value) => {
+      paramIndex++
+      params.push(value)
+      return `$${paramIndex}`
+    }
+
+    // IN clause for selected tags (bulletins must have ALL of them)
+    const inPlaceholders = selectedTags.map((tag) => addParam(tag)).join(', ')
+    const countParam = addParam(selectedTags.length)
+
+    // NOT IN clause to exclude already-selected tags from the result
+    const notInPlaceholders = selectedTags.map((tag) => addParam(tag)).join(', ')
+
+    const query = `
+      SELECT DISTINCT t.name
+      FROM bulletin_tags bt
+      JOIN tags t ON bt.tag_id = t.id
+      WHERE bt.bulletin_hash IN (
+        SELECT bt2.bulletin_hash
+        FROM bulletin_tags bt2
+        JOIN tags t2 ON bt2.tag_id = t2.id
+        WHERE t2.name IN (${inPlaceholders})
+        GROUP BY bt2.bulletin_hash
+        HAVING COUNT(DISTINCT t2.name) = ${countParam}
+      )
+      AND t.name NOT IN (${notInPlaceholders})
+      ORDER BY t.name
+    `
+
+    const rows = await db.select(query, params)
+    return rows.map((r) => r.name)
+  },
+
   // Management: get all distinct bulletin addresses with count for address filter dropdown
   async getAllBulletinAddresses() {
     const db = await getDB()
@@ -491,53 +560,57 @@ export const api = {
     return rows
   },
 
-  // Management: count bulletins matching search query + filter (for pagination)
-  async getBulletinSearchCountForManagement({ query, filter, address, addressFilter }) {
+  // Management: count bulletins matching the composite search (for pagination)
+  async getBulletinSearchCountForManagement({
+    query,
+    filter,
+    address,
+    addressFilter,
+    tags = [],
+    hasAttachment = 'any'
+  }) {
     const db = await getDB()
-    const hasSearch = query && query.trim().length > 0
-    const likePattern = `%${query.trim()}%`
 
-    let querySql, params
-
-    switch (filter) {
-      case 'mine':
-        if (hasSearch) {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE address = $1 AND content LIKE $2`
-          params = [address, likePattern]
-        } else {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE address = $1`
-          params = [address]
-        }
-        break
-      case 'followed':
-        if (hasSearch) {
-          querySql = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1 AND b.content LIKE $2`
-          params = [address, likePattern]
-        } else {
-          querySql = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1`
-          params = [address]
-        }
-        break
-      case 'bookmarked':
-        if (hasSearch) {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE is_marked = $1 AND content LIKE $2`
-          params = [Bool2Int(true), likePattern]
-        } else {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE is_marked = $1`
-          params = [Bool2Int(true)]
-        }
-        break
-      default:
-        if (hasSearch) {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins WHERE content LIKE $1`
-          params = [likePattern]
-        } else {
-          querySql = `SELECT COUNT(hash) AS count FROM bulletins`
-          params = []
-        }
-        break
+    let paramIndex = 0
+    const params = []
+    const where = []
+    const addParam = (value) => {
+      paramIndex++
+      params.push(value)
+      return `$${paramIndex}`
     }
 
+    if (filter === 'mine') {
+      where.push(`b.address = ${addParam(address)}`)
+    } else if (filter === 'followed') {
+      where.push(`EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)})`)
+    } else if (filter === 'bookmarked') {
+      where.push(`b.is_marked = ${addParam(Bool2Int(true))}`)
+    }
+
+    if (addressFilter && addressFilter.trim()) {
+      where.push(`b.address = ${addParam(addressFilter.trim())}`)
+    }
+
+    if (query && query.trim()) {
+      where.push(`b.content LIKE ${addParam(`%${query.trim()}%`)}`)
+    }
+
+    if (tags && tags.length > 0) {
+      const tagPlaceholders = tags.map((tag) => addParam(tag)).join(', ')
+      where.push(
+        `b.hash IN (SELECT bt.bulletin_hash FROM bulletin_tags bt JOIN tags t ON bt.tag_id = t.id WHERE t.name IN (${tagPlaceholders}) GROUP BY bt.bulletin_hash HAVING COUNT(DISTINCT t.name) = ${addParam(tags.length)})`
+      )
+    }
+
+    if (hasAttachment === 'with') {
+      where.push('EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.bulletin_hash = b.hash)')
+    } else if (hasAttachment === 'without') {
+      where.push('NOT EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.bulletin_hash = b.hash)')
+    }
+
+    const whereSql = where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''
+    const querySql = `SELECT COUNT(b.hash) AS count FROM bulletins b ${whereSql}`
     const [result] = await db.select(querySql, params)
     return result ? result.count : 0
   },

@@ -16,6 +16,8 @@
     "bookmark": "북마크",
     "follow": "팔로우",
     "chat": "채팅",
+    "bulletin": "공지",
+    "contact": "연락처",
     "setting": "설정",
     "toggle_theme": "테마 전환",
     "previous_page": "이전 페이지",
@@ -35,8 +37,16 @@
     "view_server_stats": "서버 통계 보기",
     "language": "언어 변경",
     "add_contact": "연락처 추가",
+    "add": "추가",
     "view_group_requests": "그룹 요청 보기",
-    "copied_to_clipboard": "클립보드에 복사됨!"
+    "copied_to_clipboard": "클립보드에 복사됨!",
+    "error": "문제가 발생했습니다",
+    "unknown_error": "알 수 없는 오류",
+    "try_again": "다시 시도",
+    "connecting": "서버에 연결 중...",
+    "prev": "이전",
+    "next": "다음",
+    "page": "{{page}} / {{total}} 페이지"
   },
   "file": {
     "saved_to_download": "파일이 다운로드 디렉토리에 저장되었습니다",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "다른 참조 삭제됨",
     "failed_to_delete_others_refs": "다른 참조 삭제 실패",
     "avatars_cleared": "{{count}}개의 아바타 삭제됨",
-    "failed_to_clear_avatars": "아바타 캐시 삭제 실패"
+    "failed_to_clear_avatars": "아바타 캐시 삭제 실패",
+    "downloading": "{{size}} (다운로드 중)",
+    "downloaded": "{{size}} (다운로드 완료)",
+    "download_failed": "{{size}} (다운로드 실패, 클릭하여 재시도)",
+    "hint_open": "더블클릭하여 열기",
+    "hint_save_open": "클릭하여 저장, 더블클릭하여 저장 후 열기",
+    "download": "다운로드 {{name}}"
   },
   "chat": {
     "content_empty": "내용이 비어 있습니다...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "암호화 키를 가져올 수 없습니다, 파일 요청이 전송되지 않았습니다, 다시 시도해주세요",
     "hash_mismatch_retrying": "파일 검증 실패, 재시도 중...",
     "group_members": "그룹 멤버",
-    "peer": "피어"
+    "peer": "피어",
+    "error_title": "채팅 오류",
+    "handshake_not_ready": "핸드셰이크 대기 중...",
+    "open_chat": "{{address}}와(과) 채팅 열기",
+    "open_group": "그룹 채팅 {{name}} 열기"
   },
   "bulletin": {
     "saved": "게시문 저장됨",
@@ -83,7 +103,17 @@
     "delete_failed": "게시문 삭제 실패",
     "cleared": "{{count}}개의 게시문 삭제됨",
     "clear_failed": "게시문 삭제 실패",
-    "deleted_single": "게시문 삭제됨"
+    "deleted_single": "게시문 삭제됨",
+    "bulk_deleted": "{{count}}개의 공지사항을 삭제했습니다",
+    "forward": "공지 전달",
+    "show_raw": "원문 표시",
+    "show_markdown": "Markdown 표시",
+    "view_bulletin": "공지 #{{seq}} 보기",
+    "unmark": "표시 해제",
+    "mark": "공지 표시",
+    "remove_file": "파일 삭제 {{name}}",
+    "remove_tag": "태그 삭제 {{tag}}",
+    "search_tag": "태그 검색 {{tag}}"
   },
   "setting": {
     "theme_changed": "테마가 {{value}}(으)로 변경되었습니다",
@@ -96,6 +126,11 @@
     "bulletins": "게시문",
     "tab_general": "일반",
     "tab_me": "내 정보",
+    "avatar_desc": "아바타를 클릭하여 변경",
+    "nickname": "닉네임",
+    "nickname_desc": "다른 사용자에게 표시됨",
+    "copy_seed_desc": "계정 시드를 클립보드에 복사",
+    "remove_account_desc": "이 계정과 모든 로컬 데이터 삭제",
     "qr_code": "QR 코드",
     "qr_hint": "이 QR 코드를 스캔하여 연락처로 추가하세요",
     "tab_contact": "연락처",
@@ -161,9 +196,31 @@
     "file_name": "파일 이름",
     "file_refs": "참조",
     "already_saved": "이미 저장됨",
-    "download_chunks": "{cursor}/{total}개 블록 다운로드됨 - 클릭하여 다운로드"
+    "download_chunks": "{cursor}/{total}개 블록 다운로드됨 - 클릭하여 다운로드",
+    "remove_account_confirm": "이 계정을 삭제할까요? 모든 로컬 데이터가 삭제됩니다.",
+    "copy_seed_confirm": "계정 시드를 클립보드에 복사할까요?",
+    "default_server": "기본",
+    "delete_selected": "선택 항목 삭제 ({{count}})",
+    "all_tags": "모든 태그",
+    "protected_bulletin": "보호된 공지",
+    "address": "주소",
+    "seq": "번호",
+    "content": "내용",
+    "all_types": "모든 유형",
+    "no_owned_files": "소유 파일이 없습니다",
+    "no_cached_files": "캐시 파일이 없습니다",
+    "cached_files_desc": "다른 공지에서 다운로드한 파일이 여기에 표시됩니다",
+    "bulletins_using_file": "이 파일을 사용하는 공지",
+    "no_file_refs": "참조가 없습니다",
+    "referenced_by": "{{count}}개 공지에서 참조"
   },
   "ui": {
+    "search_bulletin": "공지 검색",
+    "search_message": "메시지 검색",
+    "search_chat": "연락처, 그룹, 메시지 검색",
+    "no_results": "결과 없음",
+    "msg_type_private": "개인",
+    "msg_type_group": "그룹",
     "no_sessions": "세션이 없습니다",
     "start_conversation": "연락처와 대화를 시작하세요",
     "no_messages": "아직 메시지가 없습니다",
@@ -210,7 +267,14 @@
     "quotes": "인용",
     "attachments": "첨부 파일",
     "publish": "발행",
-    "tag_search_placeholder": "Enter 또는 ,"
+    "tag_search_placeholder": "Enter 또는 ,",
+    "loading_bulletin": "불린 로드 중...",
+    "view_message_details": "메시지 #{{seq}} 세부 정보 보기",
+    "bulletin_number": "게시물 #{{seq}}",
+    "search_contact": "연락처 검색...",
+    "search_group": "그룹 검색...",
+    "avatar": "아바타",
+    "bulletin_count": "공지 수"
   },
   "auth": {
     "open_account": "계정 열기",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "그룹 이름:",
-    "deleted": "이 그룹은 삭제되어 메시지를 보낼 수 없습니다"
+    "deleted": "이 그룹은 삭제되어 메시지를 보낼 수 없습니다",
+    "create_group": "그룹 만들기",
+    "no_member_yet": "아직 멤버가 없습니다",
+    "tap_contact_add": "아래 연락처를 탭하여 추가",
+    "no_contact_available": "사용 가능한 연락처가 없습니다",
+    "add_contact_first": "그룹을 만들려면 먼저 연락처를 추가하세요",
+    "create": "만들기",
+    "requests": "그룹 초대",
+    "name": "이름",
+    "created_by": "생성자",
+    "member": "멤버",
+    "member_count": "멤버 {{count}}명",
+    "created_at": "생성일",
+    "join": "가입",
+    "remove_member": "멤버 삭제 {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,36 @@
     "content": "# 규칙  \n1. 인간 검증 없음\n2. 콘텐츠 검열 없음\n3. 추천 없음\n4. 회수 없음\n5. 데이터는 내 장치에\n6. 암호화 채팅\n7. 게시문 자유롭게 발행(댓글)\n\n## 기부\n{{address}}"
   },
   "page": {
+    "chat": "채팅",
     "portal": "포털",
+    "bulletin": "공지",
     "random": "랜덤",
     "no_random_bulletins": "랜덤 게시문이 없습니다",
     "refresh_to_discover": "새로고침하여 랜덤 게시물 발견하기",
+    "loading_more": "더 불러오는 중…",
+    "no_more_new": "더 이상 새 게시문이 없습니다",
     "no_tagged_bulletins": "태그가 있는 게시문이 없습니다",
     "tags_will_appear": "게시문 태그가 여기에 표시됩니다",
     "no_followed_bulletins": "팔로우한 게시문이 없습니다",
-    "enable_follow_to_see": "연락처에서 팔로우를 활성화하여 여기서 게시문을 확인하세요"
+    "enable_follow_to_see": "연락처에서 팔로우를 활성화하여 여기서 게시문을 확인하세요",
+    "no_bookmarked": "북마크된 공지 없음",
+    "no_bulletins_from_account": "이 계정의 공지 없음",
+    "account_not_posted": "이 계정은 아직 게시하지 않았습니다",
+    "chat": "채팅"
+  },
+  "search": {
+    "address": "주소",
+    "address_all": "모든 주소",
+    "content": "내용",
+    "content_placeholder": "내용 검색...",
+    "tags": "태그",
+    "tags_none": "태그 없음",
+    "attachment": "첨부파일",
+    "attachment_any": "모두",
+    "attachment_with": "첨부",
+    "attachment_without": "첨부 없음",
+    "search": "검색",
+    "clear": "지우기",
+    "reset": "초기화"
   }
 }

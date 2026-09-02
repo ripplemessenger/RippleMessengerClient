@@ -16,6 +16,8 @@
     "bookmark": "书签",
     "follow": "关注",
     "chat": "聊天",
+    "bulletin": "公告",
+    "contact": "联系人",
     "setting": "设置",
     "toggle_theme": "切换主题",
     "previous_page": "上一页",
@@ -35,8 +37,16 @@
     "view_server_stats": "查看服务器统计",
     "language": "切换语言",
     "add_contact": "添加联系人",
+    "add": "添加",
     "view_group_requests": "查看群组请求",
-    "copied_to_clipboard": "已复制到剪贴板!"
+    "copied_to_clipboard": "已复制到剪贴板!",
+    "error": "出错了",
+    "unknown_error": "未知错误",
+    "try_again": "重试",
+    "connecting": "正在连接服务器...",
+    "prev": "上一页",
+    "next": "下一页",
+    "page": "第 {{page}} / {{total}} 页"
   },
   "file": {
     "saved_to_download": "文件已保存到下载目录",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "已删除其他人的引用",
     "failed_to_delete_others_refs": "删除其他人引用失败",
     "avatars_cleared": "已清理 {{count}} 个头像缓存",
-    "failed_to_clear_avatars": "清理头像缓存失败"
+    "failed_to_clear_avatars": "清理头像缓存失败",
+    "downloading": "{{size}}（下载中）",
+    "downloaded": "{{size}}（已下载）",
+    "download_failed": "{{size}}（下载失败，点击重试）",
+    "hint_open": "双击打开",
+    "hint_save_open": "单击保存，双击保存并打开",
+    "download": "下载 {{name}}"
   },
   "chat": {
     "content_empty": "内容为空...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "无法获取加密密钥，文件请求未发送，请重试",
     "hash_mismatch_retrying": "文件校验失败，正在重试",
     "group_members": "群成员",
-    "peer": "对方"
+    "peer": "对方",
+    "error_title": "聊天出错",
+    "handshake_not_ready": "握手未完成...",
+    "open_chat": "打开与 {{address}} 的聊天",
+    "open_group": "打开群聊 {{name}}"
   },
   "bulletin": {
     "saved": "公告已保存",
@@ -83,7 +103,17 @@
     "delete_failed": "删除公告失败",
     "cleared": "已清理 {{count}} 个公告",
     "clear_failed": "清理公告失败",
-    "deleted_single": "公告已删除"
+    "deleted_single": "公告已删除",
+    "bulk_deleted": "已删除 {{count}} 条公告",
+    "forward": "转发公告",
+    "show_raw": "显示原文",
+    "show_markdown": "显示 Markdown",
+    "view_bulletin": "查看公告 #{{seq}}",
+    "unmark": "取消标记",
+    "mark": "标记公告",
+    "remove_file": "移除文件 {{name}}",
+    "remove_tag": "移除标签 {{tag}}",
+    "search_tag": "搜索标签 {{tag}}"
   },
   "setting": {
     "theme_changed": "主题已切换为 {{value}}",
@@ -96,6 +126,11 @@
     "bulletins": "公告",
     "tab_general": "常规",
     "tab_me": "我的",
+    "avatar_desc": "点击头像更换",
+    "nickname": "昵称",
+    "nickname_desc": "显示给其他用户",
+    "copy_seed_desc": "复制账户种子到剪贴板",
+    "remove_account_desc": "删除该账户及所有本地数据",
     "qr_code": "二维码",
     "qr_hint": "扫描二维码将我添加为联系人",
     "tab_contact": "联系人",
@@ -161,9 +196,31 @@
     "file_name": "文件名",
     "file_refs": "引用",
     "already_saved": "已保存",
-    "download_chunks": "已下载 {cursor}/{total} 块 - 点击下载"
+    "download_chunks": "已下载 {cursor}/{total} 块 - 点击下载",
+    "remove_account_confirm": "删除此账号？所有本地数据将被删除。",
+    "copy_seed_confirm": "将账号种子复制到剪贴板？",
+    "default_server": "默认",
+    "delete_selected": "删除选中 ({{count}})",
+    "all_tags": "所有标签",
+    "protected_bulletin": "受保护的公告",
+    "address": "地址",
+    "seq": "序号",
+    "content": "内容",
+    "all_types": "所有类型",
+    "no_owned_files": "没有自有文件",
+    "no_cached_files": "没有缓存文件",
+    "cached_files_desc": "从他人公告下载的文件会显示在这里",
+    "bulletins_using_file": "引用此文件的公告",
+    "no_file_refs": "未找到引用公告",
+    "referenced_by": "被 {{count}} 个公告引用"
   },
   "ui": {
+    "search_bulletin": "搜索公告",
+    "search_message": "搜索消息",
+    "search_chat": "搜索联系人、群组及消息",
+    "no_results": "无结果",
+    "msg_type_private": "私聊",
+    "msg_type_group": "群聊",
     "no_sessions": "暂无会话",
     "start_conversation": "开始与联系人对话",
     "no_messages": "暂无消息",
@@ -210,7 +267,14 @@
     "quotes": "引用",
     "attachments": "附件",
     "publish": "发布",
-    "tag_search_placeholder": "回车或 ,"
+    "tag_search_placeholder": "回车或 ,",
+    "loading_bulletin": "正在加载公告...",
+    "view_message_details": "查看消息 #{{seq}} 详情",
+    "bulletin_number": "公告 #{{seq}}",
+    "search_contact": "搜索联系人...",
+    "search_group": "搜索群组...",
+    "avatar": "头像",
+    "bulletin_count": "公告数量"
   },
   "auth": {
     "open_account": "打开账户",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "群组名称:",
-    "deleted": "该群已被删除，无法发送消息"
+    "deleted": "该群已被删除，无法发送消息",
+    "create_group": "创建群组",
+    "no_member_yet": "还没有群成员",
+    "tap_contact_add": "点击下方联系人添加",
+    "no_contact_available": "没有可用联系人",
+    "add_contact_first": "先添加联系人才能创建群组",
+    "create": "创建",
+    "requests": "群邀请",
+    "name": "名称",
+    "created_by": "创建者",
+    "member": "成员",
+    "member_count": "{{count}} 位成员",
+    "created_at": "创建时间",
+    "join": "加入",
+    "remove_member": "移除成员 {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,36 @@
     "content": "# 规则  \n1. 无活体验证\n2. 无内容审查\n3. 无推荐算法\n4. 无撤回功能\n5. 数据在我的设备上\n6. 加密聊天\n7. 自由发布(评论)公告\n\n## 捐赠\n{{address}}"
   },
   "page": {
+    "chat": "聊天",
     "portal": "门户",
+    "bulletin": "公告",
     "random": "随机",
     "no_random_bulletins": "没有随机公告",
     "refresh_to_discover": "刷新以发现随机帖子",
+    "loading_more": "加载更多…",
+    "no_more_new": "没有更多新公告了",
     "no_tagged_bulletins": "没有带标签的公告",
     "tags_will_appear": "公告标签将显示在这里",
     "no_followed_bulletins": "没有关注的公告",
-    "enable_follow_to_see": "在联系人上启用关注以在此查看他们的公告"
+    "enable_follow_to_see": "在联系人上启用关注以在此查看他们的公告",
+    "no_bookmarked": "暂无收藏的公告",
+    "no_bulletins_from_account": "该账户暂无公告",
+    "account_not_posted": "该账户尚未发布内容",
+    "chat": "聊天"
+  },
+  "search": {
+    "address": "地址",
+    "address_all": "全部地址",
+    "content": "内容",
+    "content_placeholder": "搜索内容...",
+    "tags": "标签",
+    "tags_none": "无标签",
+    "attachment": "附件",
+    "attachment_any": "不限",
+    "attachment_with": "附件",
+    "attachment_without": "不带附件",
+    "search": "搜索",
+    "clear": "清除",
+    "reset": "重置"
   }
 }

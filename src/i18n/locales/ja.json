@@ -16,6 +16,8 @@
     "bookmark": "ブックマーク",
     "follow": "フォロー",
     "chat": "チャット",
+    "bulletin": "お知らせ",
+    "contact": "連絡先",
     "setting": "設定",
     "toggle_theme": "テーマ切替",
     "previous_page": "前のページ",
@@ -35,8 +37,16 @@
     "view_server_stats": "サーバー統計を表示",
     "language": "言語を変更",
     "add_contact": "連絡先を追加",
+    "add": "追加",
     "view_group_requests": "グループリクエストを表示",
-    "copied_to_clipboard": "クリップボードにコピーしました！"
+    "copied_to_clipboard": "クリップボードにコピーしました！",
+    "error": "エラーが発生しました",
+    "unknown_error": "不明なエラー",
+    "try_again": "再試行",
+    "connecting": "サーバーに接続中...",
+    "prev": "前へ",
+    "next": "次へ",
+    "page": "{{page}} / {{total}} ページ"
   },
   "file": {
     "saved_to_download": "ファイルがダウンロードディレクトリに保存されました",
@@ -56,7 +66,13 @@
     "others_refs_deleted": "他の参照を削除しました",
     "failed_to_delete_others_refs": "他の参照の削除に失敗しました",
     "avatars_cleared": "{{count}}個のアバターを削除しました",
-    "failed_to_clear_avatars": "アバターキャッシュの削除に失敗しました"
+    "failed_to_clear_avatars": "アバターキャッシュの削除に失敗しました",
+    "downloading": "{{size}}（ダウンロード中）",
+    "downloaded": "{{size}}（ダウンロード済み）",
+    "download_failed": "{{size}}（ダウンロード失敗、クリックして再試行）",
+    "hint_open": "ダブルクリックで開く",
+    "hint_save_open": "クリックで保存、ダブルクリックで保存して開く",
+    "download": "ダウンロード {{name}}"
   },
   "chat": {
     "content_empty": "コンテンツが空です...",
@@ -64,7 +80,11 @@
     "no_ecdh_key": "暗号化キーを取得できません、ファイルリクエストを送信していません、再試行してください",
     "hash_mismatch_retrying": "ファイル検証に失敗しました、再試行中...",
     "group_members": "グループメンバー",
-    "peer": "ピア"
+    "peer": "ピア",
+    "error_title": "チャットエラー",
+    "handshake_not_ready": "ハンドシェイク完了待ち...",
+    "open_chat": "{{address}} とのチャットを開く",
+    "open_group": "グループチャット {{name}} を開く"
   },
   "bulletin": {
     "saved": "ブuletinを保存しました",
@@ -83,7 +103,17 @@
     "delete_failed": "ブuletinの削除に失敗しました",
     "cleared": "{{count}}個のブuletinを削除しました",
     "clear_failed": "ブuletinの削除に失敗しました",
-    "deleted_single": "ブuletinを削除しました"
+    "deleted_single": "ブuletinを削除しました",
+    "bulk_deleted": "{{count}} 件のブレットインを削除しました",
+    "forward": "ブレットインを転送",
+    "show_raw": "プレーンテキストを表示",
+    "show_markdown": "Markdownを表示",
+    "view_bulletin": "ブレットイン #{{seq}} を表示",
+    "unmark": "マークを解除",
+    "mark": "ブレットインをマーク",
+    "remove_file": "ファイルを削除 {{name}}",
+    "remove_tag": "タグを削除 {{tag}}",
+    "search_tag": "タグを検索 {{tag}}"
   },
   "setting": {
     "theme_changed": "テーマを{{value}}に変更しました",
@@ -96,6 +126,11 @@
     "bulletins": "ブuletin",
     "tab_general": "一般",
     "tab_me": "マイページ",
+    "avatar_desc": "アバターをクリックして変更",
+    "nickname": "ニックネーム",
+    "nickname_desc": "他のユーザーに表示される",
+    "copy_seed_desc": "アカウントシードをクリップボードにコピー",
+    "remove_account_desc": "このアカウントとローカルデータを削除",
     "qr_code": "QRコード",
     "qr_hint": "このQRコードをスキャンして連絡先を追加してください",
     "tab_contact": "連絡先",
@@ -161,9 +196,31 @@
     "file_name": "ファイル名",
     "file_refs": "参照",
     "already_saved": "すでに保存済み",
-    "download_chunks": "{cursor}/{total}ブロックをダウンロード済み - クリックしてダウンロード"
+    "download_chunks": "{cursor}/{total}ブロックをダウンロード済み - クリックしてダウンロード",
+    "remove_account_confirm": "このアカウントを削除しますか？すべてのローカルデータが削除されます。",
+    "copy_seed_confirm": "アカウントのシードをクリップボードにコピーしますか？",
+    "default_server": "デフォルト",
+    "delete_selected": "選択を削除 ({{count}})",
+    "all_tags": "すべてのタグ",
+    "protected_bulletin": "保護されたブレットイン",
+    "address": "アドレス",
+    "seq": "番号",
+    "content": "内容",
+    "all_types": "すべての種類",
+    "no_owned_files": "所有ファイルがありません",
+    "no_cached_files": "キャッシュファイルがありません",
+    "cached_files_desc": "他のブレットインからダウンロードしたファイルが表示されます",
+    "bulletins_using_file": "このファイルを使用しているブレットイン",
+    "no_file_refs": "参照が見つかりません",
+    "referenced_by": "{{count}} 件のブレットインで参照"
   },
   "ui": {
+    "search_bulletin": "公告を検索",
+    "search_message": "メッセージを検索",
+    "search_chat": "連絡先、グループ、メッセージを検索",
+    "no_results": "結果なし",
+    "msg_type_private": "個人",
+    "msg_type_group": "グループ",
     "no_sessions": "セッションがありません",
     "start_conversation": "連絡先と会話を始めましょう",
     "no_messages": "まだメッセージがありません",
@@ -210,7 +267,14 @@
     "quotes": "引用",
     "attachments": "添付ファイル",
     "publish": "公開",
-    "tag_search_placeholder": "Enterまたは ,"
+    "tag_search_placeholder": "Enterまたは ,",
+    "loading_bulletin": "ブレットインを読み込み中...",
+    "view_message_details": "メッセージ #{{seq}} の詳細を表示",
+    "bulletin_number": "ブレットイン #{{seq}}",
+    "search_contact": "連絡先を検索...",
+    "search_group": "グループを検索...",
+    "avatar": "アバター",
+    "bulletin_count": "ブレットイン数"
   },
   "auth": {
     "open_account": "アカウントを開く",
@@ -242,7 +306,21 @@
   },
   "group": {
     "group_name": "グループ名:",
-    "deleted": "このグループは削除されたため、メッセージを送信できません"
+    "deleted": "このグループは削除されたため、メッセージを送信できません",
+    "create_group": "グループ作成",
+    "no_member_yet": "まだメンバーがいません",
+    "tap_contact_add": "下の連絡先をタップして追加",
+    "no_contact_available": "利用可能な連絡先がありません",
+    "add_contact_first": "グループ作成には先に連絡先を追加してください",
+    "create": "作成",
+    "requests": "グループ招待",
+    "name": "名前",
+    "created_by": "作成者",
+    "member": "メンバー",
+    "member_count": "{{count}}人のメンバー",
+    "created_at": "作成日時",
+    "join": "参加",
+    "remove_member": "メンバーを削除 {{member}}"
   },
   "network": {
     "url": "URL:"
@@ -255,13 +333,36 @@
     "content": "# ルール  \n1. 人間による検証なし\n2. コンテンツのモデレーションなし\n3. レコメンデーションなし\n4. リコールなし\n5. データは私のデバイス上\n6. 暗号化チャット\n7. ブuletinを自由に公開(コメント)\n\n## 寄付\n{{address}}"
   },
   "page": {
+    "chat": "チャット",
     "portal": "ポータル",
+    "bulletin": "お知らせ",
     "random": "ランダム",
     "no_random_bulletins": "ランダムブuletinがありません",
     "refresh_to_discover": "更新してランダムな投稿を発見してください",
+    "loading_more": "読み込み中…",
+    "no_more_new": "新しいブuletinはありません",
     "no_tagged_bulletins": "タグ付きブuletinがありません",
     "tags_will_appear": "ブuletinタグがここに表示されます",
     "no_followed_bulletins": "フォロー中のブuletinがありません",
-    "enable_follow_to_see": "連絡先でフォローを有効にして、ここでそのブuletinを表示してください"
+    "enable_follow_to_see": "連絡先でフォローを有効にして、ここでそのブuletinを表示してください",
+    "no_bookmarked": "ブックマークされたブレットインはありません",
+    "no_bulletins_from_account": "このアカウントのブレットインはありません",
+    "account_not_posted": "このアカウントはまだ投稿していません",
+    "chat": "チャット"
+  },
+  "search": {
+    "address": "アドレス",
+    "address_all": "すべてのアドレス",
+    "content": "内容",
+    "content_placeholder": "内容を検索...",
+    "tags": "タグ",
+    "tags_none": "タグなし",
+    "attachment": "添付ファイル",
+    "attachment_any": "すべて",
+    "attachment_with": "添付",
+    "attachment_without": "添付なし",
+    "search": "検索",
+    "clear": "クリア",
+    "reset": "リセット"
   }
 }

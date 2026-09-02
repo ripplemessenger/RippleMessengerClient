@@ -11,6 +11,7 @@ import FormButton from '../components/Form/FormButton'
 import SelectInput from '../components/Form/SelectInput'
 import TextInput from '../components/Form/TextInput'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { dbAPI } from '../db'
 import Logger from '../lib/Logger'
 import { decryptWithPassword } from '../lib/AppUtil'
 import { getWallet } from '../lib/RippleUtil'
@@ -81,10 +82,28 @@ export default function OpenPage() {
     }
   }
 
+  // --- Nickname map for account display (nickname or short address) ---
+  const [nicknameMap, setNicknameMap] = useState({})
+  useEffect(() => {
+    dbAPI
+      .getAllContacts()
+      .then((contacts) => {
+        const map = {}
+        for (const c of contacts) {
+          if (c.nickname) map[c.address] = c.nickname
+        }
+        setNicknameMap(map)
+      })
+      .catch((e) => Logger.debug(e))
+  }, [])
+
   // --- Main login form state ---
   const addressOptions = useMemo(() => {
-    return AccountList.map((a) => ({ value: a.address, label: a.address }))
-  }, [AccountList])
+    return AccountList.map((a) => {
+      const label = nicknameMap[a.address] || a.address.slice(0, 4) + '...' + a.address.slice(a.address.length - 3)
+      return { value: a.address, label }
+    })
+  }, [AccountList, nicknameMap])
   const [addressSelected, setSelectedAddress] = useState('')
   const [openPassword, setOpenPassword] = useState('')
   const [avatarIndex, setAvatarIndex] = useState(0)
@@ -263,7 +282,10 @@ export default function OpenPage() {
                         onChange={(e) => setOpenPassword(e.target.value)}
                       />
                     </div>
-                    <FormButton title={loginLoading ? t('auth.decrypting') : t('auth.open_account')} disabled={loginLoading}>
+                    <FormButton
+                      title={loginLoading ? t('auth.decrypting') : t('auth.open_account')}
+                      disabled={loginLoading}
+                    >
                       {loginLoading && (
                         <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-1 align-middle" />
                       )}
