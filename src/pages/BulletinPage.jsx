@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { HiHashtag } from 'react-icons/hi2'
 import { IoChevronDownOutline, IoChevronForwardOutline, IoGridOutline, IoPersonOutline, IoStar } from 'react-icons/io5'
@@ -50,7 +50,6 @@ const localFilterOptions = [
 export default function BulletinPage() {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const location = useLocation()
 
   const userAddress = useSelector(selectUserAddress)
   const MessengerConnStatus = useSelector(selectMessengerConnStatus)
@@ -66,19 +65,22 @@ export default function BulletinPage() {
   const allAddresses = useSelector(selectAllBulletinAddressesList)
   const tagBulletins = useSelector(selectTagBulletins)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+
   // Local bulletin filter (first icon position)
   const [localFilter, setLocalFilter] = useState('all')
 
   // Tag search (hashtag icon position) — in-page expansion, no navigation
-  const [tagSearchOpen, setTagSearchOpen] = useState(() => Boolean(location.state?.openTagSearch))
+  const [tagSearchOpen, setTagSearchOpen] = useState(() => Boolean(searchParams.get('tag')))
   const [tagInput, setTagInput] = useState('')
 
-  // Open the tag search panel when arriving from a TagLink (e.g. bulletin detail)
+  // Open the tag search panel when arriving with a ?tag= param (from TagLink), then clear the param
   useEffect(() => {
-    if (location.state?.openTagSearch) {
+    if (searchParams.get('tag')) {
       setTagSearchOpen(true)
+      setSearchParams({}, { replace: true })
     }
-  }, [location.state])
+  }, [searchParams, setSearchParams])
 
   // Composite search state (second icon position)
   const [searchOpen, setSearchOpen] = useState(false)

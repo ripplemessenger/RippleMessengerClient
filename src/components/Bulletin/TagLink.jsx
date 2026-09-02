@@ -15,7 +15,7 @@ const TagLink = ({ tag }) => {
     dispatch(setSearchTagList([tag]))
     navigate({
       pathname: '/bulletin',
-      state: { openTagSearch: true }
+      search: `?tag=${encodeURIComponent(tag)}`
     })
   }
 
