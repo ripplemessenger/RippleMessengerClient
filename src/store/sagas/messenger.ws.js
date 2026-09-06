@@ -29,6 +29,7 @@ import {
   QuarterSHA512Message
 } from '../../lib/AppUtil'
 import { getAvatarIconBytes } from '../../lib/TrayFlashUtil'
+import { addFlashingSession } from '../../lib/FlashSessionTracker'
 import Logger from '../../lib/Logger'
 import { playNotificationSound } from '../../lib/SoundUtil'
 import { mgAPI } from '../../lib/MessageGenerator'
@@ -888,8 +889,14 @@ function* processPrivateMessage(json, address, ob_address) {
     }
 
     const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
+    const CurrentRoute = yield select((state) => state.Common.CurrentRoute)
     let is_read = false
-    if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
+    if (
+      CurrentRoute === '/chat' &&
+      CurrentSession &&
+      CurrentSession.type === SessionType.Private &&
+      CurrentSession.remote === remote
+    ) {
       is_read = true
     }
 
@@ -951,12 +958,15 @@ function* processPrivateMessage(json, address, ob_address) {
         yield call(RefreshPrivateMessageList)
       }
       yield call(LoadSessionList)
-      if (getSettingBool('enableNotifications', true)) {
+      // Only flash when the message is UNREAD (session not currently open).
+      // If the user is already viewing this chat, no attention-grab is needed.
+      if (!is_read && getSettingBool('enableNotifications', true)) {
         const appBaseDir = yield select((state) => state.Common.AppBaseDir)
         const icon = yield call(() => getAvatarIconBytes(remote, appBaseDir))
         yield call(invoke, 'start_message_flash', { sender: remote, icon: icon ? Array.from(icon) : [] })
+        addFlashingSession(`private:${remote}`)
       }
-      playNotificationSound(getSettingString('messageSound', 'chime'))
+      playNotificationSound(getSettingString('messageSound', 'none'))
     }
   } catch (e) {
     Logger.error('[processPrivateMessage] failed:', e.message)
@@ -1104,7 +1114,13 @@ function* handleGroupMessageListObject(json, address, seed) {
 
       let is_read = false
       const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
-      if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
+      const CurrentRoute = yield select((state) => state.Common.CurrentRoute)
+      if (
+        CurrentRoute === '/chat' &&
+        CurrentSession &&
+        CurrentSession.type === SessionType.Group &&
+        CurrentSession.hash === json.GroupHash
+      ) {
         is_read = true
       }
 
@@ -1129,12 +1145,14 @@ function* handleGroupMessageListObject(json, address, seed) {
           yield call(RefreshGroupMessageList)
         }
         yield call(LoadSessionList)
-        if (getSettingBool('enableNotifications', true)) {
+        // Only flash when the message is UNREAD (session not currently open).
+        if (!is_read && getSettingBool('enableNotifications', true)) {
           const appBaseDir = yield select((state) => state.Common.AppBaseDir)
           const icon = yield call(() => getAvatarIconBytes(msg_address, appBaseDir))
           yield call(invoke, 'start_message_flash', { sender: msg_address, icon: icon ? Array.from(icon) : [] })
+          addFlashingSession(`group:${json.GroupHash}`)
         }
-        playNotificationSound(getSettingString('messageSound', 'chime'))
+        playNotificationSound(getSettingString('messageSound', 'none'))
       }
     }
 

@@ -1,5 +1,7 @@
 import Elliptic from 'elliptic'
 import { all, call, fork, put, select } from 'redux-saga/effects'
+import { invoke } from '@tauri-apps/api/core'
+import { clearFlashingSessions } from '../../lib/FlashSessionTracker'
 
 // Module-level EC curve singleton — avoids re-initializing on every ECDH handshake.
 const ec = new Elliptic.ec('secp256k1')
@@ -187,6 +189,9 @@ export function* LoadPrivateSession({ payload }) {
     }
     yield put(setCurrentSession(session))
     yield call(() => dbAPI.readPrivateSession(self_address, pair_address))
+    // User is now viewing this chat — stop any in-progress tray flash.
+    yield call(invoke, 'stop_message_flash')
+    clearFlashingSessions()
     yield call(LoadSessionList)
     yield call(RefreshPrivateMessageList)
   } catch (e) {
@@ -211,7 +216,7 @@ export function* SendPrivateContent({ payload }) {
     if (CurrentSession.aes_key !== undefined) {
       let content = AesEncrypt(payload.content, CurrentSession.aes_key)
 
-      const last_confirmed_msg = yield call(() =>
+      const _last_confirmed_msg = yield call(() =>
         dbAPI.getLastConfirmPrivateMessage(CurrentSession.remote, self_address)
       )
       const last_unconfirmed_msg = yield call(() =>

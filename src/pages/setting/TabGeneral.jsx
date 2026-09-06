@@ -35,13 +35,13 @@ const THEME_OPTIONS = [
 ]
 
 const SOUND_OPTIONS = [
+  { value: 'none', key: 'setting.none', icon: '🔇' },
   { value: 'chime', label: 'Chime', icon: '🔔' },
   { value: 'pop', label: 'Pop', icon: '🫧' },
   { value: 'ping', label: 'Ping', icon: '📞' },
   { value: 'bloop', label: 'Bloop', icon: '💬' },
   { value: 'ding', label: 'Ding', icon: '🔔' },
-  { value: 'blip', label: 'Blip', icon: '👾' },
-  { value: 'none', key: 'setting.none', icon: '🔇' }
+  { value: 'blip', label: 'Blip', icon: '👾' }
 ]
 
 export default function TabGeneral() {
@@ -56,7 +56,7 @@ export default function TabGeneral() {
   const [enableNotifications, setEnableNotifications] = useState(() => getSettingBool(STORAGE_KEY_NOTIFICATIONS, true))
 
   // Message sound — defaults to 'chime'
-  const [messageSound, setMessageSound] = useState(() => getSettingString(STORAGE_KEY_MESSAGE_SOUND, 'chime'))
+  const [messageSound, setMessageSound] = useState(() => getSettingString(STORAGE_KEY_MESSAGE_SOUND, 'none'))
 
   // Start minimized — defaults to false
   const [startMinimized, setStartMinimized] = useState(() => getSettingBool(STORAGE_KEY_START_MINIMIZED, false))

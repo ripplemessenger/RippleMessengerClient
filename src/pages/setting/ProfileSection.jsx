@@ -201,7 +201,7 @@ export default function ProfileSection() {
             type="text"
             value={displayNickname}
             autoComplete={'off'}
-            placeholder={'Alice'}
+            placeholder={'Candy11'}
             onChange={(e) => updateNickname(e.target.value)}
             className="w-48 px-3 py-2 border rounded-lg shadow-sm appearance-none focus:outline-none input-hover border-primary/30 dark:border-primary/40 input-color"
           />

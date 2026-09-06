@@ -7,7 +7,7 @@ use std::time::Duration;
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton};
-use tauri::{App, AppHandle, Manager, WindowEvent};
+use tauri::{App, AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_log::{
     log::{self, LevelFilter},
     Builder as LogBuilder,
@@ -220,13 +220,17 @@ fn stop_message_flash(app: AppHandle) {
 
 fn show_main_window_internal(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        // Tell the frontend the user clicked the tray, so it can decide where to
+        // navigate (single flashing session → open it; multiple → chat page).
+        // We do NOT stop the flash here: it should only clear when the user
+        // actually opens the conversation (handled by the JS session-load path).
+        let _ = window.emit("tray-show-requested", ());
         if let Err(e) = window.show() {
             log::warn!("Failed to show window: {}", e);
         }
         if let Err(e) = window.set_focus() {
             log::warn!("Failed to focus window: {}", e);
         }
-        stop_message_flash_internal(app);
     }
 }
 
@@ -317,6 +321,12 @@ pub fn run() {
                 }
 
                 window.clone().on_window_event(move |event| {
+                    // NOTE: We deliberately do NOT stop the flash on window focus.
+                    // The flash (and badge) should only clear when the user
+                    // actually opens the conversation (handled by the JS
+                    // session-load path). Showing the window (taskbar / Alt+Tab /
+                    // tray) is not enough — the user may still be on bulletin /
+                    // settings and needs the reminder.
                     if let WindowEvent::CloseRequested { api, .. } = event {
                         if CLOSE_TO_TRAY.load(Ordering::SeqCst) {
                             // Hide to tray (default)
@@ -329,17 +339,17 @@ pub fn run() {
                     }
                 });
             }
-            #[cfg(desktop)]
-            app.handle()
-                .plugin(tauri_plugin_single_instance::init(
-                    |app_handle, _args, _cwd| {
-                        if let Some(window) = app_handle.get_webview_window(MAIN_WINDOW_LABEL) {
-                            let _ = window.unminimize();
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    },
-                ))?;
+             #[cfg(desktop)]
+             app.handle()
+                 .plugin(tauri_plugin_single_instance::init(
+                     |app_handle, _args, _cwd| {
+                         if let Some(window) = app_handle.get_webview_window(MAIN_WINDOW_LABEL) {
+                             let _ = window.unminimize();
+                             let _ = window.show();
+                             let _ = window.set_focus();
+                         }
+                     },
+                 ))?;
             Ok(())
         })
         .plugin(

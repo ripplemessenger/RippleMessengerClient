@@ -61,9 +61,7 @@ const schemaMap = {
   GroupMessageListSchema
 }
 
-const compiled = Object.fromEntries(
-  Object.entries(schemaMap).map(([name, schema]) => [name, ajv.compile(schema)])
-)
+const compiled = Object.fromEntries(Object.entries(schemaMap).map(([name, schema]) => [name, ajv.compile(schema)]))
 
 /**
  * Internal validator delegate. Compiles and runs the named AJV schema against a JSON object.
@@ -186,11 +184,20 @@ const vMessageObjectGroupChatFileSchema = ajv.compile(MessageObjectGroupChatFile
  */
 function checkMessageObjectSchema(json) {
   try {
-    if (vMessageObjectBulletinSchema(json) || vMessageObjectPrivateChatFileSchema(json) || vMessageObjectGroupChatFileSchema(json)) {
+    // Non-object values (numbers, booleans, strings, arrays) are plain text messages,
+    // not MessageObjects — skip validation silently.
+    if (typeof json !== 'object' || json === null || Array.isArray(json)) {
+      return false
+    }
+    if (
+      vMessageObjectBulletinSchema(json) ||
+      vMessageObjectPrivateChatFileSchema(json) ||
+      vMessageObjectGroupChatFileSchema(json)
+    ) {
       Logger.debug('MessageObject schema ok')
       return true
     } else {
-      Logger.warn('MessageObject schema invalid')
+      Logger.warn('MessageObject schema invalid', JSON.stringify(json))
       return false
     }
   } catch {
@@ -201,12 +208,9 @@ function checkMessageObjectSchema(json) {
 export {
   deriveJson,
   checkDeclareSchema,
-
   checkAvatarRequestSchema,
   checkAvatarListSchema,
-
   checkFileRequestSchema,
-
   checkBulletinRequestSchema,
   checkBulletinSchema,
   // checkBulletinAddressRequestSchema,
@@ -216,7 +220,6 @@ export {
   // checkTagBulletinRequestSchema,
   checkTagBulletinListSchema,
   checkRandomBulletinListSchema,
-
   checkECDHHandshakeSchema,
 
   // private chat
@@ -229,6 +232,5 @@ export {
   checkGroupMessageSyncSchema,
   checkGroupMessageSchema,
   checkGroupMessageListSchema,
-
   checkMessageObjectSchema
 }
