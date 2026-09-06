@@ -12,7 +12,6 @@ import { getSettingBool } from './lib/SettingsUtil'
 
 const AboutPage = React.lazy(() => import('./pages/AboutPage'))
 const BulletinAddressPage = React.lazy(() => import('./pages/BulletinAddressPage'))
-const BookmarkAddressPage = React.lazy(() => import('./pages/BulletinBookmarkPage'))
 const BulletinFollowPage = React.lazy(() => import('./pages/BulletinFollowPage'))
 const BulletinViewPage = React.lazy(() => import('./pages/BulletinViewPage'))
 const BulletinPage = React.lazy(() => import('./pages/BulletinPage'))
@@ -39,7 +38,6 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/bulletin_follow" element={<BulletinFollowPage />} />
             <Route path="/bulletin_address" element={<BulletinAddressPage />} />
-            <Route path="/bulletin_bookmark" element={<BookmarkAddressPage />} />
             <Route path="/bulletin_view" element={<BulletinViewPage />} />
             <Route path="/bulletin" element={<BulletinPage />} />
             <Route path="/contact" element={<ContactPage />} />

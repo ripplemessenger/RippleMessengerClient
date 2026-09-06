@@ -58,6 +58,7 @@ import {
 import { globalWsChannel } from '../../lib/WebsocketUtil'
 import {
   setServerAddressList,
+  setDisplayBulletin,
   setDisplayBulletinReplyList,
   setTagBulletinList,
   appendRandomBulletins,
@@ -667,6 +668,11 @@ function* handleBulletinObject(json) {
     const follow_list = yield select((state) => state.User.FollowList)
     if (follow_list.includes(ob_address) || ob_address === address) {
       yield fork(RequestNextBulletin, { key: null, payload: { address: ob_address } })
+    }
+    // If user is waiting for a bulletin (DisplayBulletin is null), update it
+    const current_display = yield select((state) => state.Messenger.DisplayBulletin)
+    if (current_display === null && bulletin) {
+      yield put(setDisplayBulletin(bulletin))
     }
     return bulletin
   } catch (e) {

@@ -4,7 +4,7 @@ import PageList from '../PageList'
 
 /**
  * Shared bulletin list renderer extracted from PortalPage, BulletinFollowPage,
- * BulletinBookmarkPage, BulletinAddressPage.
+ * BulletinAddressPage.
  *
  * Renders the inner shell (tab-page > page-inner) shared by all these pages.
  * Pages that need modals (Publish/Forward/Paste) should wrap this component in

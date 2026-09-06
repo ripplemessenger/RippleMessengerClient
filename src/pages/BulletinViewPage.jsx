@@ -25,7 +25,8 @@ export default function BulletinViewPage() {
 
   const dispatch = useDispatch()
 
-  const { ShowPublishFlag, ShowForwardFlag } = useSelector(selectPublishFlags)
+  const { showPublish: ShowPublishFlag, showForward: ShowForwardFlag } = useSelector(selectPublishFlags)
+
   const { DisplayBulletin, DisplayBulletinReplyList, DisplayBulletinReplyPage, DisplayBulletinReplyTotalPage } =
     useSelector(selectDisplayBulletins)
 

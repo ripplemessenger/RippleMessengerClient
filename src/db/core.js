@@ -63,16 +63,6 @@ export async function initDB() {
     );`)
 
     await dbInstance.execute(`
-    CREATE TABLE IF NOT EXISTS channels (
-      name TEXT NOT NULL,
-      created_by TEXT NOT NULL,
-      speaker TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-
-      PRIMARY KEY (name, created_by)
-    );`)
-
-    await dbInstance.execute(`
     CREATE TABLE IF NOT EXISTS files (
       hash TEXT PRIMARY KEY,
       size INTEGER NOT NULL,
