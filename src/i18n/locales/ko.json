@@ -212,7 +212,15 @@
     "cached_files_desc": "다른 공지에서 다운로드한 파일이 여기에 표시됩니다",
     "bulletins_using_file": "이 파일을 사용하는 공지",
     "no_file_refs": "참조가 없습니다",
-    "referenced_by": "{{count}}개 공지에서 참조"
+    "referenced_by": "{{count}}개 공지에서 참조",
+    "seed_qr_title": "App으로 내보내기",
+    "seed_qr_desc": "QR 코드를 생성하여 이 계정을 모바일 App에 가져오기",
+    "seed_qr_generate": "QR 생성",
+    "seed_qr_hint": "App으로 스캔한 후 동일한 비밀번호 입력",
+    "lan_sync": "LAN 동기화",
+    "lan_sync_status": "동기화 서버 실행 중",
+    "lan_sync_desc": "App이 LAN을 통해 이 기기에 연결하여 데이터를 동기화할 수 있습니다",
+    "lan_sync_port": "포트"
   },
   "ui": {
     "search_bulletin": "공지 검색",
@@ -347,8 +355,7 @@
     "enable_follow_to_see": "연락처에서 팔로우를 활성화하여 여기서 게시문을 확인하세요",
     "no_bookmarked": "북마크된 공지 없음",
     "no_bulletins_from_account": "이 계정의 공지 없음",
-    "account_not_posted": "이 계정은 아직 게시하지 않았습니다",
-    "chat": "채팅"
+    "account_not_posted": "이 계정은 아직 게시하지 않았습니다"
   },
   "search": {
     "address": "주소",

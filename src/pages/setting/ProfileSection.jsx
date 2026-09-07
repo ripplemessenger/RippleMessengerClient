@@ -15,6 +15,7 @@ import Logger from '../../lib/Logger'
 import { setConfirmPopup, setFlashNoticeMessage } from '../../store/slices/CommonSlice'
 import { setNickname } from '../../store/slices/UserSlice'
 import { AccountDel, ContactAdd } from '../../store/sagas/messenger.actions'
+import SeedQRModal from '../SeedQRModal'
 
 const AvatarCropper = lazy(() => import('../../components/AvatarCropper'))
 
@@ -31,6 +32,7 @@ export default function ProfileSection() {
   const ServerList = useSelector((state) => state.Messenger.ServerList)
   const [showQrCode, setShowQrCode] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState(null)
+  const [showSeedQR, setShowSeedQR] = useState(false)
 
   // QR code value: address@server (same format the App scanner expects)
   const qrValue = Address ? `${Address}@${ServerList[0]?.url || DefaultServer}` : ''
@@ -233,6 +235,23 @@ export default function ProfileSection() {
           </button>
         </div>
 
+        {/* Seed QR (export to App) */}
+        {showRemoveButton && (
+          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+            <div className="flex flex-col">
+              <span className="text-text-primary dark:text-dark-text-primary font-medium">
+                {t('setting.seed_qr_title')}
+              </span>
+              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+                {t('setting.seed_qr_desc')}
+              </span>
+            </div>
+            <button onClick={() => setShowSeedQR(true)} className="btn-sm btn-gold">
+              {t('setting.seed_qr_title')}
+            </button>
+          </div>
+        )}
+
         {/* Remove Account */}
         {showRemoveButton && (
           <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
@@ -250,6 +269,7 @@ export default function ProfileSection() {
           </div>
         )}
 
+        {showSeedQR && <SeedQRModal onClose={() => setShowSeedQR(false)} />}
         {imageSrc && (
           <Suspense fallback={null}>
             <AvatarCropper address={Address} imageSrc={imageSrc} onClose={() => closeAvatarCropper()} />

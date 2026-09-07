@@ -212,7 +212,15 @@
     "cached_files_desc": "Downloaded files from others' bulletins will appear here",
     "bulletins_using_file": "Bulletins using this file",
     "no_file_refs": "No bulletin references found",
-    "referenced_by": "Referenced by {{count}} bulletin(s)"
+    "referenced_by": "Referenced by {{count}} bulletin(s)",
+    "seed_qr_title": "Export to App",
+    "seed_qr_desc": "Generate a QR code to import this account into the mobile App",
+    "seed_qr_generate": "Generate QR",
+    "seed_qr_hint": "Scan with the App, then enter the same password",
+    "lan_sync": "LAN Sync",
+    "lan_sync_status": "Sync server running",
+    "lan_sync_desc": "App can connect to this device over LAN to sync data",
+    "lan_sync_port": "Port"
   },
   "ui": {
     "search_bulletin": "Search bulletin",
@@ -347,8 +355,7 @@
     "enable_follow_to_see": "Enable follow on a contact to see their bulletins here",
     "no_bookmarked": "No bookmarked bulletins",
     "no_bulletins_from_account": "No bulletins from this account",
-    "account_not_posted": "This account has not posted yet",
-    "chat": "Chat"
+    "account_not_posted": "This account has not posted yet"
   },
   "search": {
     "address": "Address",

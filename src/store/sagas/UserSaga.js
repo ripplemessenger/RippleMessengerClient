@@ -1,4 +1,6 @@
 import { all, call, fork, put, select, takeLatest } from 'redux-saga/effects'
+import { invoke } from '@tauri-apps/api/core'
+import * as rippleKeyPairs from 'ripple-keypairs'
 
 import { dbAPI } from '../../db'
 import Logger from '../../lib/Logger'
@@ -67,6 +69,14 @@ function* handleLogin({ payload }) {
     }
     yield call(() => dbAPI.updateAccountUpdatedAt(payload.address, Date.now()))
     yield put(loginSuccess({ seed: payload.seed, address: payload.address, nickname: nickname }))
+
+    // Set sync server pubkey for auth verification
+    try {
+      const keypair = rippleKeyPairs.deriveKeypair(payload.seed)
+      yield call(() => invoke('set_sync_pubkey', { pubkey: keypair.publicKey }))
+    } catch (e) {
+      console.warn('[SyncServer] set_sync_pubkey failed:', e.message || e)
+    }
 
     // Parallelize independent data loads
     yield all([

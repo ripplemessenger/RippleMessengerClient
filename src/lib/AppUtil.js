@@ -194,10 +194,10 @@ function genSalt() {
  * @param {string} salt - Base64-encoded salt (from genSalt)
  * @returns {{key: import('crypto-js').Lib.WordArray, iv: import('crypto-js').Lib.WordArray}} Key and IV WordArrays
  */
-function deriveKeyFromPassword(password, salt) {
+function deriveKeyFromPassword(password, salt, iterations = 20000) {
   const key = CryptoJS.PBKDF2(password, salt, {
     keySize: (32 + 16) / 4,
-    iterations: 20000,
+    iterations: iterations,
     hasher: CryptoJS.algo.SHA512
   })
 
@@ -217,6 +217,28 @@ function deriveKeyFromPassword(password, salt) {
  */
 function encryptWithPassword(data, password, salt) {
   const { key, iv } = deriveKeyFromPassword(password, salt)
+  const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data)
+  const encrypted = CryptoJS.AES.encrypt(dataStr, key, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  })
+
+  return encrypted.toString()
+}
+
+/**
+ * Encrypt data using AES-CBC with a password-derived key, custom PBKDF2 iterations.
+ * Used for seed QR export: Client encrypts with 2000 iterations so the App
+ * (which uses 2000 iterations) can decrypt with its existing decryptWithPassword.
+ * @param {string|object} data - Data to encrypt
+ * @param {string} password - User password
+ * @param {string} salt - Base64-encoded salt
+ * @param {number} iterations - PBKDF2 iteration count (App convention: 2000)
+ * @returns {string} OpenSSL-format encrypted string
+ */
+function encryptWithPasswordIterations(data, password, salt, iterations) {
+  const { key, iv } = deriveKeyFromPassword(password, salt, iterations)
   const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data)
   const encrypted = CryptoJS.AES.encrypt(dataStr, key, {
     iv: iv,
@@ -482,6 +504,7 @@ export {
   calcRate,
   genSalt,
   encryptWithPassword,
+  encryptWithPasswordIterations,
   decryptWithPassword,
   AesEncrypt,
   AesDecrypt,

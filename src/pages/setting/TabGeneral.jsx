@@ -328,6 +328,30 @@ export default function TabGeneral() {
       {/* Server Network Section */}
       <ServerNetworkSection />
 
+      {/* LAN Sync Section */}
+      <div className="w-full max-w-full min-w-0 rounded-xl card p-6 flex flex-col gap-4 mt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <IoInformationCircleOutline className="text-xl text-primary dark:text-dark-primary" />
+          <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">
+            {t('setting.lan_sync')}
+          </h3>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-status-success" />
+            <span className="text-sm text-text-primary dark:text-dark-text-primary">
+              {t('setting.lan_sync_status')}
+            </span>
+          </div>
+          <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+            {t('setting.lan_sync_desc')}
+          </span>
+          <span className="text-xs text-text-secondary/60 dark:text-dark-text-secondary/60 font-mono">
+            {t('setting.lan_sync_port')}: 52343
+          </span>
+        </div>
+      </div>
+
       {/* Info */}
       <div className="w-full max-w-full min-w-0 rounded-xl card p-4 flex flex-col gap-2 mt-4">
         <div className="flex items-center gap-2">

@@ -38,6 +38,7 @@ export async function initDB() {
       local TEXT NOT NULL,
       remote TEXT NOT NULL,
       updated_at INTEGER NOT NULL,
+      is_deleted INTEGER DEFAULT 0,
 
       PRIMARY KEY (local, remote)
     );`)
@@ -47,6 +48,7 @@ export async function initDB() {
       local TEXT NOT NULL,
       remote TEXT NOT NULL,
       updated_at INTEGER NOT NULL,
+      is_deleted INTEGER DEFAULT 0,
 
       PRIMARY KEY (local, remote)
     );`)
@@ -207,8 +209,28 @@ export async function initDB() {
     );`)
 
     await dbInstance.execute('PRAGMA foreign_keys = ON;')
+
+    // ── Migration: add is_deleted column to follows/friends if missing ──
+    await migrateAddColumn(dbInstance, 'follows', 'is_deleted', 'INTEGER DEFAULT 0')
+    await migrateAddColumn(dbInstance, 'friends', 'is_deleted', 'INTEGER DEFAULT 0')
   } catch (error) {
     Logger.error('db.initDB', error)
+  }
+}
+
+/**
+ * Add a column to a table if it doesn't already exist.
+ */
+async function migrateAddColumn(db, table, column, definition) {
+  try {
+    const rows = await db.select(`PRAGMA table_info(${table})`)
+    const columns = rows.map((r) => r.name)
+    if (!columns.includes(column)) {
+      await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+      Logger.info(`[DB-Migrate] Added ${table}.${column}`)
+    }
+  } catch (e) {
+    Logger.warn(`[DB-Migrate] Failed to check/add ${table}.${column}:`, e.message || e)
   }
 }
 

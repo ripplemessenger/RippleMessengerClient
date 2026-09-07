@@ -212,7 +212,15 @@
     "cached_files_desc": "Heruntergeladene Dateien aus Bulletins anderer erscheinen hier",
     "bulletins_using_file": "Bulletins, die diese Datei verwenden",
     "no_file_refs": "Keine Referenzen gefunden",
-    "referenced_by": "Von {{count}} Bulletin(s) referenziert"
+    "referenced_by": "Von {{count}} Bulletin(s) referenziert",
+    "seed_qr_title": "In App exportieren",
+    "seed_qr_desc": "QR-Code generieren, um dieses Konto in die Mobile-App zu importieren",
+    "seed_qr_generate": "QR generieren",
+    "seed_qr_hint": "Mit der App scannen, dann dasselbe Passwort eingeben",
+    "lan_sync": "LAN-Synchronisation",
+    "lan_sync_status": "Sync-Server läuft",
+    "lan_sync_desc": "App kann sich über LAN mit diesem Gerät verbinden, um Daten zu synchronisieren",
+    "lan_sync_port": "Port"
   },
   "ui": {
     "search_bulletin": "Bulletin durchsuchen",

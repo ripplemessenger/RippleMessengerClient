@@ -31,7 +31,14 @@ tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-log = { version = "2", features = ["colored"] }
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time", "net", "rt-multi-thread"] }
+axum = "0.7"
+mdns-sd = "0.11"
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [profile.release]
 panic = "abort"

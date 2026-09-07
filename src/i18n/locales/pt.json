@@ -212,7 +212,15 @@
     "cached_files_desc": "Arquivos baixados de boletins de outros aparecerão aqui",
     "bulletins_using_file": "Boletins que usam este arquivo",
     "no_file_refs": "Nenhuma referência encontrada",
-    "referenced_by": "Referenciado por {{count}} boletim(ns)"
+    "referenced_by": "Referenciado por {{count}} boletim(ns)",
+    "seed_qr_title": "Exportar para App",
+    "seed_qr_desc": "Gerar um QR code para importar esta conta no App móvel",
+    "seed_qr_generate": "Gerar QR",
+    "seed_qr_hint": "Escaneie com o App, depois insira a mesma senha",
+    "lan_sync": "Sincronização LAN",
+    "lan_sync_status": "Servidor de sincronização ativo",
+    "lan_sync_desc": "O App pode se conectar a este dispositivo via LAN para sincronizar dados",
+    "lan_sync_port": "Porta"
   },
   "ui": {
     "search_bulletin": "Buscar boletim",

@@ -212,7 +212,15 @@
     "cached_files_desc": "从他人公告下载的文件会显示在这里",
     "bulletins_using_file": "引用此文件的公告",
     "no_file_refs": "未找到引用公告",
-    "referenced_by": "被 {{count}} 个公告引用"
+    "referenced_by": "被 {{count}} 个公告引用",
+    "seed_qr_title": "导出到 App",
+    "seed_qr_desc": "生成二维码，将本账号导入手机 App",
+    "seed_qr_generate": "生成二维码",
+    "seed_qr_hint": "用 App 扫码，然后输入相同密码",
+    "lan_sync": "局域网同步",
+    "lan_sync_status": "同步服务器运行中",
+    "lan_sync_desc": "App 可通过局域网连接此设备同步数据",
+    "lan_sync_port": "端口"
   },
   "ui": {
     "search_bulletin": "搜索公告",
@@ -347,8 +355,7 @@
     "enable_follow_to_see": "在联系人上启用关注以在此查看他们的公告",
     "no_bookmarked": "暂无收藏的公告",
     "no_bulletins_from_account": "该账户暂无公告",
-    "account_not_posted": "该账户尚未发布内容",
-    "chat": "聊天"
+    "account_not_posted": "该账户尚未发布内容"
   },
   "search": {
     "address": "地址",

@@ -212,7 +212,15 @@
     "cached_files_desc": "他のブレットインからダウンロードしたファイルが表示されます",
     "bulletins_using_file": "このファイルを使用しているブレットイン",
     "no_file_refs": "参照が見つかりません",
-    "referenced_by": "{{count}} 件のブレットインで参照"
+    "referenced_by": "{{count}} 件のブレットインで参照",
+    "seed_qr_title": "Appにエクスポート",
+    "seed_qr_desc": "QRコードを生成してこのアカウントをモバイルAppにインポート",
+    "seed_qr_generate": "QR生成",
+    "seed_qr_hint": "Appでスキャンし、同じパスワードを入力",
+    "lan_sync": "LAN同期",
+    "lan_sync_status": "同期サーバー稼働中",
+    "lan_sync_desc": "AppがLAN経由でこのデバイスに接続してデータを同期できます",
+    "lan_sync_port": "ポート"
   },
   "ui": {
     "search_bulletin": "公告を検索",
@@ -347,8 +355,7 @@
     "enable_follow_to_see": "連絡先でフォローを有効にして、ここでそのブuletinを表示してください",
     "no_bookmarked": "ブックマークされたブレットインはありません",
     "no_bulletins_from_account": "このアカウントのブレットインはありません",
-    "account_not_posted": "このアカウントはまだ投稿していません",
-    "chat": "チャット"
+    "account_not_posted": "このアカウントはまだ投稿していません"
   },
   "search": {
     "address": "アドレス",

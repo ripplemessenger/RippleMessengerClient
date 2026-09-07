@@ -312,10 +312,10 @@ export const api = {
         break
       case 'followed':
         if (addressFilter) {
-          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote AND f.is_deleted = 0 LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 AND b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [address, addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview FROM bulletins b INNER JOIN follows f ON b.address = f.remote AND f.is_deleted = 0 LEFT JOIN contacts c ON b.address = c.address WHERE f.local = $1 ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [address, pageSize, offset]
         }
         break
@@ -330,10 +330,10 @@ export const api = {
         break
       default:
         if (addressFilter) {
-          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1 AND f.is_deleted = 0) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address WHERE b.address = $2 ORDER BY b.signed_at ${sortDir} LIMIT $3 OFFSET $4`
           params = [address, addressFilter, pageSize, offset]
         } else {
-          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
+          query = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = $1 AND f.is_deleted = 0) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ORDER BY b.signed_at ${sortDir} LIMIT $2 OFFSET $3`
           params = [address, pageSize, offset]
         }
         break
@@ -364,10 +364,10 @@ export const api = {
         break
       case 'followed':
         if (addressFilter) {
-          query = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1 AND b.address = $2`
+          query = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote AND f.is_deleted = 0 WHERE f.local = $1 AND b.address = $2`
           params = [address, addressFilter]
         } else {
-          query = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote WHERE f.local = $1`
+          query = `SELECT COUNT(b.hash) AS count FROM bulletins b INNER JOIN follows f ON b.address = f.remote AND f.is_deleted = 0 WHERE f.local = $1`
           params = [address]
         }
         break
@@ -432,7 +432,9 @@ export const api = {
     if (filter === 'mine') {
       where.push(`b.address = ${addParam(address)}`)
     } else if (filter === 'followed') {
-      where.push(`EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)})`)
+      where.push(
+        `EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)} AND f.is_deleted = 0)`
+      )
     } else if (filter === 'bookmarked') {
       where.push(`b.is_marked = ${addParam(Bool2Int(true))}`)
     }
@@ -466,7 +468,7 @@ export const api = {
     const limitParam = addParam(pageSize)
     const offsetParam = addParam(offset)
 
-    const querySql = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = ${isFollowedParam}) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ${whereSql} ORDER BY b.signed_at DESC LIMIT ${limitParam} OFFSET ${offsetParam}`
+    const querySql = `SELECT b.*, c.nickname, SUBSTR(b.content, 1, 100) AS content_preview, (SELECT COUNT(f.remote) > 0 FROM follows f WHERE f.remote = b.address AND f.local = ${isFollowedParam} AND f.is_deleted = 0) AS is_followed FROM bulletins b LEFT JOIN contacts c ON b.address = c.address ${whereSql} ORDER BY b.signed_at DESC LIMIT ${limitParam} OFFSET ${offsetParam}`
 
     const rows = await db.select(querySql, params)
     return rows.map((r) => {
@@ -583,7 +585,9 @@ export const api = {
     if (filter === 'mine') {
       where.push(`b.address = ${addParam(address)}`)
     } else if (filter === 'followed') {
-      where.push(`EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)})`)
+      where.push(
+        `EXISTS (SELECT 1 FROM follows f WHERE f.remote = b.address AND f.local = ${addParam(address)} AND f.is_deleted = 0)`
+      )
     } else if (filter === 'bookmarked') {
       where.push(`b.is_marked = ${addParam(Bool2Int(true))}`)
     }

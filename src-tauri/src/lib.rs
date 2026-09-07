@@ -14,6 +14,8 @@ use tauri_plugin_log::{
     RotationStrategy, Target, TargetKind,
 };
 
+mod sync_server;
+
 /* ── constants ─────────────────────────────────────────────── */
 const FLASH_INTERVAL_MS: u64 = 600;
 const TRAY_ID: &str = "main_tray";
@@ -305,6 +307,42 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Start the LAN sync server (axum HTTP + mDNS broadcast).
+/// Called from JS when the user enables sync or on app startup.
+///
+/// Runs the axum server on a DEDICATED thread with its own multi-thread tokio
+/// runtime. This is required because `tokio::spawn` inside a Tauri async command
+/// spawns a task on Tauri's per-command runtime, which is torn down when the
+/// command returns — dropping the server task before it binds the port.
+/// (The mDNS daemon is a separate OS thread, so it survives; the axum serve task
+/// does not. Symptom: mDNS on UDP 5353 is up but TCP 52343 never binds.)
+#[tauri::command]
+fn start_sync_server(app: AppHandle, address: String) -> Result<String, String> {
+    let handle = app.clone();
+    std::thread::Builder::new()
+        .name("sync-server".to_string())
+        .spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("failed to build sync-server tokio runtime");
+            if let Err(e) = rt.block_on(async move {
+                sync_server::start_sync_server(handle, address).await
+            }) {
+                log::error!("[SyncServer] Failed to start: {}", e);
+            }
+        })
+        .map_err(|e| format!("failed to spawn sync-server thread: {}", e))?;
+    Ok("started".to_string())
+}
+
+#[tauri::command]
+fn set_sync_pubkey(pubkey: String) -> Result<String, String> {
+    let mut guard = sync_server::SYNC_PUBKEY.lock().map_err(|e| e.to_string())?;
+    *guard = Some(pubkey);
+    Ok("ok".to_string())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -369,7 +407,12 @@ pub fn run() {
             start_message_flash,
             stop_message_flash,
             set_close_to_tray,
-            set_start_minimized
+            set_start_minimized,
+            start_sync_server,
+            set_sync_pubkey,
+            sync_server::sync_auth_response,
+            sync_server::sync_verify_response,
+            sync_server::sync_device_response
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
