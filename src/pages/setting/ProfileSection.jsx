@@ -236,21 +236,19 @@ export default function ProfileSection() {
         </div>
 
         {/* Seed QR (export to App) */}
-        {showRemoveButton && (
-          <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
-            <div className="flex flex-col">
-              <span className="text-text-primary dark:text-dark-text-primary font-medium">
-                {t('setting.seed_qr_title')}
-              </span>
-              <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
-                {t('setting.seed_qr_desc')}
-              </span>
-            </div>
-            <button onClick={() => setShowSeedQR(true)} className="btn-sm btn-gold">
+        <div className="flex items-center justify-between gap-4 py-2 border-b border-primary/10 dark:border-primary/20 last:border-b-0">
+          <div className="flex flex-col">
+            <span className="text-text-primary dark:text-dark-text-primary font-medium">
               {t('setting.seed_qr_title')}
-            </button>
+            </span>
+            <span className="text-sm text-text-secondary dark:text-dark-text-secondary">
+              {t('setting.seed_qr_desc')}
+            </span>
           </div>
-        )}
+          <button onClick={() => setShowSeedQR(true)} className="btn-sm btn-gold">
+            {t('setting.seed_qr_title')}
+          </button>
+        </div>
 
         {/* Remove Account */}
         {showRemoveButton && (

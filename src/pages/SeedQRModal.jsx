@@ -89,7 +89,7 @@ export default function SeedQRModal({ onClose }) {
           {/* Current account (read-only) */}
           <div className="mt-1">
             <label className="label block mb-1">{t('auth.address')}</label>
-            <div className="w-full px-3 py-2 rounded-xl border border-border dark:border-dark-border bg-gray-50 dark:bg-dark-input text-sm break-all">
+            <div className="w-full px-3 py-2 rounded-xl border border-primary/20 dark:border-primary/30 bg-surface-alt/50 dark:bg-dark-surface-alt/50 text-sm break-all">
               {Address}
             </div>
           </div>

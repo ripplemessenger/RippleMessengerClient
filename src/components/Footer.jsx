@@ -53,7 +53,7 @@ export default function Footer() {
             title={'RippleMessenger'}
             text_size={'text-base'}
           />
-          <span className="text-xs text-muted">v{packageJson.version}</span>
+          <span className="text-xs text-text-secondary dark:text-dark-text-secondary">v{packageJson.version}</span>
         </div>
         <div className="flex items-center gap-1 bg-surface/20 dark:bg-dark-surface/20 rounded-lg p-1 backdrop-blur-sm">
           <button

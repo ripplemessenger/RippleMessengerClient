@@ -24,7 +24,7 @@ const ConfirmDiv = () => {
       <div ref={dialogRef} className="w-full max-w-md mx-auto">
         <div className="modal-content-wrapper">
           <div className="flex items-center gap-3 mb-4">
-            <IoWarningOutline className="text-2xl text-status-warning dark:text-status-warning-dark" />
+            <IoWarningOutline className="text-2xl text-primary dark:text-dark-primary" />
             <h3 className="text-lg font-semibold text-text-primary dark:text-dark-text-primary">Confirm Action</h3>
           </div>
           {ConfirmPopup && (
