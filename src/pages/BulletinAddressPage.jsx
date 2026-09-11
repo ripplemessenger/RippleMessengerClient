@@ -9,7 +9,7 @@ import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinListPage from '../components/Bulletin/BulletinListPage'
 import { selectUserAddress, selectBulletinAddressData } from '../selectors'
 import { setPublishFlag } from '../store/slices/MessengerSlice'
-import { LoadAddressBulletin } from '../store/sagas/messenger.actions'
+import { LoadAddressBulletin, RequestAddressBulletin } from '../store/sagas/messenger.actions'
 
 export default function BulletinAddressPage() {
   const { t } = useTranslation()
@@ -29,6 +29,9 @@ export default function BulletinAddressPage() {
   useEffect(() => {
     if (BulletinAddress !== null) {
       dispatch(LoadAddressBulletin({ address: BulletinAddress, page: 1 }))
+      // Pull the address's bulletins from the server (chain from local last seq + 1);
+      // each received bulletin triggers the next request until the server stops responding
+      dispatch(RequestAddressBulletin({ address: BulletinAddress }))
     }
   }, [dispatch, BulletinAddress, MessengerConnStatus])
 

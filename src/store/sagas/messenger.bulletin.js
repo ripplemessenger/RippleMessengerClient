@@ -35,7 +35,9 @@ import {
   setPortalBulletinList,
   setAddressBulletinList,
   setRandomBulletinList,
-  setRandomBulletinLoading
+  setRandomBulletinLoading,
+  setAllTagsList,
+  setAllBulletinAddressesList
 } from '../slices/MessengerSlice'
 import { deleteFile, statFile, getFileFullPath } from '../../services/fileService'
 import i18n from '../../i18n'
@@ -732,6 +734,12 @@ export function* BulletinMarkToggle({ payload }) {
     const bulletin_db = yield call(() => dbAPI.getBulletinByHash(payload.hash))
     if (bulletin_db !== null) {
       yield call(() => dbAPI.toggleBulletinMark(payload.hash, !bulletin_db.is_marked))
+      yield put(
+        setFlashNoticeMessage({
+          message: i18n.t(bulletin_db.is_marked ? 'bulletin.unmarked' : 'bulletin.marked'),
+          duration: FLASH_DURATION_MS
+        })
+      )
     }
   } catch (e) {
     Logger.error('[BulletinMarkToggle] failed for', payload.hash, e.message)
@@ -830,6 +838,9 @@ export function* ClearAllBulletins() {
     yield put(setAddressBulletinList({ List: [], Page: 1, TotalPage: 0 }))
     yield put(setRandomBulletinList([]))
     yield put(setDisplayBulletin(null))
+    // Clear the tag/address selectors — no bulletins left
+    yield put(setAllTagsList([]))
+    yield put(setAllBulletinAddressesList([]))
     yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.cleared', { count }), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[ClearAllBulletins] failed:', e.message)

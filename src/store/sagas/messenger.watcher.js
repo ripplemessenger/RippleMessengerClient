@@ -12,6 +12,7 @@ import {
   ServerToggle,
   LoadPortalBulletin,
   LoadAddressBulletin,
+  RequestAddressBulletin,
   LoadFollowBulletin,
   LoadBookmarkBulletin,
   LoadBulletin,
@@ -99,7 +100,8 @@ import {
   BulletinQuote as BulletinQuoteHandler,
   BulletinFileAdd as BulletinFileAddHandler,
   BulletinFileDel as BulletinFileDelHandler,
-  BulletinMarkToggle as BulletinMarkToggleHandler
+  BulletinMarkToggle as BulletinMarkToggleHandler,
+  RequestNextBulletin as RequestNextBulletinHandler
 } from './messenger.bulletin'
 
 // Session management
@@ -194,6 +196,7 @@ export function* watchMessenger() {
   // Bulletin loading
   yield takeEvery(LoadPortalBulletin.type, LoadPortalBulletinHandler)
   yield takeEvery(LoadAddressBulletin.type, LoadAddressBulletinHandler)
+  yield takeEvery(RequestAddressBulletin.type, RequestNextBulletinHandler)
   yield takeEvery(LoadFollowBulletin.type, LoadFollowBulletinHandler)
   yield takeEvery(LoadBookmarkBulletin.type, LoadBookmarkBulletinHandler)
   yield takeLatest(LoadBulletin.type, LoadBulletinHandler)

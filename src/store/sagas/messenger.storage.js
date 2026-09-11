@@ -102,6 +102,9 @@ export function* DeleteBulletinItem({ payload }) {
     // If current page exceeds total pages after deletion, go to last available page
     const refreshPage = currentPage > totalPages ? Math.max(1, totalPages) : currentPage
     yield call(LoadBulletinManagementList, { payload: { filter, page: refreshPage, addressFilter } })
+    // Refresh the tag/address selectors — deleted bulletins may remove tags or whole addresses
+    yield put(setAllTagsList(yield call(() => dbAPI.getAllTags())))
+    yield put(setAllBulletinAddressesList(yield call(() => dbAPI.getAllBulletinAddresses())))
     yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.deleted_single'), duration: FLASH_DURATION_MS }))
   } catch (e) {
     Logger.error('[DeleteBulletinItem] failed:', e.message)
@@ -126,6 +129,9 @@ export function* BulkDeleteBulletins({ payload }) {
     yield call(LoadBulletinManagementList, {
       payload: { filter: filter || 'all', page: Math.max(1, totalPages < 1 ? 1 : totalPages), addressFilter }
     })
+    // Refresh the tag/address selectors — deleted bulletins may remove tags or whole addresses
+    yield put(setAllTagsList(yield call(() => dbAPI.getAllTags())))
+    yield put(setAllBulletinAddressesList(yield call(() => dbAPI.getAllBulletinAddresses())))
     yield put(
       setFlashNoticeMessage({
         message: i18n.t('bulletin.bulk_deleted', { count: hashes.length }),

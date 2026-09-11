@@ -111,6 +111,11 @@
     "view_bulletin": "查看公告 #{{seq}}",
     "unmark": "取消标记",
     "mark": "标记公告",
+    "marked": "已标记",
+    "unmarked": "已取消标记",
+    "follow_success": "已关注",
+    "unfollowed": "已取消关注",
+    "follow_set_nickname": "为该作者设置昵称",
     "remove_file": "移除文件 {{name}}",
     "remove_tag": "移除标签 {{tag}}",
     "search_tag": "搜索标签 {{tag}}"

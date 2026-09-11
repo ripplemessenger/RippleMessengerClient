@@ -111,6 +111,11 @@
     "view_bulletin": "View bulletin #{{seq}}",
     "unmark": "Unmark bulletin",
     "mark": "Mark bulletin",
+    "marked": "Marked",
+    "unmarked": "Unmarked",
+    "follow_success": "Followed",
+    "unfollowed": "Unfollowed",
+    "follow_set_nickname": "Set a nickname for this author",
     "remove_file": "Remove file {{name}}",
     "remove_tag": "Remove tag {{tag}}",
     "search_tag": "Search tag {{tag}}"

@@ -111,6 +111,11 @@
     "view_bulletin": "공지 #{{seq}} 보기",
     "unmark": "표시 해제",
     "mark": "공지 표시",
+    "marked": "표시 완료",
+    "unmarked": "표시 해제",
+    "follow_success": "팔로우 완료",
+    "unfollowed": "팔로우 해제",
+    "follow_set_nickname": "이 저자에게 닉네임 설정",
     "remove_file": "파일 삭제 {{name}}",
     "remove_tag": "태그 삭제 {{tag}}",
     "search_tag": "태그 검색 {{tag}}"

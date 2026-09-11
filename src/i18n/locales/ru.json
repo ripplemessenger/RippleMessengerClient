@@ -111,6 +111,11 @@
     "view_bulletin": "Просмотреть объявление #{{seq}}",
     "unmark": "Убрать отметку",
     "mark": "Отметить объявление",
+    "marked": "Отмечено",
+    "unmarked": "Отметка снята",
+    "follow_success": "Вы подписались",
+    "unfollowed": "Отписка произошла",
+    "follow_set_nickname": "Укажите имя для этого автора",
     "remove_file": "Удалить файл {{name}}",
     "remove_tag": "Удалить тег {{tag}}",
     "search_tag": "Поиск тега {{tag}}"

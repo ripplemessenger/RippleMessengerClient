@@ -13,6 +13,7 @@ export const ServerToggle = createAction('ServerToggle')
 // ==================== Bulletin Loading ====================
 export const LoadPortalBulletin = createAction('LoadPortalBulletin')
 export const LoadAddressBulletin = createAction('LoadAddressBulletin')
+export const RequestAddressBulletin = createAction('RequestAddressBulletin')
 export const LoadFollowBulletin = createAction('LoadFollowBulletin')
 export const LoadBookmarkBulletin = createAction('LoadBookmarkBulletin')
 export const LoadBulletin = createAction('LoadBulletin')

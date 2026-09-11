@@ -97,6 +97,7 @@ import { SendMessage, getFileRequestList, setFileRequestList, safeFork } from '.
 import {
   CacheBulletin,
   RequestNextBulletin,
+  LoadAddressBulletin,
   AvatarRequest,
   RequestAvatarFile,
   SubscribeFollow,
@@ -666,8 +667,14 @@ function* handleBulletinObject(json) {
     const bulletin = yield call(CacheBulletin, json, autoDownload)
     const address = yield select((state) => state.User.Address)
     const follow_list = yield select((state) => state.User.FollowList)
-    if (follow_list.includes(ob_address) || ob_address === address) {
+    const view_address = yield select((state) => state.Messenger.BulletinAddress)
+    if (follow_list.includes(ob_address) || ob_address === address || ob_address === view_address) {
       yield fork(RequestNextBulletin, { key: null, payload: { address: ob_address } })
+    }
+    // Real-time refresh: if the user is viewing this address's bulletin list page, reload the current page
+    if (view_address === ob_address) {
+      const view_page = yield select((state) => state.Messenger.AddressBulletinPage) || 1
+      yield call(LoadAddressBulletin, { payload: { address: ob_address, page: view_page } })
     }
     // If user is waiting for a bulletin (DisplayBulletin is null), update it
     const current_display = yield select((state) => state.Messenger.DisplayBulletin)

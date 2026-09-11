@@ -111,6 +111,11 @@
     "view_bulletin": "ブレットイン #{{seq}} を表示",
     "unmark": "マークを解除",
     "mark": "ブレットインをマーク",
+    "marked": "マークしました",
+    "unmarked": "マークを解除しました",
+    "follow_success": "フォローしました",
+    "unfollowed": "フォロー解除しました",
+    "follow_set_nickname": "この著者にニックネームを設定",
     "remove_file": "ファイルを削除 {{name}}",
     "remove_tag": "タグを削除 {{tag}}",
     "search_tag": "タグを検索 {{tag}}"

@@ -83,6 +83,14 @@ export default function BulletinManagerPanel() {
     setSelectedHashes([])
   }, [currentFilter])
 
+  // If the selected address no longer exists (its bulletins were all deleted), reset the filter
+  useEffect(() => {
+    if (selectedAddress && !allAddresses.some((a) => a.address === selectedAddress)) {
+      setSelectedAddress('')
+      dispatch(LoadBulletinManagementList({ filter: currentFilter, page: 1 }))
+    }
+  }, [allAddresses, selectedAddress, currentFilter, dispatch])
+
   useEffect(() => {
     return () => clearTimeout(searchTimer.current)
   }, [])
