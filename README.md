@@ -7,10 +7,12 @@
 **项目矩阵:** [Client](https://github.com/ripplemessenger/RippleMessengerClient) · [Server](https://github.com/ripplemessenger/RippleMessengerServer) · [Site](https://github.com/ripplemessenger/RippleMessengerSite)
 
 ---
+
 ## 介绍视频
+
 [ripple messenger philosophy](https://www.youtube.com/watch?v=Fy3wt3KSgKY)  
 [ripple messenger bulletin](https://www.youtube.com/watch?v=soVPwZRp-QU)  
-[ripple messenger chat](https://www.youtube.com/watch?v=58ZbO-kGTU4)  
+[ripple messenger chat](https://www.youtube.com/watch?v=58ZbO-kGTU4)
 
 ## 快速开始
 
@@ -51,19 +53,19 @@ npm run tauri build    # 生产构建
 
 ### 核心模块
 
-| 模块 | 文件 | 说明 |
-|------|------|------|
-| 入口 | `src/main.jsx` → `src/App.jsx` | React 挂载 + Redux Provider + 路由 |
-| WebSocket 消息 | `src/store/sagas/MessengerSaga.js` | ~1954行，所有 bulletin/私聊/群聊/文件分发 |
-| 用户流程 | `src/store/sagas/UserSaga.js` | 登录/登出、联系人、关注 |
-| Redux State | `src/store/slices/` | UserSlice / MessengerSlice / CommonSlice |
-| SQLite  schema | `src/db.js` | 18张表：公告链、握手、消息、文件 |
-| Rust 后端 | `src-tauri/src/lib.rs` | 系统托盘、单实例、通知图标闪烁 |
-| 协议常量 | `src/lib/MessengerConst.js` | ActionCode / ObjectType 数值枚举 |
-| 消息签名 | `src/lib/MessageGenerator.js` | EdDSA 签名 + 消息 JSON 构造 |
-| 消息验证 | `src/lib/MessageSchemaVerifier.js` | AJV JSON Schema 校验 |
-| 多WS管理 | `src/lib/WebsocketUtil.js` | 多服务器连接、断线重连 |
-| 密码学工具 | `src/lib/RippleUtil.js`, `AppUtil.js`, `MessengerUtil.js` | XRPL密钥、SHA512、ECDH |
+| 模块           | 文件                                                      | 说明                                      |
+| -------------- | --------------------------------------------------------- | ----------------------------------------- |
+| 入口           | `src/main.jsx` → `src/App.jsx`                            | React 挂载 + Redux Provider + 路由        |
+| WebSocket 消息 | `src/store/sagas/MessengerSaga.js`                        | ~1954行，所有 bulletin/私聊/群聊/文件分发 |
+| 用户流程       | `src/store/sagas/UserSaga.js`                             | 登录/登出、联系人、关注                   |
+| Redux State    | `src/store/slices/`                                       | UserSlice / MessengerSlice / CommonSlice  |
+| SQLite schema  | `src/db.js`                                               | 18张表：公告链、握手、消息、文件          |
+| Rust 后端      | `src-tauri/src/lib.rs`                                    | 系统托盘、单实例、通知图标闪烁            |
+| 协议常量       | `src/lib/MessengerConst.js`                               | ActionCode / ObjectType 数值枚举          |
+| 消息签名       | `src/lib/MessageGenerator.js`                             | EdDSA 签名 + 消息 JSON 构造               |
+| 消息验证       | `src/lib/MessageSchemaVerifier.js`                        | AJV JSON Schema 校验                      |
+| 多WS管理       | `src/lib/WebsocketUtil.js`                                | 多服务器连接、断线重连                    |
+| 密码学工具     | `src/lib/RippleUtil.js`, `AppUtil.js`, `MessengerUtil.js` | XRPL密钥、SHA512、ECDH                    |
 
 ---
 
@@ -86,6 +88,7 @@ Server 不发放任何凭证。`Declare { Action: 100, PublicKey, Signature }` �
 每条消息必须签名：`SHA-512(JSON.stringify(msg))` 取前32 hex char (128 bit)，用 XRPL 私钥 EdDSA 签名。验证方用 `ripple-keypairs.verify(hash, sig, publicKey)` 确认来源。
 
 **双层验证流水线：**
+
 ```
 收到文本消息 → JSON.parse() → AJV Schema 验证 → EdDSA 签名验证 → 路由到业务逻辑
 ```
@@ -119,6 +122,7 @@ GenesisHash "44F8764BCACFF5424D4044B784549A1B"
 **"去共识区块链"设计:** 每条链只有一个合法生产者——一个地址只对应一个私钥持有者。无竞争 = 无需 PoW/PoS。保留 hash-linking + signature，去除 consensus + mining + incentive。
 
 **存储前校验：**
+
 1. 验签确认发布者和完整性
 2. 确认数据链最后一条 sequence = N-1，下一个应为 N
 3. 确认第 N-1 条的 hash === PreHash，才能从尾部插入
@@ -145,6 +149,7 @@ function DHSequence(partition, timestamp, addrA, addrB):
 ### ECDH 握手 — 私聊/群聊端到端加密
 
 **密钥派生链：**
+
 ```
 Seed + sequence → HalfSHA512(Genesis + seed + addr + seq) → ECDH 私钥
 对方的ECDH公钥 + 自己的ECDH私钥 → shared_secret
@@ -152,6 +157,7 @@ HKDF(shared_secret, SHA512(Genesis + addrPair + seq)) → AES-256-CBC key (hex s
 ```
 
 **握手流程：**
+
 ```
 User A                            User B
   │── ECDH { Self: pubA } ──────▶│
@@ -165,6 +171,7 @@ User A                            User B
 Server 只存储密文 json，不计算也不存储 AES key。
 
 **群聊 Mesh Topology (全网状):**
+
 ```
          AES-A↔B     AES-B↔C
       A ──────── B ──────── C
@@ -176,6 +183,7 @@ Server 只存储密文 json，不计算也不存储 AES key。
          D ──────────── E
           AES-D↔E
 ```
+
 任意两个成员之间均有独立的 ECDH 握手 + AES 密钥。发送者向每个成员用自己的 pairwise AES key 加密消息后分别发送，接收方用与该发送者的 pairwise key 解密。O(n²) key 管理，最多 16 人。
 
 ### 私聊消息链
@@ -186,11 +194,11 @@ Server 只存储密文 json，不计算也不存储 AES key。
 
 ### 文件传输 — Nonce-based 分块
 
-| 参数 | 值 |
-|------|-----|
-| 最大文件大小 | 64 MB |
-| 分块大小 | 1 MB |
-| 传输通道 | WebSocket binary frame |
+| 参数         | 值                     |
+| ------------ | ---------------------- |
+| 最大文件大小 | 64 MB                  |
+| 分块大小     | 1 MB                   |
+| 传输通道     | WebSocket binary frame |
 
 ```
 Binary Frame: [4-byte nonce (big-endian)] [chunk data]
@@ -201,21 +209,21 @@ Text   Frame: JSON 控制消息 (公告、握手、请求)
 
 ### 协议路由矩阵
 
-| Action (动词) | ObjectType (名词) |
-|---|---|
-| 100 Declare | 100 Nothing |
-| 200 AvatarRequest | 101 ECDH |
-| 300 FileRequest | 400 Bulletin |
-| 400 BulletinRequest | 403 ServerAddressList |
-| 401 BulletinSubscribe | 404 ReplyBulletinList |
-| 402 RandomBulletinRequest | 500 PrivateMessage |
-| 403 ServerAddressRequest | 600 GroupCreate |
-| 404 ReplyBulletinRequest | 601 GroupDelete |
-| 405 TagBulletinRequest | 602 GroupList / 603 GroupMessage |
-| 500 FriendRequest | 604 GroupMessageList |
-| 501 PrivateMessageSync | |
-| 600 GroupSync | |
-| 601 GroupMessageSync | |
+| Action (动词)             | ObjectType (名词)                |
+| ------------------------- | -------------------------------- |
+| 100 Declare               | 100 Nothing                      |
+| 200 AvatarRequest         | 101 ECDH                         |
+| 300 FileRequest           | 400 Bulletin                     |
+| 400 BulletinRequest       | 403 ServerAddressList            |
+| 401 BulletinSubscribe     | 404 ReplyBulletinList            |
+| 402 RandomBulletinRequest | 500 PrivateMessage               |
+| 403 ServerAddressRequest  | 600 GroupCreate                  |
+| 404 ReplyBulletinRequest  | 601 GroupDelete                  |
+| 405 TagBulletinRequest    | 602 GroupList / 603 GroupMessage |
+| 500 FriendRequest         | 604 GroupMessageList             |
+| 501 PrivateMessageSync    |                                  |
+| 600 GroupSync             |                                  |
+| 601 GroupMessageSync      |                                  |
 
 ---
 
@@ -223,13 +231,13 @@ Text   Frame: JSON 控制消息 (公告、握手、请求)
 
 ### Client SQLite (18 tables)
 
-| 分类 | 表 | 用途 |
-|------|-----|------|
-| 身份社交 | `servers`, `contacts`, `accounts`, `follows`, `friends` | 多账号、关注/好友关系 |
-| 公告 | `bulletins`, `tags`, `bulletin_tags`, `bulletin_replys`, `bulletin_files` | 公告链副本，含双向链接 |
-| 加密 | `handshakes`, `private_messages`, `group_messages` | ECDH 状态、AES key、解密后明文 |
-| 文件 | `avatar_files`, `files`, `private_chat_files`, `group_chat_files` | 下载进度追踪，E2E加密文件映射 |
-| 群聊 | `groups` | 群元数据，软删除支持 |
+| 分类     | 表                                                                        | 用途                           |
+| -------- | ------------------------------------------------------------------------- | ------------------------------ |
+| 身份社交 | `servers`, `contacts`, `accounts`, `follows`, `friends`                   | 多账号、关注/好友关系          |
+| 公告     | `bulletins`, `tags`, `bulletin_tags`, `bulletin_replys`, `bulletin_files` | 公告链副本，含双向链接         |
+| 加密     | `handshakes`, `private_messages`, `group_messages`                        | ECDH 状态、AES key、解密后明文 |
+| 文件     | `avatar_files`, `files`, `private_chat_files`, `group_chat_files`         | 下载进度追踪，E2E加密文件映射  |
+| 群聊     | `groups`                                                                  | 群元数据，软删除支持           |
 
 ### Server PostgreSQL (8 Prisma models)
 
@@ -241,30 +249,17 @@ Text   Frame: JSON 控制消息 (公告、握手、请求)
 
 ## 安全模型
 
-| 防线 | 实现 | 效果 |
-|------|------|------|
-| Layer 1: 身份 | XRPL KeyPairs, 私钥不出 Client | 无注册、不可封禁、抗审查 |
+| 防线            | 实现                                 | 效果                     |
+| --------------- | ------------------------------------ | ------------------------ |
+| Layer 1: 身份   | XRPL KeyPairs, 私钥不出 Client       | 无注册、不可封禁、抗审查 |
 | Layer 2: 完整性 | EdDSA 签名 + AJV Schema + PreHash 链 | 来源可验证，内容不可篡改 |
-| Layer 3: 保密性 | ECDH secp256k1 → HKDF → AES-CBC | Server 仅存密文转发 |
+| Layer 3: 保密性 | ECDH secp256k1 → HKDF → AES-CBC      | Server 仅存密文转发      |
 
 **设计权衡 (有意识取舍):**
-- QuarterSHA512 展示 hash 仅 40-bit — 可读性优先，但 EdDSA 签名是安全底线
+
+- QuarterSHA512 展示 hash 取 SHA-512 前 128 bit — 可读性优先，但 EdDSA 签名是安全底线
 - AES-CBC 而非 GCM — crypto-js 兼容性好，依赖外层 hash chain 防篡改
 - Seed 存 localStorage (AES 加密) — Tauri WebView 缩小 XSS 攻击面
-
----
-
-## 完整设计文档
-
-如需深入了解通讯协议和密码学细节，请参阅根目录的设计文档：
-
-- **[RippleMessenger-Design.md](./RippleMessenger-Design.md)** — 13章系统级分析
-  - 身份系统、签名机制、公告链完整性保证
-  - DHSequence 分区系统、ECDH 握手全流程
-  - 私聊/群聊消息链验证、自修复同步协议
-  - 文件传输 Nonce-based 分块加密
-  - 协议路由矩阵、数据层对比、联邦网络
-  - 安全模型权衡表、十大设计原则
 
 ---
 
@@ -275,4 +270,3 @@ XRP: `rBoy4AAAAA9qxv7WANSdP5j5y59NP6soJS`
 ---
 
 欢迎 star、fork、贡献代码、推荐、捐赠，谢谢！
-
