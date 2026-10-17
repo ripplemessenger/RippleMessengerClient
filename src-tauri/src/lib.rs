@@ -6,12 +6,11 @@ use std::time::Duration;
 
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
-use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton};
+use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{App, AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_log::{
     log::{self, LevelFilter},
-    Builder as LogBuilder,
-    RotationStrategy, Target, TargetKind,
+    Builder as LogBuilder, RotationStrategy, Target, TargetKind,
 };
 
 mod sync_server;
@@ -24,8 +23,9 @@ const MAIN_WINDOW_LABEL: &str = "main";
 /* ── shared state ──────────────────────────────────────────── */
 static IS_FLASHING: AtomicBool = AtomicBool::new(false);
 static FLASH_TASK: Mutex<Option<tokio::task::AbortHandle>> = Mutex::new(None);
-/// Flash icon queue: (sender address, avatar PNG bytes; empty bytes = no avatar → default alert icon)
-static FLASH_ICONS: Mutex<Vec<(String, Vec<u8>)>> = Mutex::new(Vec::new());
+/// Flash icon queue: (session_key, sender address, avatar PNG bytes; empty bytes = no avatar → default alert icon)
+/// session_key = `private:<addr>` or `group:<hash>` — the single source of truth for tray-click navigation.
+static FLASH_ICONS: Mutex<Vec<(String, String, Vec<u8>)>> = Mutex::new(Vec::new());
 
 /// true  = close → hide to tray (default)
 /// false = close → quit the app
@@ -92,16 +92,24 @@ fn refresh_tray_menu_internal(app: &AppHandle) {
     }
 }
 
-async fn start_message_flash_internal(app: &AppHandle, sender: String, icon: Vec<u8>) {
+async fn start_message_flash_internal(
+    app: &AppHandle,
+    session_key: String,
+    sender: String,
+    icon: Vec<u8>,
+) {
     // Upsert sender into the flash icon queue (newest message wins the icon)
     {
         let mut icons = match FLASH_ICONS.lock() {
             Ok(i) => i,
             Err(poisoned) => poisoned.into_inner(),
         };
-        match icons.iter_mut().find(|(s, _)| *s == sender) {
-            Some(entry) => entry.1 = icon,
-            None => icons.push((sender, icon)),
+        match icons.iter_mut().find(|(_, s, _)| *s == sender) {
+            Some(entry) => {
+                entry.0 = session_key;
+                entry.2 = icon;
+            }
+            None => icons.push((session_key, sender, icon)),
         }
     }
 
@@ -148,7 +156,7 @@ async fn start_message_flash_internal(app: &AppHandle, sender: String, icon: Vec
             let icon_bytes: &[u8] = if icons.is_empty() {
                 alert_icon_bytes
             } else if step.is_multiple_of(2) {
-                let sender_icon = &icons[(step / 2) as usize % icons.len()].1;
+                let sender_icon = &icons[(step / 2) as usize % icons.len()].2;
                 if sender_icon.is_empty() {
                     alert_icon_bytes
                 } else {
@@ -181,8 +189,22 @@ async fn start_message_flash_internal(app: &AppHandle, sender: String, icon: Vec
 }
 
 #[tauri::command]
-async fn start_message_flash(app: AppHandle, sender: String, icon: Vec<u8>) {
-    start_message_flash_internal(&app, sender, icon).await;
+async fn start_message_flash(app: AppHandle, session_key: String, sender: String, icon: Vec<u8>) {
+    start_message_flash_internal(&app, session_key, sender, icon).await;
+}
+
+/// Return the distinct session keys currently flashing (`private:<addr>` / `group:<hash>`).
+/// Single source of truth for tray-click navigation — the frontend no longer keeps its own copy.
+#[tauri::command]
+fn get_flashing_sessions() -> Vec<String> {
+    let icons = match FLASH_ICONS.lock() {
+        Ok(i) => i,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    let mut keys: Vec<String> = icons.iter().map(|(k, _, _)| k.clone()).collect();
+    keys.sort();
+    keys.dedup();
+    keys
 }
 
 fn stop_message_flash_internal(app: &AppHandle) {
@@ -227,6 +249,9 @@ fn show_main_window_internal(app: &AppHandle) {
         // We do NOT stop the flash here: it should only clear when the user
         // actually opens the conversation (handled by the JS session-load path).
         let _ = window.emit("tray-show-requested", ());
+        if let Err(e) = window.unminimize() {
+            log::warn!("Failed to unminimize window: {}", e);
+        }
         if let Err(e) = window.show() {
             log::warn!("Failed to show window: {}", e);
         }
@@ -280,13 +305,16 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
 
     let menu = Menu::with_items(handle, &[&show_item, &quit_item])?;
 
-    let tray_icon = app.default_window_icon().cloned()
+    let tray_icon = app
+        .default_window_icon()
+        .cloned()
         .or_else(|| Image::from_bytes(include_bytes!("../icons/icon.png")).ok())
         .expect("No default window icon and failed to load fallback icon for tray");
 
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(tray_icon)
         .menu(&menu)
+        .show_menu_on_left_click(false)
         .tooltip("RippleMessenger")
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button, .. } = event {
@@ -326,9 +354,9 @@ fn start_sync_server(app: AppHandle, address: String) -> Result<String, String> 
                 .enable_all()
                 .build()
                 .expect("failed to build sync-server tokio runtime");
-            if let Err(e) = rt.block_on(async move {
-                sync_server::start_sync_server(handle, address).await
-            }) {
+            if let Err(e) =
+                rt.block_on(async move { sync_server::start_sync_server(handle, address).await })
+            {
                 log::error!("[SyncServer] Failed to start: {}", e);
             }
         })
@@ -377,17 +405,16 @@ pub fn run() {
                     }
                 });
             }
-             #[cfg(desktop)]
-             app.handle()
-                 .plugin(tauri_plugin_single_instance::init(
-                     |app_handle, _args, _cwd| {
-                         if let Some(window) = app_handle.get_webview_window(MAIN_WINDOW_LABEL) {
-                             let _ = window.unminimize();
-                             let _ = window.show();
-                             let _ = window.set_focus();
-                         }
-                     },
-                 ))?;
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_single_instance::init(
+                |app_handle, _args, _cwd| {
+                    if let Some(window) = app_handle.get_webview_window(MAIN_WINDOW_LABEL) {
+                        let _ = window.unminimize();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                },
+            ))?;
             Ok(())
         })
         .plugin(
@@ -406,6 +433,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_message_flash,
             stop_message_flash,
+            get_flashing_sessions,
             set_close_to_tray,
             set_start_minimized,
             start_sync_server,

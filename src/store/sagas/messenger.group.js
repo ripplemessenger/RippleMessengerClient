@@ -1,6 +1,5 @@
 import { all, call, delay, fork, put, select } from 'redux-saga/effects'
 import { invoke } from '@tauri-apps/api/core'
-import { clearFlashingSessions } from '../../lib/FlashSessionTracker'
 
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
@@ -79,7 +78,6 @@ export function* LoadGroupSession({ payload }) {
       yield call(() => dbAPI.readGroupSession(payload.hash))
       // User is now viewing this group chat — stop any in-progress tray flash.
       yield call(invoke, 'stop_message_flash')
-      clearFlashingSessions()
       yield call(LoadSessionList)
       yield call(RefreshGroupMessageList)
       yield call(RequestGroupMessageSync, { payload: { hash: group_session.hash } })

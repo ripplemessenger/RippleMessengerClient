@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import ConfirmDiv from '../components/ConfirmDiv'
@@ -13,7 +14,6 @@ import { ThemeProvider } from '../components/ThemeProvider'
 import { useConfirmPopup } from '../hooks/useConfirmPopup'
 import { selectDisplayJson, selectFlashNotice } from '../selectors'
 import { SessionType } from '../lib/AppConst'
-import { getFlashingSessions } from '../lib/FlashSessionTracker'
 import { LoadCurrentSession } from '../store/sagas/messenger.actions'
 import { setWindowFocused, setCurrentRoute } from '../store/slices/CommonSlice'
 
@@ -67,8 +67,8 @@ export default function MainLayout() {
   //   - multiple  → go to the chat page and let the user pick
   useEffect(() => {
     let unlisten = null
-    listen('tray-show-requested', () => {
-      const sessions = getFlashingSessions()
+    listen('tray-show-requested', async () => {
+      const sessions = await invoke('get_flashing_sessions')
       if (sessions.length === 0) return
 
       if (sessions.length === 1) {

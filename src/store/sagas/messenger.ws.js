@@ -29,7 +29,6 @@ import {
   QuarterSHA512Message
 } from '../../lib/AppUtil'
 import { getAvatarIconBytes } from '../../lib/TrayFlashUtil'
-import { addFlashingSession } from '../../lib/FlashSessionTracker'
 import Logger from '../../lib/Logger'
 import { playNotificationSound } from '../../lib/SoundUtil'
 import { mgAPI } from '../../lib/MessageGenerator'
@@ -976,8 +975,11 @@ function* processPrivateMessage(json, address, ob_address) {
       if (!is_read && getSettingBool('enableNotifications', true)) {
         const appBaseDir = yield select((state) => state.Common.AppBaseDir)
         const icon = yield call(() => getAvatarIconBytes(remote, appBaseDir))
-        yield call(invoke, 'start_message_flash', { sender: remote, icon: icon ? Array.from(icon) : [] })
-        addFlashingSession(`private:${remote}`)
+        yield call(invoke, 'start_message_flash', {
+          sender: remote,
+          icon: icon ? Array.from(icon) : [],
+          session_key: `private:${remote}`
+        })
       }
       playNotificationSound(getSettingString('messageSound', 'none'))
     }
@@ -1162,8 +1164,11 @@ function* handleGroupMessageListObject(json, address, seed) {
         if (!is_read && getSettingBool('enableNotifications', true)) {
           const appBaseDir = yield select((state) => state.Common.AppBaseDir)
           const icon = yield call(() => getAvatarIconBytes(msg_address, appBaseDir))
-          yield call(invoke, 'start_message_flash', { sender: msg_address, icon: icon ? Array.from(icon) : [] })
-          addFlashingSession(`group:${json.GroupHash}`)
+          yield call(invoke, 'start_message_flash', {
+            sender: msg_address,
+            icon: icon ? Array.from(icon) : [],
+            session_key: `group:${json.GroupHash}`
+          })
         }
         playNotificationSound(getSettingString('messageSound', 'none'))
       }
