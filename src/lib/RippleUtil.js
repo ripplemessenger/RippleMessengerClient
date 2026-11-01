@@ -1,4 +1,4 @@
-import { Wallet, ECDSA } from 'xrpl'
+import { Wallet } from 'xrpl'
 import { TestNetURL } from './RippleConst.js'
 import { DefaultServer } from './MessengerConst.js'
 
@@ -14,10 +14,8 @@ function getWallet(seed, server_url = DefaultServer) {
   if (server_url === TestNetURL) {
     return Wallet.fromSeed(seed)
   } else {
-    return Wallet.fromSeed(seed, { algorithm: ECDSA.secp256k1 })
+    return Wallet.fromSeed(seed)
   }
 }
 
-export {
-  getWallet
-}
+export { getWallet }

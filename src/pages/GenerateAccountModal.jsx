@@ -3,7 +3,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { IoCloseOutline, IoCopyOutline } from 'react-icons/io5'
 import { useTranslation } from 'react-i18next'
-import { ECDSA, Wallet } from 'xrpl'
+import { Wallet } from 'xrpl'
 
 import { getWallet } from '../lib/RippleUtil'
 import FormButton from '../components/Form/FormButton'
@@ -23,7 +23,7 @@ export default function GenerateAccountModal({ onClose }) {
   useFocusTrap(dialogRef)
 
   const genNewAccount = useCallback(() => {
-    const tmp = Wallet.generate(ECDSA.secp256k1)
+    const tmp = Wallet.generate('ed25519')
     setNewSeed(tmp.seed)
     const wallet = getWallet(tmp.seed)
     setNewAddress(wallet.classicAddress)

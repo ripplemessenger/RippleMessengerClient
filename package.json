@@ -43,7 +43,7 @@
     "react-select": "^5.10.2",
     "redux-saga": "^1.3.0",
     "remark-gfm": "^4.0.1",
-    "ripple-keypairs": "^2.0.0",
+    "ripple-keypairs": "^3.1.0",
     "stream-browserify": "^3.0.0",
     "xrpl": "^4.4.0"
   },

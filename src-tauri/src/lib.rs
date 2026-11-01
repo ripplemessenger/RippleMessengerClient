@@ -261,6 +261,33 @@ fn show_main_window_internal(app: &AppHandle) {
     }
 }
 
+/// Left-click tray: toggle window show/hide.
+/// While flashing (new message pending) keep the old behaviour: always show.
+fn toggle_main_window_internal(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        if IS_FLASHING.load(Ordering::SeqCst) {
+            show_main_window_internal(app);
+            return;
+        }
+        if window.is_visible().unwrap_or(false) {
+            if let Err(e) = window.hide() {
+                log::warn!("Failed to hide window on toggle: {}", e);
+            }
+        } else {
+            let _ = window.emit("tray-show-requested", ());
+            if let Err(e) = window.unminimize() {
+                log::warn!("Failed to unminimize window: {}", e);
+            }
+            if let Err(e) = window.show() {
+                log::warn!("Failed to show window: {}", e);
+            }
+            if let Err(e) = window.set_focus() {
+                log::warn!("Failed to focus window: {}", e);
+            }
+        }
+    }
+}
+
 /// Toggle the "close to tray" behaviour from the frontend.
 /// Returns the new value so the UI can stay in sync.
 #[tauri::command]
@@ -319,7 +346,7 @@ pub fn setup_tray(app: &App) -> tauri::Result<()> {
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click { button, .. } = event {
                 if button == MouseButton::Left {
-                    show_main_window_internal(tray.app_handle());
+                    toggle_main_window_internal(tray.app_handle());
                 }
             }
         })
