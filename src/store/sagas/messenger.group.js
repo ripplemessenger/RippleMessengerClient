@@ -4,13 +4,19 @@ import { invoke } from '@tauri-apps/api/core'
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
 import { dbAPI } from '../../db'
-import { DefaultPartition, SessionType, FLASH_DURATION_MS } from '../../lib/AppConst'
+import { DefaultPartition, MessagePageSize, SessionType, FLASH_DURATION_MS } from '../../lib/AppConst'
 import { AesEncrypt, QuarterSHA512Message } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { GenesisHash, ObjectType, GroupMemberMax } from '../../lib/MessengerConst'
 import { DHSequence } from '../../lib/MessengerUtil'
-import { setCurrentSession, setCurrentSessionMessageList, setComposeMemberList } from '../slices/MessengerSlice'
+import {
+  setCurrentSession,
+  setCurrentSessionMessageList,
+  appendCurrentSessionMessage,
+  prependCurrentSessionMessages,
+  setComposeMemberList
+} from '../slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import i18n from '../../i18n'
 
@@ -20,10 +26,39 @@ export function* RefreshGroupMessageList() {
     if (!CurrentSession) {
       return
     }
-    const current_msg_list = yield call(() => dbAPI.getGroupSession(CurrentSession.hash))
+    // Paged: newest MessagePageSize messages only (see messenger.private.js).
+    const current_msg_list = yield call(() =>
+      dbAPI.getGroupSessionPage(CurrentSession.hash, { limit: MessagePageSize })
+    )
     yield put(setCurrentSessionMessageList(current_msg_list))
   } catch (e) {
     Logger.error('[RefreshGroupMessageList] failed:', e.message)
+  }
+}
+
+/** Scrollback for group chats: prepend the page older than what is on screen. */
+export function* LoadOlderGroupMessages() {
+  try {
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
+    if (!CurrentSession || CurrentSession.type !== SessionType.Group) {
+      return
+    }
+    const loaded = yield select((state) => state.Messenger.CurrentSessionMessageList)
+    if (!loaded || loaded.length === 0) {
+      return
+    }
+    const older = yield call(() =>
+      dbAPI.getGroupSessionPage(CurrentSession.hash, {
+        limit: MessagePageSize,
+        beforeSignedAt: loaded[0].signed_at,
+        beforeHash: loaded[0].hash
+      })
+    )
+    if (older.length > 0) {
+      yield put(prependCurrentSessionMessages(older))
+    }
+  } catch (e) {
+    Logger.error('[LoadOlderGroupMessages] failed:', e.message)
   }
 }
 
@@ -223,7 +258,11 @@ export function* SendGroupContent({ payload }) {
     tmp_group_session.current_hash = group_msg_hash
     yield put(setCurrentSession(tmp_group_session))
 
-    yield call(RefreshGroupMessageList)
+    // Append our own message instead of re-reading the whole group history.
+    const inserted_group_msg = yield call(() => dbAPI.getGroupMessageByHash(CurrentSession.hash, group_msg_hash))
+    if (inserted_group_msg) {
+      yield put(appendCurrentSessionMessage(inserted_group_msg))
+    }
 
     // Send to all members concurrently
     yield all(

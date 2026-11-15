@@ -22,7 +22,7 @@ import { filesize_format, FileHashAsync } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
 import { FileRequestType, MessageObjectType } from '../../lib/MessengerConst'
-import { DHSequence, PrivateFileEHash, FileHash, GroupFileEHash, buildFileFullPath } from '../../lib/MessengerUtil'
+import { DHSequence, PrivateFileEHash, GroupFileEHash, buildFileFullPath } from '../../lib/MessengerUtil'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { markFileSaved, setFileStatus } from '../slices/MessengerSlice'
 import i18n from '../../i18n'
@@ -64,7 +64,8 @@ export function* FetchBulletinFile({ payload }) {
       const filePath = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, file.hash)))
       try {
         const content = yield call(() => readFile(filePath))
-        const hash = FileHash(content)
+        // Async native digest — see receiveFileChunk in messenger.ws.js for why.
+        const hash = yield call(FileHashAsync, content)
         if (hash === file.hash) {
           yield call(() => dbAPI.remoteFileSaved(file.hash, Date.now()))
           yield put(markFileSaved({ hash: file.hash }))

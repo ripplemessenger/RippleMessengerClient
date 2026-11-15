@@ -1,5 +1,5 @@
 import { Bool2Int, Int2Bool } from '../lib/AppUtil'
-import { getDB } from './core'
+import { getDB, chunkByVars } from './core'
 
 export const api = {
   async getFileByHash(hash) {
@@ -81,57 +81,13 @@ export const api = {
     return group_chat_files.length > 0 ? group_chat_files[0] : null
   },
 
-  // Management: get all files with usage info and category
-  async getAllFilesWithUsage() {
-    const dbInstance = await getDB()
-    const rows = await dbInstance.select(`
-      SELECT
-        f.hash,
-        f.size,
-        f.is_saved,
-        f.updated_at,
-        COALESCE(bulletin_files.file_hash, private_chat_files.hash, group_chat_files.hash) IS NOT NULL AS has_ref,
-        CASE
-          WHEN bulletin_files.file_hash IS NOT NULL THEN 'bulletin'
-          WHEN private_chat_files.hash IS NOT NULL THEN 'private'
-          WHEN group_chat_files.hash IS NOT NULL THEN 'group'
-          ELSE 'orphan'
-        END AS category,
-        (
-          SELECT COUNT(*) FROM bulletin_files WHERE file_hash = f.hash
-          +
-          SELECT COUNT(*) FROM private_chat_files WHERE hash = f.hash
-          +
-          SELECT COUNT(*) FROM group_chat_files WHERE hash = f.hash
-        ) AS ref_count
-      FROM files f
-      LEFT JOIN bulletin_files ON bulletin_files.file_hash = f.hash
-      LEFT JOIN private_chat_files ON private_chat_files.hash = f.hash
-      LEFT JOIN group_chat_files ON group_chat_files.hash = f.hash
-      GROUP BY f.hash
-      ORDER BY f.updated_at DESC
-    `)
-    return rows.map((r) => ({
-      ...r,
-      is_saved: Int2Bool(r.is_saved)
-    }))
-  },
-
-  // Management: count files by category
-  async getFileCountByCategory() {
-    const dbInstance = await getDB()
-    const rows = await dbInstance.select(`
-      SELECT
-        (SELECT COUNT(*) FROM files f WHERE EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.file_hash = f.hash)) AS bulletin,
-        (SELECT COUNT(*) FROM files f WHERE EXISTS (SELECT 1 FROM private_chat_files pf WHERE pf.hash = f.hash) AND NOT EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.file_hash = f.hash)) AS private,
-        (SELECT COUNT(*) FROM files f WHERE EXISTS (SELECT 1 FROM group_chat_files gf WHERE gf.hash = f.hash) AND NOT EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.file_hash = f.hash) AND NOT EXISTS (SELECT 1 FROM private_chat_files pf WHERE pf.hash = f.hash)) AS group,
-        (SELECT COUNT(*) FROM files f WHERE NOT EXISTS (SELECT 1 FROM bulletin_files bf WHERE bf.file_hash = f.hash) AND NOT EXISTS (SELECT 1 FROM private_chat_files pf WHERE pf.hash = f.hash) AND NOT EXISTS (SELECT 1 FROM group_chat_files gf WHERE gf.hash = f.hash)) AS orphan
-    `)
-    const [result] = rows
-    return result
-      ? { bulletin: result.bulletin, private: result.private, group: result.group, orphan: result.orphan }
-      : { bulletin: 0, private: 0, group: 0, orphan: 0 }
-  },
+  // NOTE: getAllFilesWithUsage() and getFileCountByCategory() were removed here.
+  // Both were unreachable (no callers anywhere in src/), and getAllFilesWithUsage
+  // contained invalid SQL: its ref_count expression was written as
+  //   (SELECT COUNT(*) … + SELECT COUNT(*) … + SELECT COUNT(*) …)
+  // which SQLite parses as `f.hash + SELECT …` and rejects with a syntax error.
+  // Re-adding a "files with usage" view should use getFilesForManagement() /
+  // getFileCountForManagement() below, which are correct and paginated.
 
   // Delete a bulletin file: if the file is also referenced by private/group chat, only remove the bulletin reference (don't delete the file itself). If not referenced elsewhere, delete everything.
   async deleteBulletinFileSafe(hash) {
@@ -152,12 +108,51 @@ export const api = {
   },
 
   // Bulk version of deleteBulletinFileSafe
+  //
+  // Batched: the per-hash version issues 1 SELECT + up to 2 DELETEs each (so
+  // ~3N round-trips) and resolves a sibling through `this`, which breaks if the
+  // function is ever destructured off dbAPI. Here the chat-reference check, the
+  // bulletin-reference cleanup and the file-record cleanup are each a single
+  // statement over the whole batch, and the result is mapped back per hash.
   async deleteBulletinFilesSafe(hashes) {
-    const results = []
-    for (const hash of hashes) {
-      results.push(await this.deleteBulletinFileSafe(hash))
+    if (!Array.isArray(hashes) || hashes.length === 0) return []
+    const db = await getDB()
+
+    const uniq = [...new Set(hashes)]
+    const hasChatRefSet = new Set()
+
+    // Same order as deleteBulletinFileSafe: references first, file record last,
+    // so the FK from bulletin_files never blocks the delete.
+    for (const part of chunkByVars(uniq, 2)) {
+      // Two independent IN lists, so each occurrence gets its own placeholder
+      // index ($1..$n for the first, $n+1..$2n for the second) and exactly
+      // 2n values are bound.
+      const first = part.map((_, i) => `$${i + 1}`).join(', ')
+      const second = part.map((_, i) => `$${part.length + i + 1}`).join(', ')
+      const rows = await db.select(
+        `SELECT DISTINCT hash FROM (
+           SELECT hash FROM private_chat_files WHERE hash IN (${first})
+           UNION
+           SELECT hash FROM group_chat_files WHERE hash IN (${second})
+         )`,
+        [...part, ...part]
+      )
+      for (const row of rows) hasChatRefSet.add(row.hash)
     }
-    return results
+
+    for (const part of chunkByVars(uniq, 1)) {
+      const placeholder = part.map((_, i) => `$${i + 1}`).join(', ')
+      await db.execute(`DELETE FROM bulletin_files WHERE file_hash IN (${placeholder})`, part)
+    }
+
+    const orphaned = uniq.filter((h) => !hasChatRefSet.has(h))
+    for (const part of chunkByVars(orphaned, 1)) {
+      const placeholder = part.map((_, i) => `$${i + 1}`).join(', ')
+      await db.execute(`DELETE FROM files WHERE hash IN (${placeholder})`, part)
+    }
+
+    // Preserve the per-hash result shape the caller relies on.
+    return hashes.map((hash) => ({ hasChatRef: hasChatRefSet.has(hash) }))
   },
 
   // Management: delete a file record from DB (NOT disk file)
@@ -356,17 +351,11 @@ export const api = {
     }
   },
 
-  // Management: bulk delete file records by hash array, removing references first
-  async deleteFilesByHashes(hashes) {
-    const db = await getDB()
-    let deleted = 0
-    for (const hash of hashes) {
-      await this.removeFileReferences(hash)
-      await db.execute('DELETE FROM files WHERE hash = $1', [hash])
-      deleted++
-    }
-    return deleted
-  },
+  // NOTE: deleteFilesByHashes() was removed here — it had no callers anywhere in
+  // src/. It also used `this.removeFileReferences`, which only resolves when the
+  // method is invoked as dbAPI.deleteFilesByHashes(...); destructuring it would
+  // throw. Bulk deletion goes through deleteBulletinFilesSafe (used by
+  // BulkDeleteFiles in messenger.storage.js) or the single-file paths.
 
   // Management: get files older than a given number of days, paginated
   async getFilesOlderThan({ daysAgo, page = 1, pageSize = 20 }) {

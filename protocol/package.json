@@ -1,0 +1,48 @@
+{
+  "name": "@ripplemessenger/protocol",
+  "version": "0.1.0",
+  "description": "RippleMessenger protocol constants and JSON schemas",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./constants": {
+      "types": "./types/constants.d.ts",
+      "default": "./src/constants.js"
+    },
+    "./schema": {
+      "types": "./types/schema.d.ts",
+      "default": "./src/schema.js"
+    },
+    "./validator": {
+      "types": "./types/validator.d.ts",
+      "default": "./src/validator.js"
+    }
+  },
+  "files": [
+    "src",
+    "types"
+  ],
+  "scripts": {
+    "test": "node scripts/schema-parity.mjs && node scripts/parity-test.mjs",
+    "test:schema": "node scripts/schema-parity.mjs",
+    "test:behavior": "node scripts/parity-test.mjs"
+  },
+  "keywords": [
+    "ripplemessenger",
+    "protocol",
+    "constants",
+    "schema"
+  ],
+  "author": "RippleMessenger Team",
+  "license": "MIT",
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
+  "peerDependencies": {},
+  "devDependencies": {}
+}

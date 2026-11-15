@@ -24,6 +24,7 @@ import {
   AesDecryptBuffer,
   AesEncrypt,
   AesEncryptBuffer,
+  FileHashAsync,
   genAESKey,
   HalfSHA512,
   QuarterSHA512Message
@@ -63,7 +64,8 @@ import {
   appendRandomBulletins,
   setRandomBulletinLoading,
   markFileSaved,
-  setFileStatus
+  setFileStatus,
+  appendCurrentSessionMessage
 } from '../slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 
@@ -110,18 +112,13 @@ import { FetchBulletinFile, FetchPrivateChatFile, FetchGroupChatFile } from './m
 import { LoadFileManagementList as LoadFileManagementListAction } from './messenger.actions'
 
 // Private chat
-import {
-  AutoSyncPrivateMessages,
-  SyncPrivateMessage,
-  InitHandshake,
-  RefreshPrivateMessageList
-} from './messenger.private'
+import { AutoSyncPrivateMessages, SyncPrivateMessage, InitHandshake } from './messenger.private'
 
 // Group chat
-import { RefreshGroupMessageList, GroupSync } from './messenger.group'
+import { GroupSync } from './messenger.group'
 
 // Session management
-import { LoadSessionList } from './messenger.session'
+import { LoadSessionList, BumpSession } from './messenger.session'
 
 // Server management & group list (stays in MessengerSaga.js)
 import { UpdateConnStatus, LoadGroupList, LoadGroupRequestList } from './MessengerSaga'
@@ -169,7 +166,10 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
     if (current_chunk_cursor < file.chunk_length) {
       yield call(fetchNext, { payload: fetchNextPayload })
     } else {
-      const hash = FileHash(yield call(() => readFile(filePath)))
+      // Use the async native (Web Crypto) digest here: the sync CryptoJS path
+      // runs on the JS main thread at ~10 MB/s, i.e. ~6 s of frozen UI for a
+      // 64 MB attachment. crypto.subtle.digest is native and off-thread (~650 MB/s).
+      const hash = yield call(FileHashAsync, yield call(() => readFile(filePath)))
       if (hash === request.Hash) {
         Logger.info('[📥 receiveFileChunk] ✅ Hash verified, marking file as saved')
         yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
@@ -262,7 +262,12 @@ function* handleBinaryGroupFile(request, content, action) {
     if (file.chunk_cursor < file.chunk_length && file.chunk_cursor + 1 === request.ChunkCursor) {
       const index = yield call(() => ArrayBufferToUint32(action.data.slice(4, 8)))
       const from = getMemberByIndex(request.GroupMember, index)
-      const ecdh_sequence = DHSequence(DefaultPartition, Date.now(), request.SelfAddress, from)
+      // Use the FileRequest's own timestamp, not "now". Every other DHSequence
+      // call site in this file uses the message Timestamp, and the sender keys
+      // off the same value; mixing in Date.now() would compute a different
+      // 90-day partition sequence around a boundary and silently fail to find
+      // the handshake (file never completes, no error shown).
+      const ecdh_sequence = DHSequence(DefaultPartition, request.Timestamp, request.SelfAddress, from)
       const ecdh = yield call(() => dbAPI.getHandshake(request.SelfAddress, from, DefaultPartition, ecdh_sequence))
       if (ecdh?.aes_key) {
         const base_dir = yield call(() => path.resourceDir())
@@ -967,10 +972,19 @@ function* processPrivateMessage(json, address, ob_address) {
 
     if (add_result) {
       if (CurrentSession && CurrentSession.type === SessionType.Private && CurrentSession.remote === remote) {
-        yield call(RefreshPrivateMessageList)
+        // Append just the message we stored instead of re-reading the whole
+        // conversation (which made an open chat O(n) per incoming message).
+        const inserted = yield call(() => dbAPI.getPrivateMessageByHash(QuarterSHA512Message(json)))
+        if (inserted) {
+          yield put(appendCurrentSessionMessage(inserted))
+        }
       }
-      yield call(LoadSessionList)
-      // Only flash when the message is UNREAD (session not currently open).
+      yield call(BumpSession, {
+        sessionType: SessionType.Private,
+        key: remote,
+        timestamp: json.Timestamp,
+        unread: !is_read
+      })
       // If the user is already viewing this chat, no attention-grab is needed.
       if (!is_read && getSettingBool('enableNotifications', true)) {
         const appBaseDir = yield select((state) => state.Common.AppBaseDir)
@@ -1157,10 +1171,19 @@ function* handleGroupMessageListObject(json, address, seed) {
       )
       if (add_result) {
         if (CurrentSession && CurrentSession.type === SessionType.Group && CurrentSession.hash === json.GroupHash) {
-          yield call(RefreshGroupMessageList)
+          // Append just the message we stored instead of re-reading the whole
+          // group history (which made an open chat O(n) per incoming message).
+          const inserted = yield call(() => dbAPI.getGroupMessageByHash(json.GroupHash, hash))
+          if (inserted) {
+            yield put(appendCurrentSessionMessage(inserted))
+          }
         }
-        yield call(LoadSessionList)
-        // Only flash when the message is UNREAD (session not currently open).
+        yield call(BumpSession, {
+          sessionType: SessionType.Group,
+          key: json.GroupHash,
+          timestamp: verify_json.Timestamp,
+          unread: !is_read
+        })
         if (!is_read && getSettingBool('enableNotifications', true)) {
           const appBaseDir = yield select((state) => state.Common.AppBaseDir)
           const icon = yield call(() => getAvatarIconBytes(msg_address, appBaseDir))

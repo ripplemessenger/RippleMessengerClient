@@ -14,6 +14,7 @@
     "format:check": "prettier --check src/"
   },
   "dependencies": {
+    "@ripplemessenger/protocol": "file:./protocol",
     "@reduxjs/toolkit": "^2.8.2",
     "@tanstack/react-table": "^8.21.3",
     "@tauri-apps/api": "^2",

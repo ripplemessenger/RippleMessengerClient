@@ -19,12 +19,14 @@ export {
   LoadPrivateSession,
   SendPrivateContent,
   RefreshPrivateMessageList,
+  LoadOlderPrivateMessages,
   ShowForwardBulletin,
   ForwardBulletin,
 } from './messenger.private'
 
 export {
   RefreshGroupMessageList,
+  LoadOlderGroupMessages,
   LoadGroupSession,
   SendGroupContent,
   ComposeMemberAdd,
@@ -96,8 +98,8 @@ import { ConnectServer } from './messenger.core'
 
 // Private/Group session handlers (needed by dispatchers below)
 // Already re-exported above; importing locally for direct use.
-import { LoadPrivateSession, SendPrivateContent } from './messenger.private'
-import { LoadGroupSession, SendGroupContent } from './messenger.group'
+import { LoadPrivateSession, SendPrivateContent, LoadOlderPrivateMessages } from './messenger.private'
+import { LoadGroupSession, SendGroupContent, LoadOlderGroupMessages } from './messenger.group'
 
 // ==================== Server Management ====================
 
@@ -205,6 +207,23 @@ export function* SendContent({ payload }) {
     }
   } catch (e) {
     Logger.error('[SendContent] failed:', e.message)
+  }
+}
+
+/** Scrollback dispatcher: load the previous page for whichever session is open. */
+export function* LoadOlderMessages() {
+  try {
+    const CurrentSession = yield select(state => state.Messenger.CurrentSession)
+    if (!CurrentSession) {
+      return
+    }
+    if (CurrentSession.type === SessionType.Private) {
+      yield call(LoadOlderPrivateMessages)
+    } else if (CurrentSession.type === SessionType.Group) {
+      yield call(LoadOlderGroupMessages)
+    }
+  } catch (e) {
+    Logger.error('[LoadOlderMessages] failed:', e.message)
   }
 }
 

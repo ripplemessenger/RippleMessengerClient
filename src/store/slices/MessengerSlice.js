@@ -212,6 +212,31 @@ const MessengerSlice = createSlice({
     setCurrentSessionMessageList: (state, action) => {
       state.CurrentSessionMessageList = action.payload
     },
+    /**
+     * Append one message to the open session without re-reading history.
+     * Dedupes against the current tail (the realistic duplicate case is a
+     * re-delivered message) so this stays O(1) instead of scanning the list.
+     */
+    appendCurrentSessionMessage: (state, action) => {
+      const msg = action.payload
+      if (!msg || !msg.hash) return
+      const list = state.CurrentSessionMessageList
+      const last = list[list.length - 1]
+      if (last && last.hash === msg.hash) return
+      list.push(msg)
+    },
+    /**
+     * Prepend a page of older messages (scrolling back). Keeps ascending order
+     * and drops anything already present.
+     */
+    prependCurrentSessionMessages: (state, action) => {
+      const older = action.payload
+      if (!Array.isArray(older) || older.length === 0) return
+      const existing = new Set(state.CurrentSessionMessageList.map((m) => m.hash))
+      const fresh = older.filter((m) => m && m.hash && !existing.has(m.hash))
+      if (fresh.length === 0) return
+      state.CurrentSessionMessageList = [...fresh, ...state.CurrentSessionMessageList]
+    },
 
     // group
     setGroupList: (state, action) => {
@@ -317,6 +342,8 @@ export const {
   setSessionList,
   setCurrentSession,
   setCurrentSessionMessageList,
+  appendCurrentSessionMessage,
+  prependCurrentSessionMessages,
 
   // group
   setGroupList,

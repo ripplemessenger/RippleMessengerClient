@@ -7,9 +7,8 @@ const ec = new Elliptic.ec('secp256k1')
 
 import { SendMessage } from './messenger.core'
 import { LoadSessionList } from './messenger.session'
-import { LoadCurrentSession, SendContent } from './MessengerSaga'
 import { dbAPI } from '../../db'
-import { FLASH_DURATION_MS, SessionType, DefaultPartition } from '../../lib/AppConst'
+import { FLASH_DURATION_MS, MessagePageSize, SessionType, DefaultPartition } from '../../lib/AppConst'
 import { AesEncrypt, ConsoleError, HalfSHA512, QuarterSHA512Message } from '../../lib/AppUtil'
 import Logger from '../../lib/Logger'
 import { mgAPI } from '../../lib/MessageGenerator'
@@ -19,6 +18,8 @@ import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import {
   setCurrentSession,
   setCurrentSessionMessageList,
+  appendCurrentSessionMessage,
+  prependCurrentSessionMessages,
   setForwardBulletin,
   setForwardFlag
 } from '../slices/MessengerSlice'
@@ -267,7 +268,11 @@ export function* SendPrivateContent({ payload }) {
       tmp_session.current_hash = hash
       yield put(setCurrentSession(tmp_session))
 
-      yield call(RefreshPrivateMessageList)
+      // Append our own message instead of re-reading the whole conversation.
+      const inserted = yield call(() => dbAPI.getPrivateMessageByHash(hash))
+      if (inserted) {
+        yield put(appendCurrentSessionMessage(inserted))
+      }
 
       yield call(SendMessage, { msg: JSON.stringify(msg_json) })
     } else {
@@ -285,10 +290,45 @@ export function* RefreshPrivateMessageList() {
       return
     }
     const self_address = yield select((state) => state.User.Address)
-    const current_msg_list = yield call(() => dbAPI.getPrivateSession(self_address, CurrentSession.remote))
+    // Paged: only the newest MessagePageSize messages. Loading the whole
+    // conversation here made an open chat O(n) on every refresh.
+    const current_msg_list = yield call(() =>
+      dbAPI.getPrivateSessionPage(self_address, CurrentSession.remote, { limit: MessagePageSize })
+    )
     yield put(setCurrentSessionMessageList(current_msg_list))
   } catch (e) {
     Logger.error('[RefreshPrivateMessageList] failed:', e.message)
+  }
+}
+
+/**
+ * Scrollback: prepend the page of messages older than the oldest one on screen.
+ * No-op when the loaded page is not full (we are already at the start of history).
+ */
+export function* LoadOlderPrivateMessages() {
+  try {
+    const CurrentSession = yield select((state) => state.Messenger.CurrentSession)
+    if (!CurrentSession || CurrentSession.type !== SessionType.Private) {
+      return
+    }
+    const loaded = yield select((state) => state.Messenger.CurrentSessionMessageList)
+    if (!loaded || loaded.length === 0) {
+      return
+    }
+    const self_address = yield select((state) => state.User.Address)
+    const oldest = loaded[0]
+    const older = yield call(() =>
+      dbAPI.getPrivateSessionPage(self_address, CurrentSession.remote, {
+        limit: MessagePageSize,
+        beforeSignedAt: oldest.signed_at,
+        beforeHash: oldest.hash
+      })
+    )
+    if (older.length > 0) {
+      yield put(prependCurrentSessionMessages(older))
+    }
+  } catch (e) {
+    Logger.error('[LoadOlderPrivateMessages] failed:', e.message)
   }
 }
 
@@ -300,9 +340,9 @@ export function* ShowForwardBulletin({ payload }) {
 export function* ForwardBulletin({ payload }) {
   try {
     yield put(setForwardFlag(false))
-    yield call(LoadCurrentSession, { payload: payload.session })
+    yield call(LoadPrivateSession, { payload: payload.session })
     const forward_bulletin = yield select((state) => state.Messenger.ForwardBulletin)
-    yield call(SendContent, {
+    yield call(SendPrivateContent, {
       payload: {
         content: forward_bulletin
       }

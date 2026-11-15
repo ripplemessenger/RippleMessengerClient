@@ -42,6 +42,7 @@ import {
   UploadBulletin,
   LoadSessionList as LoadSessionListAction,
   LoadCurrentSession,
+  LoadOlderMessages,
   SendFile,
   SendContent,
   ShowForwardBulletin,
@@ -173,6 +174,7 @@ import {
   ServerSetDefault as ServerSetDefaultHandler,
   ServerToggle as ServerToggleHandler,
   LoadCurrentSession as LoadCurrentSessionHandler,
+  LoadOlderMessages as LoadOlderMessagesHandler,
   SendContent as SendContentHandler,
   AcceptGroupRequest as AcceptGroupRequestHandler
 } from './MessengerSaga'
@@ -237,6 +239,7 @@ export function* watchMessenger() {
   // Session
   yield takeLatest(LoadSessionListAction.type, LoadSessionList)
   yield takeLatest(LoadCurrentSession.type, LoadCurrentSessionHandler)
+  yield takeLatest(LoadOlderMessages.type, LoadOlderMessagesHandler)
   yield takeEvery(SendFile.type, SendFileHandler)
 
   // Chat

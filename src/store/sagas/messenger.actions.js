@@ -53,6 +53,8 @@ export const UploadBulletin = createAction('UploadBulletin')
 // ==================== Session ====================
 export const LoadSessionList = createAction('LoadSessionList')
 export const LoadCurrentSession = createAction('LoadCurrentSession')
+/** Scrollback: prepend the previous page of messages for the open session. */
+export const LoadOlderMessages = createAction('LoadOlderMessages')
 
 // ==================== File Send ====================
 export const SendFile = createAction('SendFile')

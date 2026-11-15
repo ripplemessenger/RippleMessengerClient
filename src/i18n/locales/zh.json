@@ -237,6 +237,7 @@
     "no_sessions": "暂无会话",
     "start_conversation": "开始与联系人对话",
     "no_messages": "暂无消息",
+    "load_earlier": "加载更早的消息",
     "never_talk": "不要和陌生人说话...",
     "no_addresses": "暂无地址",
     "server_discovered": "服务器发现的公告作者将显示在这里",

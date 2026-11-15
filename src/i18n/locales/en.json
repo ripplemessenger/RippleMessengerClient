@@ -237,6 +237,7 @@
     "no_sessions": "No sessions",
     "start_conversation": "Start a conversation with a contact",
     "no_messages": "No messages yet",
+    "load_earlier": "Load earlier messages",
     "never_talk": "Never talk to stranger...",
     "no_addresses": "No addresses yet",
     "server_discovered": "Server-discovered bulletin authors will appear here",

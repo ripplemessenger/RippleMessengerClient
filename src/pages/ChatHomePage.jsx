@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -26,6 +26,7 @@ import { FLASH_DURATION_MS, SessionType } from '../lib/AppConst'
 import { setFlashNoticeMessage } from '../store/slices/CommonSlice'
 import {
   LoadCurrentSession,
+  LoadOlderMessages,
   LoadSessionList,
   SearchMessages,
   SendContent,
@@ -143,6 +144,29 @@ export default function ChatHomePage() {
       dispatch(SendFile({ file_path }))
     }
   }, [dispatch])
+
+  // --- Scrollback ("load earlier") ---
+  // The list only holds the newest page of messages, so scrolling up past the
+  // first message loads the previous page. We snapshot the container metrics
+  // before dispatching and restore the viewport afterwards, otherwise prepending
+  // content above the viewport would visibly jump.
+  const scrollRestoreRef = useRef(null)
+
+  const loadOlder = useCallback(() => {
+    const container = containerRef.current
+    if (container) {
+      scrollRestoreRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
+    }
+    dispatch(LoadOlderMessages())
+  }, [dispatch])
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const pending = scrollRestoreRef.current
+    if (!container || !pending) return
+    scrollRestoreRef.current = null
+    container.scrollTop = container.scrollHeight - pending.scrollHeight + pending.scrollTop
+  }, [CurrentSessionMessageList])
 
   const handleSessionClick = useCallback(
     (session) => {
@@ -356,15 +380,24 @@ export default function ChatHomePage() {
                     className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col"
                   >
                     {CurrentSessionMessageList.length > 0 ? (
-                      CurrentSessionMessageList.map((msg) => {
-                        const isSelf = msg.sour === Address
-                        const isLastConfirmed = isSelf
-                          ? msg.sequence <= lastConfirmedSeqs.self && lastConfirmedSeqs.self > 0
-                          : msg.sequence <= lastConfirmedSeqs.remote && lastConfirmedSeqs.remote > 0
-                        return (
-                          <MessageCard key={msg.hash} message={msg} mode="private" isLastConfirmed={isLastConfirmed} />
-                        )
-                      })
+                      <>
+                        <button
+                          type="button"
+                          onClick={loadOlder}
+                          className="shrink-0 mx-auto my-1 px-3 py-1 text-xs rounded-full border border-primary/30 dark:border-primary/40 text-text-secondary dark:text-dark-text-secondary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
+                        >
+                          {t('ui.load_earlier')}
+                        </button>
+                        {CurrentSessionMessageList.map((msg) => {
+                          const isSelf = msg.sour === Address
+                          const isLastConfirmed = isSelf
+                            ? msg.sequence <= lastConfirmedSeqs.self && lastConfirmedSeqs.self > 0
+                            : msg.sequence <= lastConfirmedSeqs.remote && lastConfirmedSeqs.remote > 0
+                          return (
+                            <MessageCard key={msg.hash} message={msg} mode="private" isLastConfirmed={isLastConfirmed} />
+                          )
+                        })}
+                      </>
                     ) : (
                       <EmptyState
                         icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}
@@ -417,7 +450,18 @@ export default function ChatHomePage() {
                     className="min-h-[50vh] max-h-[65vh] overflow-y-auto py-2 gap-1 flex flex-col"
                   >
                     {CurrentSessionMessageList.length > 0 ? (
-                      CurrentSessionMessageList.map((msg) => <MessageCard key={msg.hash} message={msg} mode="group" />)
+                      <>
+                        <button
+                          type="button"
+                          onClick={loadOlder}
+                          className="shrink-0 mx-auto my-1 px-3 py-1 text-xs rounded-full border border-primary/30 dark:border-primary/40 text-text-secondary dark:text-dark-text-secondary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
+                        >
+                          {t('ui.load_earlier')}
+                        </button>
+                        {CurrentSessionMessageList.map((msg) => (
+                          <MessageCard key={msg.hash} message={msg} mode="group" />
+                        ))}
+                      </>
                     ) : (
                       <EmptyState
                         icon={<FiMessageSquare className="text-5xl text-primary/30 dark:text-dark-primary/30 mb-3" />}

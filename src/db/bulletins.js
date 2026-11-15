@@ -1,7 +1,7 @@
 import { Bool2Int, Int2Bool } from '../lib/AppUtil'
 import { BulletinPageSize } from '../lib/AppConst'
 import { bulletin2Display } from '../lib/MessengerUtil'
-import { getDB } from './core'
+import { getDB, chunkByVars, valueGroups } from './core'
 
 export const api = {
   async getPortalBulletins(page) {
@@ -59,6 +59,25 @@ export const api = {
     const query = `SELECT COUNT(hash) as count FROM bulletins WHERE address IN (${placeholders})`
     let [result] = await dbInstance.select(query, addresses)
     return result ? result.count : 0
+  },
+
+  /**
+   * Per-address bulletin counts in a single query.
+   * Replaces the previous "one COUNT query per followed address" loop.
+   * @param {string[]} addresses - XRPL addresses to count
+   * @returns {Object<string, number>} Map of address -> bulletin count (absent = 0)
+   */
+  async getBulletinCountsByAddresses(addresses) {
+    if (!Array.isArray(addresses) || addresses.length === 0) return {}
+    const dbInstance = await getDB()
+    const placeholders = addresses.map((_, i) => `$${i + 1}`).join(', ')
+    const query = `SELECT address, COUNT(hash) AS count FROM bulletins WHERE address IN (${placeholders}) GROUP BY address`
+    const rows = await dbInstance.select(query, addresses)
+    const counts = {}
+    for (const row of rows) {
+      counts[row.address] = row.count
+    }
+    return counts
   },
 
   async getBulletinListByIsmark(page) {
@@ -167,7 +186,31 @@ export const api = {
 
   async toggleBulletinMark(hash, is_marked) {
     const db = await getDB()
-    await db.execute('UPDATE bulletins SET is_marked = $1 WHERE hash = $2', [Bool2Int(is_marked), hash])
+    await db.execute('UPDATE bulletins SET is_marked = $1, marked_at = $2 WHERE hash = $3', [
+      Bool2Int(is_marked),
+      Date.now(),
+      hash
+    ])
+  },
+
+  // ── LAN sync: marked state ──
+  async getMarkedBulletins() {
+    const db = await getDB()
+    const rows = await db.select('SELECT hash, is_marked, marked_at FROM bulletins WHERE marked_at > 0')
+    return rows.map((r) => ({ hash: r.hash, is_marked: r.is_marked, marked_at: r.marked_at }))
+  },
+
+  async applyMarkedBulletins(markedList) {
+    const db = await getDB()
+    let applied = 0
+    for (const m of markedList) {
+      const result = await db.execute(
+        'UPDATE bulletins SET is_marked = $1, marked_at = $2 WHERE hash = $3 AND (marked_at IS NULL OR marked_at < $4)',
+        [Bool2Int(m.is_marked), m.marked_at, m.hash, m.marked_at]
+      )
+      if (result && result.changes > 0) applied++
+    }
+    return applied
   },
 
   // bulletin reply
@@ -189,19 +232,43 @@ export const api = {
     return result ? result.count : 0
   },
 
+  /**
+   * Link quoted (parent) bulletins to the new reply.
+   *
+   * The old loop swallowed the FK error per row, so a parent that was not cached
+   * locally was skipped while the others linked. A single atomic INSERT would
+   * abort everything instead, so the missing parents are filtered out first —
+   * keeping the "link what we can" behaviour with one round-trip.
+   */
   async addReplyToBulletins(bulletins, reply_hash, reply_signed_at) {
     if (!Array.isArray(bulletins) || bulletins.length === 0) return true
     const db = await getDB()
-    for (const bulletin of bulletins) {
-      try {
-        await db.execute(
-          `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ($1, $2, $3)`,
-          [bulletin.Hash, reply_hash, reply_signed_at]
-        )
-      } catch {
-        // FK violation: referenced bulletin not in local DB yet — skip
-      }
+
+    // A self-quote would violate the table's `bulletin_hash != reply_hash` CHECK.
+    const hashes = [...new Set(bulletins.map((b) => b && b.Hash).filter((h) => h && h !== reply_hash))]
+    if (hashes.length === 0) return true
+
+    const existing = new Set()
+    for (const part of chunkByVars(hashes, 1)) {
+      const rows = await db.select(
+        `SELECT hash FROM bulletins WHERE hash IN (${part.map((_, i) => `$${i + 1}`).join(', ')})`,
+        part
+      )
+      for (const row of rows) existing.add(row.hash)
     }
+
+    const kept = hashes.filter((h) => existing.has(h))
+    if (kept.length === 0) return true
+
+    for (const part of chunkByVars(kept, 3)) {
+      const params = []
+      for (const hash of part) params.push(hash, reply_hash, reply_signed_at)
+      await db.execute(
+        `INSERT OR IGNORE INTO bulletin_replys (bulletin_hash, reply_hash, reply_signed_at) VALUES ${valueGroups(part.length, 3)}`,
+        params
+      )
+    }
+    return true
   },
 
   // bulletin tag
@@ -223,32 +290,86 @@ export const api = {
     return result ? result.count : 0
   },
 
+  /**
+   * Link a bulletin to its tags.
+   *
+   * Was 3 statements per tag (insert tag → look up id → insert link) with no
+   * transaction, so a failure part-way left the bulletin with only some of its
+   * tags — invisible in the UI except that the post stops showing up under the
+   * missing tags' filters. The plugin exposes no transaction API (and its
+   * connection pool makes cross-call BEGIN/COMMIT unsafe), so this uses one
+   * multi-row statement per phase instead: SQLite executes each statement
+   * atomically, so a phase either fully applies or not at all.
+   */
   async addTagsToBulletin(bulletin_hash, bulletin_signed_at, tagNames) {
     if (!Array.isArray(tagNames) || tagNames.length === 0) return true
     const db = await getDB()
-    for (const rawName of tagNames) {
-      const name = rawName.trim()
-      if (!name) continue
-      await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ($1)`, [name])
-      const [row] = await db.select('SELECT id FROM tags WHERE name = $1', [name])
-      const tagId = row?.id
-      if (!tagId) continue
+
+    const names = [...new Set(tagNames.map((n) => (typeof n === 'string' ? n.trim() : '')).filter(Boolean))]
+    if (names.length === 0) return true
+
+    // Phase 1: ensure every tag exists — one statement per chunk, not one per tag.
+    for (const part of chunkByVars(names, 1)) {
+      await db.execute(`INSERT OR IGNORE INTO tags (name) VALUES ${valueGroups(part.length, 1)}`, part)
+    }
+
+    // Phase 2: resolve ids in one query per chunk.
+    const idByName = new Map()
+    for (const part of chunkByVars(names, 1)) {
+      const rows = await db.select(
+        `SELECT id, name FROM tags WHERE name IN (${part.map((_, i) => `$${i + 1}`).join(', ')})`,
+        part
+      )
+      for (const row of rows) idByName.set(row.name, row.id)
+    }
+    if (idByName.size === 0) return true
+
+    // Phase 3: link them — one statement per chunk.
+    const linked = names.filter((n) => idByName.has(n))
+    for (const part of chunkByVars(linked, 3)) {
+      const params = []
+      for (const name of part) params.push(bulletin_hash, bulletin_signed_at, idByName.get(name))
       await db.execute(
-        `INSERT OR IGNORE INTO bulletin_tags (bulletin_hash, bulletin_signed_at, tag_id) VALUES ($1, $2, $3)`,
-        [bulletin_hash, bulletin_signed_at, tagId]
+        `INSERT OR IGNORE INTO bulletin_tags (bulletin_hash, bulletin_signed_at, tag_id) VALUES ${valueGroups(part.length, 3)}`,
+        params
       )
     }
+    return true
   },
 
+  /**
+   * Link a bulletin to its attachments.
+   *
+   * Only files that exist locally are linked: the FK on `file_hash` would abort
+   * the whole (now atomic) statement, whereas the old per-row loop simply let
+   * the ones that resolved succeed.
+   */
   async addFilesToBulletin(bulletin_hash, files) {
     if (!Array.isArray(files) || files.length === 0) return true
     const db = await getDB()
-    for (const file of files) {
+
+    const hashes = [...new Set(files.map((f) => f && f.Hash).filter(Boolean))]
+    if (hashes.length === 0) return true
+
+    const existing = new Set()
+    for (const part of chunkByVars(hashes, 1)) {
+      const rows = await db.select(
+        `SELECT hash FROM files WHERE hash IN (${part.map((_, i) => `$${i + 1}`).join(', ')})`,
+        part
+      )
+      for (const row of rows) existing.add(row.hash)
+    }
+
+    const kept = files.filter((f) => f && existing.has(f.Hash))
+    for (const part of chunkByVars(kept, 5)) {
+      const params = []
+      for (const f of part) params.push(bulletin_hash, f.Hash, f.Size, f.Name, f.Ext)
       await db.execute(
-        `INSERT OR IGNORE INTO bulletin_files (bulletin_hash, file_hash, file_size, file_name, file_ext) VALUES ($1, $2, $3, $4, $5)`,
-        [bulletin_hash, file.Hash, file.Size, file.Name, file.Ext]
+        `INSERT OR IGNORE INTO bulletin_files (bulletin_hash, file_hash, file_size, file_name, file_ext) VALUES ${valueGroups(part.length, 5)}`,
+        params
       )
     }
+    return true
   },
 
   // tag
@@ -277,9 +398,13 @@ export const api = {
     if (!Array.isArray(hashes) || hashes.length === 0) return 0
     const db = await getDB()
     let deleted = 0
-    for (const hash of hashes) {
-      await db.execute('DELETE FROM bulletins WHERE hash = $1', [hash])
-      deleted++
+    // One statement per chunk instead of one round-trip per hash. The old code
+    // also returned a loop counter, so the reported count was whatever the input
+    // length was, regardless of what actually matched.
+    for (const part of chunkByVars(hashes, 1)) {
+      const placeholder = part.map((_, i) => `$${i + 1}`).join(', ')
+      const res = await db.execute(`DELETE FROM bulletins WHERE hash IN (${placeholder})`, part)
+      deleted += (res && res.rowsAffected) || 0
     }
     return deleted
   },

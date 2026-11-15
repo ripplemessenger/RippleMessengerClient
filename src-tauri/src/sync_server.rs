@@ -316,7 +316,10 @@ async fn get_device(state: State<AppState>) -> impl IntoResponse {
 
     (
         StatusCode::OK,
-        Json(serde_json::json!({ "accounts": account_list })),
+        Json(serde_json::json!({
+            "accounts": account_list,
+            "version": 2,
+        })),
     )
 }
 
@@ -570,6 +573,81 @@ async fn get_state(State(state): State<AppState>, Path(addr): Path<String>) -> i
             }
         }
 
+        // Read watermarks: the newest signed_at already marked read, per peer and
+        // per group.
+        //
+        // Why a watermark instead of per-message flags: the push side only sends
+        // messages newer than the peer's max sequence, so an already-synced
+        // message is never re-sent — meaning a read flag changed on one device
+        // could never reach the other. A single timestamp per conversation is
+        // tiny, monotonic (read only moves forward) and merges without ordering
+        // problems.
+        let mut read_private = serde_json::Map::new();
+        {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT peer, MAX(signed_at) FROM (
+                       SELECT dest AS peer, signed_at FROM private_messages
+                         WHERE sour = ?1 AND is_readed = 1
+                       UNION ALL
+                       SELECT sour AS peer, signed_at FROM private_messages
+                         WHERE dest = ?1 AND is_readed = 1
+                     ) GROUP BY peer",
+                )
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map([addr.as_str()], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })
+                .map_err(|e| e.to_string())?;
+            for row in rows {
+                let (peer, ts) = row.map_err(|e| e.to_string())?;
+                read_private.insert(peer, serde_json::json!(ts));
+            }
+        }
+
+        let mut read_groups = serde_json::Map::new();
+        {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT group_hash, MAX(signed_at) FROM group_messages
+                       WHERE is_readed = 1 GROUP BY group_hash",
+                )
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+                })
+                .map_err(|e| e.to_string())?;
+            for row in rows {
+                let (ghash, ts) = row.map_err(|e| e.to_string())?;
+                read_groups.insert(ghash, serde_json::json!(ts));
+            }
+        }
+
+        // Marked bulletins: per-message flag with timestamp (bidirectional, not monotonic)
+        let mut marked: Vec<serde_json::Value> = Vec::new();
+        {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT hash, is_marked, marked_at FROM bulletins WHERE marked_at > 0",
+                )
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                })
+                .map_err(|e| e.to_string())?;
+            for row in rows {
+                let (h, m, ts) = row.map_err(|e| e.to_string())?;
+                marked.push(serde_json::json!({ "hash": h, "is_marked": m, "marked_at": ts }));
+            }
+        }
+
         Ok(serde_json::json!({
             "private": private,
             "groups": groups,
@@ -578,7 +656,12 @@ async fn get_state(State(state): State<AppState>, Path(addr): Path<String>) -> i
                 "contacts": contacts,
                 "friends": friends,
                 "follows": follows,
-            }
+            },
+            "read": {
+                "private": read_private,
+                "groups": read_groups,
+            },
+            "marked": marked,
         }))
     }
     .await;
@@ -1070,10 +1153,14 @@ async fn post_groups(
             let is_accepted = g.get("is_accepted").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
 
             conn.execute(
-                "INSERT OR REPLACE INTO groups
+                "INSERT INTO groups
                  (hash, name, created_by, member, created_at, create_json,
                   deleted_at, delete_json, is_accepted)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                 ON CONFLICT(hash) DO UPDATE SET
+                   is_accepted = MAX(groups.is_accepted, excluded.is_accepted),
+                   deleted_at = COALESCE(excluded.deleted_at, groups.deleted_at),
+                   delete_json = COALESCE(excluded.delete_json, groups.delete_json)",
                 rusqlite::params![
                     ghash, name, created_by, member, created_at, create_json,
                     deleted_at, delete_json, is_accepted
@@ -1194,6 +1281,161 @@ async fn get_metadata(
     }
 }
 
+/// POST /v1/account/{addr}/read-state
+///
+/// Body: `{ "private": { "<peer>": <signed_at> }, "groups": { "<hash>": <signed_at> } }`
+///
+/// Marks every message at or before the given timestamp as read. Marking is
+/// monotonic (`is_readed` only ever goes 0 -> 1), so applying a stale watermark
+/// from another device cannot un-read anything.
+///
+/// This exists because the message push path is sequence-bounded: it only sends
+/// messages newer than the peer's max sequence, so a read flag changed on an
+/// already-synced message could never reach the other device.
+async fn post_read_state(
+    State(state): State<AppState>,
+    Path(addr): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    if let Err(e) = check_auth(&state.auth, &addr) {
+        return e;
+    }
+
+    let db_path = match get_db_path(&state.app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            );
+        }
+    };
+
+    let result: Result<serde_json::Value, String> = async {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        let mut applied = 0usize;
+
+        if let Some(obj) = body.get("private").and_then(|v| v.as_object()) {
+            for (peer, value) in obj {
+                let ts = value.as_i64().unwrap_or(0);
+                if ts <= 0 || !is_valid_xrpl_address(peer) {
+                    continue;
+                }
+                // Two index-backed updates instead of one OR across both
+                // directions.
+                conn.execute(
+                    "UPDATE private_messages SET is_readed = 1
+                     WHERE sour = ?1 AND dest = ?2 AND signed_at <= ?3 AND is_readed = 0",
+                    rusqlite::params![addr.as_str(), peer.as_str(), ts],
+                )
+                .map_err(|e| e.to_string())?;
+                conn.execute(
+                    "UPDATE private_messages SET is_readed = 1
+                     WHERE sour = ?2 AND dest = ?1 AND signed_at <= ?3 AND is_readed = 0",
+                    rusqlite::params![addr.as_str(), peer.as_str(), ts],
+                )
+                .map_err(|e| e.to_string())?;
+                applied += 1;
+            }
+        }
+
+        if let Some(obj) = body.get("groups").and_then(|v| v.as_object()) {
+            for (ghash, value) in obj {
+                let ts = value.as_i64().unwrap_or(0);
+                if ts <= 0 || ghash.is_empty() {
+                    continue;
+                }
+                conn.execute(
+                    "UPDATE group_messages SET is_readed = 1
+                     WHERE group_hash = ?1 AND signed_at <= ?2 AND is_readed = 0",
+                    rusqlite::params![ghash.as_str(), ts],
+                )
+                .map_err(|e| e.to_string())?;
+                applied += 1;
+            }
+        }
+
+        Ok(serde_json::json!({ "ok": true, "applied": applied }))
+    }
+    .await;
+
+    match result {
+        Ok(data) => (StatusCode::OK, Json(data)),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "ok": false, "error": e })),
+        ),
+    }
+}
+
+/// POST /v1/account/{addr}/marked-state
+///
+/// Body: `{ "marked": [{ "hash": "...", "is_marked": 0|1, "marked_at": 12345 }] }`
+///
+/// Applies per-message mark state. Unlike read (monotonic), mark is
+/// bidirectional — a message can be marked and later unmarked. We compare
+/// `marked_at` timestamps and only apply if the incoming value is newer.
+async fn post_marked_state(
+    State(state): State<AppState>,
+    Path(addr): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    if let Err(e) = check_auth(&state.auth, &addr) {
+        return e;
+    }
+
+    let db_path = match get_db_path(&state.app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": e })),
+            );
+        }
+    };
+
+    let result: Result<serde_json::Value, String> = async {
+        let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+        let mut applied = 0usize;
+
+        if let Some(arr) = body.get("marked").and_then(|v| v.as_array()) {
+            for item in arr {
+                let hash = match item.get("hash").and_then(|v| v.as_str()) {
+                    Some(h) => h,
+                    None => continue,
+                };
+                let is_marked = item.get("is_marked").and_then(|v| v.as_i64()).unwrap_or(0);
+                let marked_at = item.get("marked_at").and_then(|v| v.as_i64()).unwrap_or(0);
+                if hash.is_empty() || marked_at <= 0 {
+                    continue;
+                }
+                // Only apply if the incoming marked_at is newer than the local one
+                let changed = conn
+                    .execute(
+                        "UPDATE bulletins SET is_marked = ?1, marked_at = ?2
+                         WHERE hash = ?3 AND (marked_at IS NULL OR marked_at < ?4)",
+                        rusqlite::params![is_marked, marked_at, hash, marked_at],
+                    )
+                    .map_err(|e| e.to_string())?;
+                if changed > 0 {
+                    applied += 1;
+                }
+            }
+        }
+
+        Ok(serde_json::json!({ "ok": true, "applied": applied }))
+    }
+    .await;
+
+    match result {
+        Ok(data) => (StatusCode::OK, Json(data)),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "ok": false, "error": e })),
+        ),
+    }
+}
+
 /// POST /v1/account/{addr}/metadata
 async fn post_metadata(
     State(state): State<AppState>,
@@ -1232,7 +1474,7 @@ async fn post_metadata(
                 let n = c.get("nickname").and_then(|v| v.as_str()).unwrap_or("");
                 let u = c.get("updated_at").and_then(|v| v.as_i64()).unwrap_or(0);
                 conn.execute(
-                    "INSERT OR REPLACE INTO contacts (address, nickname, updated_at) VALUES (?1, ?2, ?3)",
+                    "INSERT INTO contacts (address, nickname, updated_at) VALUES (?1, ?2, ?3)\n                     ON CONFLICT(address) DO UPDATE SET nickname = excluded.nickname, updated_at = excluded.updated_at\n                     WHERE excluded.updated_at > contacts.updated_at",
                     rusqlite::params![a, n, u],
                 )
                 .map_err(|e| e.to_string())?;
@@ -1252,7 +1494,7 @@ async fn post_metadata(
                 let u = f.get("updated_at").and_then(|v| v.as_i64()).unwrap_or(0);
                 let d = f.get("is_deleted").and_then(|v| v.as_i64()).unwrap_or(0);
                 conn.execute(
-                    "INSERT INTO friends (local, remote, updated_at, is_deleted) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(local, remote) DO UPDATE SET is_deleted = ?4, updated_at = ?3",
+                    "INSERT INTO friends (local, remote, updated_at, is_deleted) VALUES (?1, ?2, ?3, ?4)\n                     ON CONFLICT(local, remote) DO UPDATE SET is_deleted = excluded.is_deleted, updated_at = excluded.updated_at\n                     WHERE excluded.updated_at > friends.updated_at",
                     rusqlite::params![addr, r, u, d],
                 )
                 .map_err(|e| e.to_string())?;
@@ -1272,7 +1514,7 @@ async fn post_metadata(
                 let u = f.get("updated_at").and_then(|v| v.as_i64()).unwrap_or(0);
                 let d = f.get("is_deleted").and_then(|v| v.as_i64()).unwrap_or(0);
                 conn.execute(
-                    "INSERT INTO follows (local, remote, updated_at, is_deleted) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(local, remote) DO UPDATE SET is_deleted = ?4, updated_at = ?3",
+                    "INSERT INTO follows (local, remote, updated_at, is_deleted) VALUES (?1, ?2, ?3, ?4)\n                     ON CONFLICT(local, remote) DO UPDATE SET is_deleted = excluded.is_deleted, updated_at = excluded.updated_at\n                     WHERE excluded.updated_at > follows.updated_at",
                     rusqlite::params![addr, r, u, d],
                 )
                 .map_err(|e| e.to_string())?;
@@ -1329,7 +1571,7 @@ async fn get_handshakes(
                     "partition": row.get::<_, i64>(2)?,
                     "sequence": row.get::<_, i64>(3)?,
                     "aes_key": row.get::<_, Option<String>>(4)?,
-                    "private_key": row.get::<_, String>(5)?,
+                    // private_key intentionally omitted — App derives it from seed.
                     "public_key": row.get::<_, String>(6)?,
                     "self_json": row.get::<_, String>(7)?,
                     "pair_json": row.get::<_, Option<String>>(8)?,
@@ -1403,7 +1645,7 @@ async fn post_handshakes(
             let partition = h.get("partition").and_then(|v| v.as_i64()).unwrap_or(0);
             let sequence = h.get("sequence").and_then(|v| v.as_i64()).unwrap_or(0);
             let aes_key = h.get("aes_key").and_then(|v| v.as_str());
-            let private_key = h.get("private_key").and_then(|v| v.as_str()).unwrap_or("");
+            // private_key intentionally not stored — App derives it from seed.
             let public_key = h.get("public_key").and_then(|v| v.as_str()).unwrap_or("");
             let self_json = h.get("self_json").and_then(|v| v.as_str()).unwrap_or("{}");
             let pair_json = h.get("pair_json").and_then(|v| v.as_str());
@@ -1411,11 +1653,11 @@ async fn post_handshakes(
             conn.execute(
                 "INSERT OR REPLACE INTO handshakes
                  (self_address, pair_address, partition, sequence,
-                  aes_key, private_key, public_key, self_json, pair_json)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                  aes_key, public_key, self_json, pair_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                 rusqlite::params![
                     self_addr, pair_addr, partition, sequence,
-                    aes_key, private_key, public_key, self_json, pair_json
+                    aes_key, public_key, self_json, pair_json
                 ],
             )
             .map_err(|e| e.to_string())?;
@@ -1597,6 +1839,8 @@ pub async fn start_sync_server(app_handle: AppHandle, address: String) -> Result
             "/v1/account/:addr/metadata",
             get(get_metadata).post(post_metadata),
         )
+        .route("/v1/account/:addr/read-state", post(post_read_state))
+        .route("/v1/account/:addr/marked-state", post(post_marked_state))
         .route(
             "/v1/account/:addr/handshakes",
             get(get_handshakes).post(post_handshakes),

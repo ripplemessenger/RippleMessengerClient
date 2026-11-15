@@ -22,7 +22,7 @@ import {
   PrivateMessageSyncSchema,
   RandomBulletinListSchema,
   ServerAddressListSchema
-} from './MessageSchema'
+} from '@ripplemessenger/protocol/schema'
 
 const ajv = new Ajv({ allErrors: true })
 

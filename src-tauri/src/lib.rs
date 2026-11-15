@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -263,7 +263,20 @@ fn show_main_window_internal(app: &AppHandle) {
 
 /// Left-click tray: toggle window show/hide.
 /// While flashing (new message pending) keep the old behaviour: always show.
+static LAST_TOGGLE_MS: AtomicU64 = AtomicU64::new(0);
+
 fn toggle_main_window_internal(app: &AppHandle) {
+    // Debounce: Windows tray can emit two Click events for one physical click.
+    // Without this, the first shows the window and the second hides it → "flash".
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
+    let last = LAST_TOGGLE_MS.swap(now_ms, Ordering::SeqCst);
+    if now_ms.saturating_sub(last) < 300 {
+        return;
+    }
+
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         if IS_FLASHING.load(Ordering::SeqCst) {
             show_main_window_internal(app);

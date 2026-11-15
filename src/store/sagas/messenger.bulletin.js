@@ -310,16 +310,8 @@ export function* FetchFollowBulletin() {
     // --- Batch 1: latest bulletin per address (single query) ---
     const lastByAddr = yield call(() => dbAPI.getLastBulletinByAddresses(remote_addresses))
 
-    // --- Batch 2: total count per address (reuse existing batch helper, called per-addr to get individual counts) ---
-    //   getBulletinCountByAddresses already accepts an array but returns a single sum.
-    //   We need per-address counts, so we use a raw-per-address approach.
-    //   To keep it simple and correct, query each address individually.
-    //   (This is N queries for count, which is cheaper than the lastBulletin loop was.)
-    const countsMap = {}
-    const countResults = yield all(remote_addresses.map((addr) => call(() => dbAPI.getAddressBulletinCount(addr))))
-    for (let i = 0; i < remote_addresses.length; i++) {
-      countsMap[remote_addresses[i]] = countResults[i]
-    }
+    // --- Batch 2: total count per address (single GROUP BY query) ---
+    const countsMap = yield call(() => dbAPI.getBulletinCountsByAddresses(remote_addresses))
 
     // --- Classify: which addresses need sync, which need gap-check ---
     const needSync = [] // no bulletins yet or already up to date

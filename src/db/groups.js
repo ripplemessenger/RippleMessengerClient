@@ -1,4 +1,5 @@
 import { Bool2Int, Int2Bool } from '../lib/AppUtil'
+import { MessagePageSize } from '../lib/AppConst'
 import { Epoch, MessageObjectType } from '../lib/MessengerConst'
 import { groupMessage2Display } from '../lib/MessengerUtil'
 import { getDB } from './core'
@@ -93,6 +94,65 @@ export const api = {
       msgs[i] = groupMessage2Display(msgs[i])
     }
     return msgs
+  },
+
+  /**
+   * Paged variant of getGroupSession: returns at most `limit` messages, the
+   * NEWEST ones, re-sorted ascending for display. Page backwards by passing the
+   * `signed_at` of the oldest message currently on screen as `beforeSignedAt`.
+   * @param {string} group_hash - Group identifier
+   * @param {{limit?: number, beforeSignedAt?: number|null}} [opts]
+   * @returns {Promise<Array>} Display-ready messages, oldest first
+   */
+  async getGroupSessionPage(group_hash, { limit = MessagePageSize, beforeSignedAt = null, beforeHash = null } = {}) {
+    const dbInstance = await getDB()
+    const params = [group_hash]
+    let inner = 'SELECT * FROM group_messages WHERE group_hash = $1'
+    if (beforeSignedAt !== null && beforeSignedAt !== undefined) {
+      if (beforeHash) {
+        // Compound cursor — see getPrivateSessionPage for why signed_at alone is unsafe.
+        params.push(beforeSignedAt, beforeHash)
+        const tsIdx = params.length - 1
+        const hashIdx = params.length
+        inner += ` AND (signed_at < $${tsIdx} OR (signed_at = $${tsIdx} AND hash < $${hashIdx}))`
+      } else {
+        params.push(beforeSignedAt)
+        inner += ` AND signed_at < $${params.length}`
+      }
+    }
+    params.push(limit)
+    const sql = `SELECT * FROM (${inner} ORDER BY signed_at DESC, hash DESC LIMIT $${params.length}) ORDER BY signed_at ASC, hash ASC`
+    let msgs = await dbInstance.select(sql, params)
+    for (let i = 0; i < msgs.length; i++) {
+      msgs[i] = groupMessage2Display(msgs[i])
+    }
+    return msgs
+  },
+
+  /**
+   * Per-group summaries in ONE query: unread count + last activity.
+   * Replaces the previous 2×N per-group queries in LoadSessionList.
+   * @param {string[]} groupHashes - Group hashes to summarise
+   * @returns {Promise<Object<string, {unread: number, last_signed_at: number}>>} Map keyed by group hash
+   */
+  async getGroupSessionSummaries(groupHashes) {
+    if (!Array.isArray(groupHashes) || groupHashes.length === 0) return {}
+    const dbInstance = await getDB()
+    const placeholders = groupHashes.map((_, i) => `$${i + 1}`).join(', ')
+    const rows = await dbInstance.select(
+      `SELECT group_hash,
+              SUM(CASE WHEN is_readed = 0 THEN 1 ELSE 0 END) AS unread,
+              MAX(signed_at) AS last_signed_at
+       FROM group_messages
+       WHERE group_hash IN (${placeholders})
+       GROUP BY group_hash`,
+      groupHashes
+    )
+    const summaries = {}
+    for (const row of rows) {
+      summaries[row.group_hash] = { unread: row.unread, last_signed_at: row.last_signed_at }
+    }
+    return summaries
   },
 
   async getGroupNewMessageCount(group_hash) {
