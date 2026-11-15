@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "RippleMessenger",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "identifier": "app.ripplemessenger",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -23,22 +23,13 @@
       "csp": "default-src 'self' asset: data: blob:; script-src 'self' asset: blob: 'unsafe-eval'; style-src 'self' asset: 'unsafe-inline'; img-src 'self' asset: data: blob:; connect-src 'self' ws: wss:;",
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$APP/RippleMessenger/**",
-          "$AppCache/RippleMessenger/**"
-        ]
+        "scope": ["$APP/RippleMessenger/**", "$AppCache/RippleMessenger/**"]
       }
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
   }
 }
