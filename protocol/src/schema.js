@@ -24,10 +24,11 @@ import { ActionCode, ObjectType, MessageObjectType, MessageCode } from './consta
 const DeclareSchema = {
   type: 'object',
   required: ['Action', 'Timestamp', 'PublicKey', 'Signature'],
-  maxProperties: 5,
+  maxProperties: 6,
   properties: {
     Action: { type: 'number', const: ActionCode.Declare },
     URL: { type: 'string' },
+    SiteURL: { type: 'string' },
     Timestamp: { type: 'number' },
     PublicKey: { type: 'string' },
     Signature: { type: 'string' }

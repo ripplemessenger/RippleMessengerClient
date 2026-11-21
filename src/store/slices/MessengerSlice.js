@@ -8,6 +8,7 @@ const MessengerSlice = createSlice({
 
     // server
     ServerList: [],
+    SiteURL: null,
 
     // bulletin publish
     ShowPublishFlag: false,
@@ -99,7 +100,7 @@ const MessengerSlice = createSlice({
     updateMessengerConnStatus: (state, action) => {
       state.ConnsStatus = action.payload
       let flag = false
-      for (const [key, value] of Object.entries(action.payload)) {
+      for (const [_key, value] of Object.entries(action.payload)) {
         if (value === WebSocket.OPEN) {
           flag = true
         }
@@ -109,6 +110,10 @@ const MessengerSlice = createSlice({
 
     setServerList: (state, action) => {
       state.ServerList = action.payload
+    },
+
+    setSiteURL: (state, action) => {
+      state.SiteURL = action.payload
     },
 
     setPublishFlag: (state, action) => {
@@ -151,7 +156,12 @@ const MessengerSlice = createSlice({
     },
     appendRandomBulletins: (state, action) => {
       const existing = new Set(state.RandomBulletinList.map((b) => b.hash))
-      const fresh = action.payload.filter((b) => !existing.has(b.hash))
+      const seen = new Set()
+      const fresh = action.payload.filter((b) => {
+        if (existing.has(b.hash) || seen.has(b.hash)) return false
+        seen.add(b.hash)
+        return true
+      })
       state.RandomBulletinList = [...state.RandomBulletinList, ...fresh]
     },
     setRandomBulletinLoading: (state, action) => {
@@ -312,6 +322,7 @@ export const {
   updateMessengerConnStatus,
 
   setServerList,
+  setSiteURL,
 
   setPublishFlag,
   setForwardFlag,

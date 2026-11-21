@@ -118,7 +118,12 @@
     "follow_set_nickname": "이 저자에게 닉네임 설정",
     "remove_file": "파일 삭제 {{name}}",
     "remove_tag": "태그 삭제 {{tag}}",
-    "search_tag": "태그 검색 {{tag}}"
+    "search_tag": "태그 검색 {{tag}}",
+    "video_feed": "영상 피드",
+    "audio_download": "오디오 다운로드",
+    "image_download": "이미지 다운로드",
+    "video_download": "영상 다운로드",
+    "video_downloading": "영상 다운로드 중 {{progress}}%"
   },
   "setting": {
     "theme_changed": "테마가 {{value}}(으)로 변경되었습니다",
@@ -376,5 +381,17 @@
     "search": "검색",
     "clear": "지우기",
     "reset": "초기화"
+  },
+  "video": {
+    "loading": "로딩 중…",
+    "empty": "아직 영상이 없습니다",
+    "failed": "다운로드 실패(현재 노드에 이 파일이 없을 수 있습니다)",
+    "retry": "다시 시도",
+    "comment": "댓글",
+    "share": "공유",
+    "mute": "음소거",
+    "unmute": "음소거 해제",
+    "source_internet": "인터넷",
+    "source_local": "로컬"
   }
 }

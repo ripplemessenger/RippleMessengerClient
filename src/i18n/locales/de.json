@@ -118,7 +118,12 @@
     "follow_set_nickname": "Namen für diesen Autor festlegen",
     "remove_file": "Datei entfernen {{name}}",
     "remove_tag": "Tag entfernen {{tag}}",
-    "search_tag": "Tag suchen {{tag}}"
+    "search_tag": "Tag suchen {{tag}}",
+    "video_feed": "Videofeed",
+    "audio_download": "Audio herunterladen",
+    "image_download": "Bild herunterladen",
+    "video_download": "Video herunterladen",
+    "video_downloading": "Video wird heruntergeladen {{progress}}%"
   },
   "setting": {
     "theme_changed": "Thema geändert zu {{value}}",
@@ -376,5 +381,17 @@
     "search": "Suchen",
     "clear": "Leeren",
     "reset": "Zurücksetzen"
+  },
+  "video": {
+    "loading": "Lädt…",
+    "empty": "Noch keine Videos",
+    "failed": "Download fehlgeschlagen (der aktuelle Knoten hat diese Datei möglicherweise nicht)",
+    "retry": "Erneut versuchen",
+    "comment": "Kommentare",
+    "share": "Teilen",
+    "mute": "Stummschalten",
+    "unmute": "Ton einschalten",
+    "source_internet": "Internet",
+    "source_local": "Lokal"
   }
 }

@@ -65,7 +65,8 @@ import {
   setRandomBulletinLoading,
   markFileSaved,
   setFileStatus,
-  appendCurrentSessionMessage
+  appendCurrentSessionMessage,
+  setSiteURL
 } from '../slices/MessengerSlice'
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 
@@ -88,7 +89,8 @@ import {
   checkTagBulletinListSchema,
   checkAvatarListSchema,
   checkRandomBulletinListSchema,
-  checkServerAddressListSchema
+  checkServerAddressListSchema,
+  checkDeclareSchema
 } from '../../lib/MessageSchemaVerifier'
 
 // Core messaging
@@ -109,7 +111,7 @@ import {
 import { FetchBulletinFile, FetchPrivateChatFile, FetchGroupChatFile } from './messenger.file'
 
 // Storage management (to refresh UI after file download completes)
-import { LoadFileManagementList as LoadFileManagementListAction } from './messenger.actions'
+import { LoadFileManagementList as LoadFileManagementListAction, GenerateVideoCover } from './messenger.actions'
 
 // Private chat
 import { AutoSyncPrivateMessages, SyncPrivateMessage, InitHandshake } from './messenger.private'
@@ -175,6 +177,8 @@ function* receiveFileChunk({ filePath, content, request, file, fetchNext, fetchN
         yield call(() => dbAPI.remoteFileSaved(request.Hash, Date.now()))
         // Notify chat/bulletin image components so they re-try loading the file
         yield put(markFileSaved({ hash: request.Hash }))
+        // Generate video cover if this is a video file (idempotent, fails soft)
+        yield put(GenerateVideoCover({ hash: request.Hash }))
         // Mark as saved in the status map for chat UI markers
         yield put(
           setFileStatus({ hash: request.Hash, is_saved: true, cursor: file.chunk_length, length: file.chunk_length })
@@ -651,7 +655,15 @@ function* handleActionMessage(json, action, address, seed) {
         break
       default:
         if (json.Action === ActionCode.Declare) {
-          // Server sends its own Declare to identify itself; nothing to do
+          // Server sends its own Declare to identify itself; validate before trusting SiteURL
+          if (!checkDeclareSchema(json) || !VerifyJsonSignature(json)) {
+            Logger.warn('[handleActionMessage] Declare validation failed, ignoring SiteURL')
+          } else {
+            Logger.info('[handleActionMessage] Declare received, SiteURL=' + (json.SiteURL || 'none'))
+            if (json.SiteURL) {
+              yield put(setSiteURL(json.SiteURL))
+            }
+          }
         } else {
           Logger.warn('[handleActionMessage] unknown ActionCode', json.Action)
         }

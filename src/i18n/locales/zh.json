@@ -118,7 +118,13 @@
     "follow_set_nickname": "为该作者设置昵称",
     "remove_file": "移除文件 {{name}}",
     "remove_tag": "移除标签 {{tag}}",
-    "search_tag": "搜索标签 {{tag}}"
+    "search_tag": "搜索标签 {{tag}}",
+    "video_downloading": "视频下载中 {{progress}}%",
+    "video_download": "下载视频",
+    "image_download": "下载图片",
+    "audio_download": "下载音频",
+    "image_count": "{{count}} 张图片",
+    "video_feed": "视频流"
   },
   "setting": {
     "theme_changed": "主题已切换为 {{value}}",
@@ -377,5 +383,17 @@
     "search": "搜索",
     "clear": "清除",
     "reset": "重置"
+  },
+  "video": {
+    "loading": "加载中…",
+    "empty": "暂无视频",
+    "failed": "下载失败（当前节点可能没有该文件）",
+    "retry": "重试",
+    "comment": "评论",
+    "share": "转发",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "source_internet": "网络",
+    "source_local": "本地"
   }
 }

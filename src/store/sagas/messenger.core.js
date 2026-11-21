@@ -18,7 +18,7 @@ export function setFileRequestList(value) {
 
 export function pushFileRequest(item) {
   const now = Date.now()
-  _FileRequestList = _FileRequestList.filter(r => r.Timestamp + FILE_REQUEST_TTL_MS > now)
+  _FileRequestList = _FileRequestList.filter((r) => r.Timestamp + FILE_REQUEST_TTL_MS > now)
   _FileRequestList.push(item)
 }
 
@@ -42,12 +42,18 @@ export function* safeFork(sagaFn, ...args) {
 export function* SendMessage(payload) {
   try {
     if (payload.key) {
-      yield call(sendToSingleConn, payload.key, payload.msg)
+      Logger.info('[SendMessage] sending to single conn: ' + payload.key)
+      const ok = yield call(sendToSingleConn, payload.key, payload.msg)
+      Logger.info('[SendMessage] single conn result: ' + (ok ? 'sent' : 'FAILED'))
     } else if (payload.flag) {
       const priority_server_list = yield call(() => dbAPI.getServerListByPriority())
-      yield call(sendToFirstConn, priority_server_list, payload.msg)
+      Logger.info('[SendMessage] sending to first conn, server_list=' + priority_server_list.length)
+      const ok = yield call(sendToFirstConn, priority_server_list, payload.msg)
+      Logger.info('[SendMessage] first conn result: ' + (ok ? 'sent' : 'FAILED'))
     } else {
-      yield call(sendToAllConn, payload.msg)
+      Logger.info('[SendMessage] sending to all conns')
+      const count = yield call(sendToAllConn, payload.msg)
+      Logger.info('[SendMessage] all conns result: ' + count + ' sent')
     }
   } catch (e) {
     Logger.error('[SendMessage] failed to send message:', e.message, { key: payload.key, flag: payload.flag })
@@ -57,8 +63,8 @@ export function* SendMessage(payload) {
 /** Connect to all servers marked as is_connect in the ServerList. */
 export function* ConnectServer() {
   try {
-    const ServerList = yield select(state => state.Messenger.ServerList)
-    const configs = ServerList.filter(s => s.is_connect)
+    const ServerList = yield select((state) => state.Messenger.ServerList)
+    const configs = ServerList.filter((s) => s.is_connect)
     // 500ms grace before opening WebSocket connections: allows any pending
     // Redux actions (e.g., server list updates from a prior navigation) to
     // settle so we connect against the latest config rather than a stale one.

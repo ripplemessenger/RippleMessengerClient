@@ -34,6 +34,8 @@ export const FetchGroupChatFile = createAction('FetchGroupChatFile')
 export const FetchChatFile = createAction('FetchChatFile')
 export const SaveChatFile = createAction('SaveChatFile')
 export const CheckFileStatus = createAction('CheckFileStatus')
+export const GenerateVideoCover = createAction('GenerateVideoCover')
+export const VideoFeedPreload = createAction('VideoFeedPreload')
 
 // ==================== Bulletin Publish ====================
 export const PublishBulletin = createAction('PublishBulletin')

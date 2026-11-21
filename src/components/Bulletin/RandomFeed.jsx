@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoMdRefresh } from 'react-icons/io'
+import { IoPlayCircle } from 'react-icons/io5'
+import { useNavigate } from 'react-router-dom'
 
 import RandomBulletinCard from './RandomBulletinCard'
 import EmptyState from '../EmptyState'
@@ -15,6 +17,7 @@ import { setRandomBulletinList } from '../../store/slices/MessengerSlice'
  */
 export default function RandomFeed() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { MessengerConnStatus, RandomBulletinList, RandomBulletinLoading } = useSelector((state) => state.Messenger)
 
   const dispatch = useDispatch()
@@ -106,15 +109,25 @@ export default function RandomFeed() {
         </>
       )}
 
-      {/* Floating Action Button — refresh (same style as the publish FAB on the bulletin page) */}
-      <button
-        onClick={handleRefresh}
-        aria-label={t('common.refresh')}
-        title={t('common.refresh')}
-        className="fixed bottom-8 right-8 z-40 w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
-      >
-        <IoMdRefresh className="w-7 h-7" />
-      </button>
+      {/* Floating Action Buttons — video feed + refresh */}
+      <div className="fixed bottom-8 right-8 z-40 flex flex-col gap-3">
+        <button
+          onClick={() => navigate('/video_feed')}
+          aria-label={t('bulletin.video_feed', 'Video Feed')}
+          title={t('bulletin.video_feed', 'Video Feed')}
+          className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <IoPlayCircle className="w-7 h-7" />
+        </button>
+        <button
+          onClick={handleRefresh}
+          aria-label={t('common.refresh')}
+          title={t('common.refresh')}
+          className="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <IoMdRefresh className="w-7 h-7" />
+        </button>
+      </div>
     </div>
   )
 }

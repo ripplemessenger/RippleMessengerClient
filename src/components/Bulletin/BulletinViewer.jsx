@@ -91,7 +91,7 @@ const BulletinViewer = React.memo(({ bulletin }) => {
           </div>
         )}
 
-        {/* Files — at bottom */}
+        {/* Files — at bottom (all files, including primary media — it is the download entry) */}
         {bulletin.file?.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {bulletin.file.map((file) => (

@@ -14,6 +14,8 @@ const Day = 24 * Hour
 const FileDir = 'file'
 /** @type {string} Directory name for avatar images */
 const AvatarDir = 'avatar'
+/** @type {string} Directory name for generated video covers */
+const CoverDir = 'cover'
 
 /** @type {number} Maximum bulletin cache entries; 0 means no caching */
 const DefaultBulletinCacheSize = 0
@@ -41,6 +43,10 @@ const FileChunkSize = 1024 * 1024
 const FileMaxSize = 64 * 1024 * 1024
 /** @type {RegExp} Regex matching image file extensions for inline preview */
 const FileImageExtRegex = /^(png|jpe?g|gif|webp)$/i
+/** @type {RegExp} Regex matching video file extensions for feed filtering */
+const FileVideoExtRegex = /^(mp4|webm|mov|m4v)$/i
+/** @type {RegExp} Regex matching audio file extensions for inline playback */
+const FileAudioExtRegex = /^(mp3|ogg|oga|wav|m4a|flac|aac|opus)$/i
 /** @type {string[]} Executable/script extensions — risky to auto-open, show warning instead */
 const RiskFileExts = ['exe', 'bat', 'cmd', 'ps1', 'vbs', 'wsf', 'msi', 'scr', 'reg', 'com']
 
@@ -82,6 +88,7 @@ export {
   Day,
   FileDir,
   AvatarDir,
+  CoverDir,
   DefaultBulletinCacheSize,
   MessageInterval,
   MaxSpeaker,
@@ -90,6 +97,8 @@ export {
   FileMaxSize,
   DefaultPartition,
   FileImageExtRegex,
+  FileVideoExtRegex,
+  FileAudioExtRegex,
   RiskFileExts,
   SessionType,
   BulletinPageSize,

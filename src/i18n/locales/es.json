@@ -118,7 +118,12 @@
     "follow_set_nickname": "Establecer un apodo para este autor",
     "remove_file": "Eliminar archivo {{name}}",
     "remove_tag": "Eliminar etiqueta {{tag}}",
-    "search_tag": "Buscar etiqueta {{tag}}"
+    "search_tag": "Buscar etiqueta {{tag}}",
+    "video_feed": "Feed de video",
+    "audio_download": "Descargar audio",
+    "image_download": "Descargar imagen",
+    "video_download": "Descargar video",
+    "video_downloading": "Descargando video {{progress}}%"
   },
   "setting": {
     "theme_changed": "Tema cambiado a {{value}}",
@@ -376,5 +381,17 @@
     "search": "Buscar",
     "clear": "Limpiar",
     "reset": "Restablecer"
+  },
+  "video": {
+    "loading": "Cargando…",
+    "empty": "Aún no hay videos",
+    "failed": "Error de descarga (el nodo actual puede no tener este archivo)",
+    "retry": "Reintentar",
+    "comment": "Comentarios",
+    "share": "Compartir",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "source_internet": "Internet",
+    "source_local": "Local"
   }
 }

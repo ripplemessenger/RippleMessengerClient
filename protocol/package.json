@@ -1,6 +1,6 @@
 {
   "name": "@ripplemessenger/protocol",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "RippleMessenger protocol constants and JSON schemas",
   "type": "module",
   "main": "./src/index.js",

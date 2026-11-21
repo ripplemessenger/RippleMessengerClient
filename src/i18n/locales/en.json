@@ -118,7 +118,13 @@
     "follow_set_nickname": "Set a nickname for this author",
     "remove_file": "Remove file {{name}}",
     "remove_tag": "Remove tag {{tag}}",
-    "search_tag": "Search tag {{tag}}"
+    "search_tag": "Search tag {{tag}}",
+    "video_downloading": "Video downloading {{progress}}%",
+    "video_download": "Download video",
+    "image_download": "Download image",
+    "audio_download": "Download audio",
+    "image_count": "{{count}} images",
+    "video_feed": "Video Feed"
   },
   "setting": {
     "theme_changed": "Theme changed to {{value}}",
@@ -377,5 +383,17 @@
     "search": "Search",
     "clear": "Clear",
     "reset": "Reset"
+  },
+  "video": {
+    "loading": "Loading…",
+    "empty": "No videos yet",
+    "failed": "Download failed (the current node may not have this file)",
+    "retry": "Retry",
+    "comment": "Comments",
+    "share": "Share",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "source_internet": "Internet",
+    "source_local": "Local"
   }
 }

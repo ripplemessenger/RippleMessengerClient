@@ -7,7 +7,7 @@ import { saveLocalFile } from './messenger.bulletin'
 import { getFileRequestList, setFileRequestList, pushFileRequest, genFileNonce, SendMessage } from './messenger.core'
 // Imported from MessengerSaga (runtime-only dependency; generators execute after modules load)
 import { SendContent } from './MessengerSaga'
-import { LoadFileManagementList as LoadFileManagementListAction } from './messenger.actions'
+import { LoadFileManagementList as LoadFileManagementListAction, GenerateVideoCover } from './messenger.actions'
 import { dbAPI } from '../../db'
 import {
   FileChunkSize,
@@ -26,6 +26,76 @@ import { DHSequence, PrivateFileEHash, GroupFileEHash, buildFileFullPath } from 
 import { setFlashNoticeMessage } from '../slices/CommonSlice'
 import { markFileSaved, setFileStatus } from '../slices/MessengerSlice'
 import i18n from '../../i18n'
+
+/**
+ * Download a bulletin attachment from the Site over HTTP (fast path).
+ *
+ * The Site is co-located with the relay Server and serves the Server's file
+ * disk at /file/{hash}. A single streaming HTTP request (with Range support)
+ * is much faster than the serial 1MB WebSocket chunk round-trips, so this is
+ * tried first. On success the file is written to the same on-disk path as the
+ * WS chunk path, hash-verified, and marked saved.
+ *
+ * Returns true on success, false on any failure (network error, non-200,
+ * hash mismatch) so the caller can fall back to the WS chunk path.
+ */
+/**
+ * Derive the Site base URL from a WebSocket server URL.
+ * The Site is co-located with the relay Server, so the Site is at the same
+ * host: wss://host → https://host, ws://host → http://host.
+ * Returns null if the URL is not a recognized WS scheme.
+ */
+export function* FetchBulletinFileViaSite({ hash, chunk_length }) {
+  try {
+    // Use the SiteURL the Server told us (Declare message).
+    const siteBase = yield select((state) => state.Messenger.SiteURL)
+    if (!siteBase) {
+      Logger.warn('[📥 FetchBulletinFileViaSite] no SiteURL from server, skipping HTTP path')
+      return false
+    }
+    const url = siteBase + '/file/' + hash
+    // Safety net: don't hang forever on a dead/slow connection before falling
+    // back to WS. 30s covers the slow direct connection (~15s to headers);
+    // if the Site is truly unreachable, fail and use the WS path.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
+    let resp
+    try {
+      resp = yield call(() => fetch(url, { method: 'GET', signal: controller.signal }))
+    } finally {
+      clearTimeout(timeout)
+    }
+    if (!resp.ok) {
+      Logger.warn('[📥 FetchBulletinFileViaSite] HTTP ' + resp.status + ' for ' + hash + ', falling back to WS')
+      return false
+    }
+    const buf = yield call(() => resp.arrayBuffer())
+    const content = new Uint8Array(buf)
+    // Write to the standard on-disk path (same as the WS chunk path).
+    yield call(saveLocalFile, hash, content)
+    // Verify hash (native off-thread digest, fast even for 64MB).
+    const actual = yield call(FileHashAsync, content)
+    if (actual === hash) {
+      yield call(() => dbAPI.localFileSaved(hash, chunk_length, Date.now()))
+      yield put(markFileSaved({ hash: hash }))
+      yield put(GenerateVideoCover({ hash: hash }))
+      yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
+      Logger.info('[📥 FetchBulletinFileViaSite] ✅ downloaded via HTTP, hash verified (' + content.length + ' bytes)')
+      return true
+    }
+    Logger.error(
+      '[📥 FetchBulletinFileViaSite] ❌ hash mismatch: expected=' + hash + ' got=' + actual + ', falling back to WS'
+    )
+    // Delete the corrupted file so the WS path starts clean.
+    const base_dir = yield select((state) => state.Common.AppBaseDir)
+    const save_file_path = yield call(() => path.join(...buildFileFullPath(base_dir, FileDir, hash)))
+    yield call(() => remove(save_file_path))
+    return false
+  } catch (e) {
+    Logger.warn('[📥 FetchBulletinFileViaSite] HTTP failed: ' + e.message + ', falling back to WS')
+    return false
+  }
+}
 
 /**
  * Fetch the next chunk of a bulletin attachment from the server.
@@ -47,7 +117,18 @@ export function* FetchBulletinFile({ payload }) {
       yield call(() => dbAPI.addFile(payload.hash, payload.size, Date.now(), chunk_length, 0, false))
       file = yield call(() => dbAPI.getFileByHash(payload.hash))
     }
+    Logger.info(
+      '[📥 FetchBulletinFile] hash=' +
+        file.hash +
+        ', is_saved=' +
+        file.is_saved +
+        ', cursor=' +
+        file.chunk_cursor +
+        '/' +
+        file.chunk_length
+    )
     if (file.is_saved) {
+      Logger.info('[📥 FetchBulletinFile] already saved, skipping')
       return
     }
     // If all chunks received but hash not yet verified (is_saved=false),
@@ -69,6 +150,8 @@ export function* FetchBulletinFile({ payload }) {
         if (hash === file.hash) {
           yield call(() => dbAPI.remoteFileSaved(file.hash, Date.now()))
           yield put(markFileSaved({ hash: file.hash }))
+          // Generate video cover if this is a video file (idempotent, fails soft)
+          yield put(GenerateVideoCover({ hash: file.hash }))
           yield put(LoadFileManagementListAction({ category: 'bulletin', page: 1 }))
         } else {
           Logger.error(
@@ -83,6 +166,17 @@ export function* FetchBulletinFile({ payload }) {
         yield call(() => dbAPI.updateFileChunkCursor(file.hash, 0, Date.now()))
       }
     }
+    // Fast path: try downloading the whole file from the Site over HTTP. The
+    // Site is co-located with the relay Server and serves its file disk, so
+    // /file/{hash} works in production. One streaming request beats the serial
+    // 1MB WS round-trips. On any failure, fall through to the WS chunk path.
+    Logger.info('[📥 FetchBulletinFile] trying HTTP path (Site)')
+    const httpOk = yield call(FetchBulletinFileViaSite, { hash: file.hash, chunk_length: file.chunk_length })
+    if (httpOk) {
+      Logger.info('[📥 FetchBulletinFile] HTTP path succeeded')
+      return
+    }
+    Logger.info('[📥 FetchBulletinFile] HTTP path failed, falling back to WS chunk path')
     const nonce = genFileNonce()
     const cursor = file.chunk_cursor + 1
     const tmp = {
@@ -97,7 +191,9 @@ export function* FetchBulletinFile({ payload }) {
     )
     pushFileRequest(tmp)
     const file_request = yield call(() => mgAPI.genFileRequest(seed, FileRequestType.File, file.hash, nonce, cursor))
-    yield call(SendMessage, { msg: file_request })
+    Logger.info('[📥 FetchBulletinFile] sending WS chunk request: cursor=' + cursor + '/' + file.chunk_length)
+    const sent = yield call(SendMessage, { msg: file_request })
+    Logger.info('[📥 FetchBulletinFile] WS chunk request sent=' + (sent ? 'yes' : 'NO'))
   } catch (e) {
     Logger.error('[📥 FetchBulletinFile] FAILED for', payload.hash, e.message, e.stack)
   }
@@ -181,6 +277,18 @@ export function* SaveBulletinFile({ payload }) {
 export function* CheckFileStatus({ payload }) {
   try {
     const file = yield call(() => dbAPI.getFileByHash(payload.hash))
+    Logger.info(
+      '[CheckFileStatus] hash=' +
+        payload.hash +
+        ', file=' +
+        (file ? 'found' : 'null') +
+        ', is_saved=' +
+        file?.is_saved +
+        ', cursor=' +
+        file?.chunk_cursor +
+        '/' +
+        file?.chunk_length
+    )
     if (file) {
       yield put(
         setFileStatus({

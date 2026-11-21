@@ -8,6 +8,7 @@ import { IoAttachSharp } from 'react-icons/io5'
 import BulletinAvatarLink from './BulletinAvatarLink'
 import BulletinContentForList from './BulletinContentForList'
 import BulletinLink from './BulletinLink'
+import BulletinMedia from './BulletinMedia'
 import BulletinTools from './BulletinTools'
 import TextTimestamp from '../TextTimestamp'
 import { BulletinContentPreviewSize } from '../../lib/AppConst'
@@ -77,6 +78,13 @@ const ListBulletin = ({ bulletin, textSize = 'text-base' }) => {
 
       {/* Divider — same width as header and content sections */}
       <div className="w-full border-b border-primary/10 dark:border-primary/20" />
+
+      {/* Media thumbnail — 16:9 cover for video, inline for image */}
+      {bulletin.file?.length > 0 && (
+        <div className="px-3 pt-2">
+          <BulletinMedia file={bulletin.file} bulletinHash={bulletin.hash} />
+        </div>
+      )}
 
       {/* Content section — clickable to navigate to bulletin detail */}
       <div

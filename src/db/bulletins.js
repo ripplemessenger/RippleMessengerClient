@@ -761,5 +761,34 @@ export const api = {
       [file_hash]
     )
     return rows
+  },
+
+  // Video feed: get local bulletins that have video attachments, newest first
+  async getLocalVideoBulletins(limit = 20) {
+    const dbInstance = await getDB()
+    const rows = await dbInstance.select(
+      `SELECT DISTINCT b.hash, b.address, b.sequence, b.content, b.signed_at, b.is_marked, b.json,
+              bf.file_hash AS video_hash, bf.file_name, bf.file_ext
+       FROM bulletins b
+       INNER JOIN bulletin_files bf ON b.hash = bf.bulletin_hash
+       WHERE LOWER(bf.file_ext) IN ('mp4', 'webm', 'mov', 'm4v')
+       ORDER BY b.signed_at DESC
+       LIMIT $1`,
+      [limit]
+    )
+    return rows.map((r) => ({
+      ...bulletin2Display({
+        hash: r.hash,
+        address: r.address,
+        sequence: r.sequence,
+        content: r.content,
+        signed_at: r.signed_at,
+        is_marked: r.is_marked,
+        json: r.json
+      }),
+      video_hash: r.video_hash,
+      video_name: r.file_name,
+      video_ext: r.file_ext
+    }))
   }
 }

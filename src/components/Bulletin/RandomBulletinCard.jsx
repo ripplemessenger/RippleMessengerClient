@@ -7,6 +7,7 @@ import { IoAttachSharp } from 'react-icons/io5'
 import AvatarName from '../AvatarName'
 import TextTimestamp from '../TextTimestamp'
 import BulletinAvatarLink from './BulletinAvatarLink'
+import BulletinMedia from './BulletinMedia'
 import TagLink from './TagLink'
 
 /**
@@ -53,6 +54,13 @@ const RandomBulletinCard = ({ bulletin }) => {
         </span>
         <TextTimestamp timestamp={bulletin.signed_at} textSize="text-xs" />
       </div>
+
+      {/* Media thumbnail — 16:9 cover for video, inline for image */}
+      {bulletin.file?.length > 0 && (
+        <div className="px-3 pt-2" onClick={(e) => e.stopPropagation()}>
+          <BulletinMedia file={bulletin.file} bulletinHash={bulletin.hash} />
+        </div>
+      )}
 
       {/* Content preview — variable height creates the masonry effect */}
       <div className="px-3 py-2 text-sm leading-relaxed text-text-primary dark:text-dark-text-primary break-words whitespace-pre-wrap">

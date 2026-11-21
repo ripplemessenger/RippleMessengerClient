@@ -13,6 +13,21 @@ export const api = {
     return null
   },
 
+  /**
+   * Look up the file extension for a given hash from the bulletin_files table.
+   * Returns the lowercase ext string, or null if the hash is not a bulletin file.
+   * @param {string} hash - File hash
+   * @returns {Promise<string|null>}
+   */
+  async getFileExtByHash(hash) {
+    const dbInstance = await getDB()
+    const rows = await dbInstance.select(
+      'SELECT LOWER(file_ext) AS ext FROM bulletin_files WHERE file_hash = $1 LIMIT 1',
+      [hash]
+    )
+    return rows.length > 0 ? rows[0].ext : null
+  },
+
   async addFile(hash, size, updated_at, chunk_length, chunk_cursor, is_saved) {
     const db = await getDB()
     await db.execute(

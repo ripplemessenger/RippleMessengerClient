@@ -118,7 +118,12 @@
     "follow_set_nickname": "この著者にニックネームを設定",
     "remove_file": "ファイルを削除 {{name}}",
     "remove_tag": "タグを削除 {{tag}}",
-    "search_tag": "タグを検索 {{tag}}"
+    "search_tag": "タグを検索 {{tag}}",
+    "video_feed": "動画フィード",
+    "audio_download": "オーディオをダウンロード",
+    "image_download": "画像をダウンロード",
+    "video_download": "動画をダウンロード",
+    "video_downloading": "動画をダウンロード中 {{progress}}%"
   },
   "setting": {
     "theme_changed": "テーマを{{value}}に変更しました",
@@ -376,5 +381,17 @@
     "search": "検索",
     "clear": "クリア",
     "reset": "リセット"
+  },
+  "video": {
+    "loading": "読み込み中…",
+    "empty": "動画はまだありません",
+    "failed": "ダウンロードに失敗しました（現在のノードにこのファイルがない可能性があります）",
+    "retry": "再試行",
+    "comment": "コメント",
+    "share": "共有",
+    "mute": "ミュート",
+    "unmute": "ミュート解除",
+    "source_internet": "インターネット",
+    "source_local": "ローカル"
   }
 }

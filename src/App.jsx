@@ -20,6 +20,7 @@ const ChatHomePage = React.lazy(() => import('./pages/ChatHomePage'))
 const PortalPage = React.lazy(() => import('./pages/PortalPage'))
 const ServerAddressPage = React.lazy(() => import('./pages/ServerAddressPage'))
 const SettingPage = React.lazy(() => import('./pages/SettingPage'))
+const VideoFeedPage = React.lazy(() => import('./pages/VideoFeedPage'))
 
 function App() {
   // Sync persisted settings to Rust backend on startup
@@ -31,6 +32,11 @@ function App() {
   return (
     <Suspense fallback={<LoadingDiv isLoading={true} />}>
       <Routes>
+        {/* Full-screen video feed (no sidebar) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/video_feed" element={<VideoFeedPage />} />
+        </Route>
+
         <Route element={<MainLayout />}>
           <Route path="/" element={<RootRouter />} />
           <Route path="/about" element={<AboutPage />} />

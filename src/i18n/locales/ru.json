@@ -118,7 +118,12 @@
     "follow_set_nickname": "Укажите имя для этого автора",
     "remove_file": "Удалить файл {{name}}",
     "remove_tag": "Удалить тег {{tag}}",
-    "search_tag": "Поиск тега {{tag}}"
+    "search_tag": "Поиск тега {{tag}}",
+    "video_feed": "Видеопоток",
+    "audio_download": "Скачать аудио",
+    "image_download": "Скачать изображение",
+    "video_download": "Скачать видео",
+    "video_downloading": "Загрузка видео {{progress}}%"
   },
   "setting": {
     "theme_changed": "Тема изменена на {{value}}",
@@ -376,5 +381,17 @@
     "search": "Найти",
     "clear": "Очистить",
     "reset": "Сбросить"
+  },
+  "video": {
+    "loading": "Загрузка…",
+    "empty": "Видео пока нет",
+    "failed": "Ошибка загрузки (у текущего узла может не быть этого файла)",
+    "retry": "Повторить",
+    "comment": "Комментарии",
+    "share": "Поделиться",
+    "mute": "Без звука",
+    "unmute": "Включить звук",
+    "source_internet": "Интернет",
+    "source_local": "Локально"
   }
 }

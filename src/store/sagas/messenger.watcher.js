@@ -29,6 +29,8 @@ import {
   FetchChatFile,
   SaveChatFile,
   CheckFileStatus,
+  GenerateVideoCover,
+  VideoFeedPreload,
   PublishBulletin,
   BulletinTagAdd,
   BulletinTagDel,
@@ -119,6 +121,12 @@ import {
   CheckFileStatus as CheckFileStatusHandler,
   SendFile as SendFileHandler
 } from './messenger.file'
+
+// Video cover generation
+import { GenerateVideoCover as GenerateVideoCoverHandler } from './messenger.cover'
+
+// Video feed preload queue
+import { VideoFeedPreload as VideoFeedPreloadHandler } from './messenger.video'
 
 // Private chat
 import {
@@ -220,6 +228,10 @@ export function* watchMessenger() {
   yield takeLatest(SaveChatFile.type, SaveChatFileHandler)
   // takeEvery: many ChatFileLink components mount at once, each must be served
   yield takeEvery(CheckFileStatus.type, CheckFileStatusHandler)
+  // takeEvery: video cover generation is idempotent (skips if cover exists)
+  yield takeEvery(GenerateVideoCover.type, GenerateVideoCoverHandler)
+  // takeEvery: feed preload may be requested for several hashes at once
+  yield takeEvery(VideoFeedPreload.type, VideoFeedPreloadHandler)
 
   // Bulletin publish
   yield takeLatest(PublishBulletin.type, PublishBulletinHandler)
@@ -227,7 +239,7 @@ export function* watchMessenger() {
   yield takeLatest(BulletinTagDel.type, BulletinTagDelHandler)
   yield takeLatest(BulletinQuoteAdd.type, BulletinQuoteAddHandler)
   yield takeLatest(BulletinQuoteDel.type, BulletinQuoteDelHandler)
-  yield takeLatest(BulletinFileAdd.type, BulletinFileAddHandler)
+  yield takeEvery(BulletinFileAdd.type, BulletinFileAddHandler)
   yield takeLatest(BulletinFileDel.type, BulletinFileDelHandler)
   yield takeLatest(BulletinReply.type, BulletinReplyHandler)
   yield takeLatest(BulletinQuote.type, BulletinQuoteHandler)

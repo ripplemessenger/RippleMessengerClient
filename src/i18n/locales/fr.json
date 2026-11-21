@@ -118,7 +118,12 @@
     "follow_set_nickname": "Définir un surnom pour cet auteur",
     "remove_file": "Supprimer le fichier {{name}}",
     "remove_tag": "Supprimer le tag {{tag}}",
-    "search_tag": "Rechercher le tag {{tag}}"
+    "search_tag": "Rechercher le tag {{tag}}",
+    "video_feed": "Flux vidéo",
+    "audio_download": "Télécharger l'audio",
+    "image_download": "Télécharger l'image",
+    "video_download": "Télécharger la vidéo",
+    "video_downloading": "Téléchargement de la vidéo {{progress}}%"
   },
   "setting": {
     "theme_changed": "Thème changé en {{value}}",
@@ -376,5 +381,17 @@
     "search": "Rechercher",
     "clear": "Effacer",
     "reset": "Réinitialiser"
+  },
+  "video": {
+    "loading": "Chargement…",
+    "empty": "Pas encore de vidéos",
+    "failed": "Échec du téléchargement (le nœud actuel n'a peut-être pas ce fichier)",
+    "retry": "Réessayer",
+    "comment": "Commentaires",
+    "share": "Partager",
+    "mute": "Muet",
+    "unmute": "Activer le son",
+    "source_internet": "Internet",
+    "source_local": "Local"
   }
 }

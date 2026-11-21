@@ -45,12 +45,15 @@ const BulletinPublish = ({}) => {
   )
 
   const browseFile = useCallback(async () => {
-    const file_path = await open({
-      multiple: false,
+    const result = await open({
+      multiple: true,
       directory: false
     })
-    if (file_path) {
-      dispatch(BulletinFileAdd({ file_path }))
+    if (result) {
+      const paths = Array.isArray(result) ? result : [result]
+      for (const file_path of paths) {
+        dispatch(BulletinFileAdd({ file_path }))
+      }
     }
   }, [dispatch])
 
