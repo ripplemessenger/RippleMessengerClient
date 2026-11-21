@@ -392,6 +392,8 @@
     "mute": "Silenciar",
     "unmute": "Ativar som",
     "source_internet": "Internet",
-    "source_local": "Local"
+    "source_local": "Local",
+    "empty_not_connected": "Não conectado ao servidor",
+    "empty_no_media": "O servidor não tem vídeos de mídia"
   }
 }

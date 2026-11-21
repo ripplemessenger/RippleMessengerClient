@@ -392,6 +392,8 @@
     "mute": "Без звука",
     "unmute": "Включить звук",
     "source_internet": "Интернет",
-    "source_local": "Локально"
+    "source_local": "Локально",
+    "empty_not_connected": "Нет подключения к серверу",
+    "empty_no_media": "На сервере нет медиа-видео"
   }
 }

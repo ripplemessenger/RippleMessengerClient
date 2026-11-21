@@ -46,6 +46,7 @@ export const ActionCode = {
   ReplyBulletinRequest: 404,
   TagBulletinRequest: 405,
   BulletinAddressListRequest: 406,
+  MediaBulletinRequest: 407,
 
   // private
   // NOTE: 500 was previously `FriendRequest`. It was never implemented on any

@@ -16,14 +16,14 @@ import {
 import VideoFeedItem from '../components/Bulletin/VideoFeedItem'
 import BulletinPublish from '../components/Bulletin/BulletinPublish'
 import BulletinForward from '../components/Bulletin/BulletinForward'
-import { RequestRandomBulletin, VideoFeedPreload, FetchBulletinFile } from '../store/sagas/messenger.actions'
+import { RequestMediaBulletin, VideoFeedPreload, FetchBulletinFile } from '../store/sagas/messenger.actions'
 import { setFileStatus } from '../store/slices/MessengerSlice'
 import { selectPublishFlags } from '../selectors'
 import { dbAPI } from '../db'
 import { FileVideoExtRegex } from '../lib/AppConst'
 import Logger from '../lib/Logger'
 
-const TARGET = 5 // initial batch size
+const TARGET = 20 // initial batch size
 const MAX_EMPTY_BATCHES = 5 // stop after N consecutive batches with no video
 const WATCHDOG_MS = 15000 // no chunk progress for this long → re-request
 
@@ -54,7 +54,7 @@ const VideoFeedPage = () => {
   const [localFeedItems, setLocalFeedItems] = useState([]) // local-only feed
   const [activeIndex, setActiveIndex] = useState(0)
   const [isMuted, setIsMuted] = useState(false)
-  const [sourceMode, setSourceMode] = useState('local') // 'internet' | 'local'
+  const [sourceMode, setSourceMode] = useState('internet') // 'internet' | 'local'
   const [playbackMode, setPlaybackMode] = useState('single') // 'single' | 'list' | 'manual'
   const [noMore, setNoMore] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -106,10 +106,11 @@ const VideoFeedPage = () => {
   const filterVideoBulletins = useCallback((bulletins) => {
     const result = []
     for (const b of bulletins) {
-      if (seenHashesRef.current.has(b.hash)) continue
-      const video = (b.file || []).find((f) => FileVideoExtRegex.test(f.Ext))
-      if (video) {
-        seenHashesRef.current.add(b.hash)
+      const videos = (b.file || []).filter((f) => FileVideoExtRegex.test(f.Ext))
+      for (const video of videos) {
+        const key = b.hash + ':' + video.Hash
+        if (seenHashesRef.current.has(key)) continue
+        seenHashesRef.current.add(key)
         result.push({ bulletin: b, videoHash: video.Hash })
       }
     }
@@ -125,10 +126,13 @@ const VideoFeedPage = () => {
         try {
           const bulletin = await dbAPI.getBulletinByHash(startHash)
           if (bulletin) {
-            const video = (bulletin.file || []).find((f) => FileVideoExtRegex.test(f.Ext))
-            if (video) {
-              setFeedItems([{ bulletin, videoHash: video.Hash }])
-              seenHashesRef.current.add(bulletin.hash)
+            const videos = (bulletin.file || []).filter((f) => FileVideoExtRegex.test(f.Ext))
+            for (const video of videos) {
+              const key = bulletin.hash + ':' + video.Hash
+              if (!seenHashesRef.current.has(key)) {
+                seenHashesRef.current.add(key)
+                setFeedItems((prev) => [...prev, { bulletin, videoHash: video.Hash }])
+              }
             }
           }
         } catch {
@@ -183,11 +187,11 @@ const VideoFeedPage = () => {
       return
     }
     Logger.info(
-      '[🎬 VideoFeedPage] requestBatch: dispatching RequestRandomBulletin, listLen=' + RandomBulletinList.length
+      '[🎬 VideoFeedPage] requestBatch: dispatching RequestMediaBulletin, listLen=' + RandomBulletinList.length
     )
     lenBeforeRef.current = RandomBulletinList.length
     pendingRef.current = true
-    dispatch(RequestRandomBulletin())
+    dispatch(RequestMediaBulletin({ limit: TARGET }))
   }, [RandomBulletinLoading, MessengerConnStatus, RandomBulletinList.length, dispatch, sourceMode])
 
   useEffect(() => {
@@ -243,8 +247,9 @@ const VideoFeedPage = () => {
           const items = [...prev]
           for (const lv of localVideos) {
             if (items.length >= TARGET) break
-            if (seenHashesRef.current.has(lv.hash)) continue
-            seenHashesRef.current.add(lv.hash)
+            const key = lv.hash + ':' + lv.video_hash
+            if (seenHashesRef.current.has(key)) continue
+            seenHashesRef.current.add(key)
             items.push({ bulletin: lv, videoHash: lv.video_hash })
           }
           return items
@@ -255,12 +260,14 @@ const VideoFeedPage = () => {
     })()
   }, [loading, localTried, feedItems.length, MessengerConnStatus, noMore])
 
-  // --- Preload active+1/+2 (plan 2.3) ---
+  // --- Preload active (auto-download) + active+1/+2 (plan 2.3) ---
   useEffect(() => {
     if (displayItems.length === 0) return
     Logger.info('[🎬 VideoFeedPage] activeIndex=' + activeIndex + ', feedLen=' + displayItems.length)
     const items = []
-    for (const idx of [activeIndex + 1, activeIndex + 2]) {
+    // Include active item (auto-download) + next 6 (preload)
+    for (let i = 0; i <= 6; i++) {
+      const idx = activeIndex + i
       const item = displayItems[idx]
       if (!item) continue
       const fs = FileStatusMap[item.videoHash]
@@ -367,9 +374,12 @@ const VideoFeedPage = () => {
   }
 
   if (displayItems.length === 0) {
+    const emptyMsg = !MessengerConnStatus
+      ? t('video.empty_not_connected', 'Not connected to server')
+      : t('video.empty_no_media', 'Server has no media videos')
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center gap-4">
-        <div className="text-white/50 text-lg">{t('video.empty')}</div>
+        <div className="text-white/50 text-lg">{emptyMsg}</div>
         <button
           className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors"
           onClick={goBack}
@@ -435,7 +445,7 @@ const VideoFeedPage = () => {
       <div ref={containerRef} className="h-full w-full overflow-y-auto snap-y snap-mandatory scroll-smooth">
         {displayItems.map((item, idx) => (
           <div
-            key={item.bulletin.hash}
+            key={item.bulletin.hash + ':' + item.videoHash}
             ref={(el) => {
               itemRefs.current[idx] = el
             }}

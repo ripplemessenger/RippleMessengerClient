@@ -392,6 +392,8 @@
     "mute": "음소거",
     "unmute": "음소거 해제",
     "source_internet": "인터넷",
-    "source_local": "로컬"
+    "source_local": "로컬",
+    "empty_not_connected": "서버에 연결되어 있지 않습니다",
+    "empty_no_media": "서버에 미디어 영상이 없습니다"
   }
 }

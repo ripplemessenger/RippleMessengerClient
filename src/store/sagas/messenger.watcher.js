@@ -17,6 +17,7 @@ import {
   LoadBookmarkBulletin,
   LoadBulletin,
   RequestRandomBulletin,
+  RequestMediaBulletin,
   RequestServerAddress,
   RequestReplyBulletin,
   RequestTagBulletin,
@@ -91,6 +92,7 @@ import {
   LoadBookmarkBulletin as LoadBookmarkBulletinHandler,
   LoadBulletin as LoadBulletinHandler,
   RequestRandomBulletin as RequestRandomBulletinHandler,
+  RequestMediaBulletin as RequestMediaBulletinHandler,
   RequestServerAddress as RequestServerAddressHandler,
   RequestReplyBulletin as RequestReplyBulletinHandler,
   RequestTagBulletin as RequestTagBulletinHandler,
@@ -211,6 +213,7 @@ export function* watchMessenger() {
   yield takeEvery(LoadBookmarkBulletin.type, LoadBookmarkBulletinHandler)
   yield takeLatest(LoadBulletin.type, LoadBulletinHandler)
   yield takeLatest(RequestRandomBulletin.type, RequestRandomBulletinHandler)
+  yield takeLatest(RequestMediaBulletin.type, RequestMediaBulletinHandler)
   yield takeLatest(RequestServerAddress.type, RequestServerAddressHandler)
   yield takeLatest(RequestReplyBulletin.type, RequestReplyBulletinHandler)
   yield takeLatest(RequestTagBulletin.type, RequestTagBulletinHandler)

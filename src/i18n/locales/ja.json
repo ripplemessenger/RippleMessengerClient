@@ -392,6 +392,8 @@
     "mute": "ミュート",
     "unmute": "ミュート解除",
     "source_internet": "インターネット",
-    "source_local": "ローカル"
+    "source_local": "ローカル",
+    "empty_not_connected": "サーバーに接続されていません",
+    "empty_no_media": "サーバーにメディア動画がありません"
   }
 }

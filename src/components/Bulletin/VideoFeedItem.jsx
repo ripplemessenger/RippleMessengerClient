@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IoPlay, IoPause, IoHeart, IoChatbubble, IoShareSocial, IoCloudOffline } from 'react-icons/io5'
 
 import BulletinAvatarLink from './BulletinAvatarLink'
+import BulletinLink from './BulletinLink'
 import AvatarName from '../AvatarName'
 import TagLink from './TagLink'
 import { useAppBaseDir } from '../../hooks/useAppBaseDir'
@@ -32,23 +33,13 @@ const VIDEO_MIME = {
  * Active + failed: error message + retry
  * Active + not started: download button
  */
-const VideoFeedItem = ({
-  bulletin,
-  videoHash,
-  isActive,
-  isMuted,
-  onStartDownload,
-  forceSaved,
-  playbackMode,
-  onVideoEnded
-}) => {
+const VideoFeedItem = ({ bulletin, videoHash, isActive, isMuted, onStartDownload, playbackMode, onVideoEnded }) => {
   const { t } = useTranslation()
   const AppBaseDir = useAppBaseDir()
   const dispatch = useDispatch()
 
   const fileStatus = useSelector((state) => state.Messenger.FileStatusMap[videoHash] || null)
   const fileSavedToken = useSelector((state) => state.Messenger.FileSavedMap[videoHash] ?? null)
-  const isSaved = forceSaved || (fileStatus ? fileStatus.is_saved : fileSavedToken !== null) // kept for potential future use (e.g. showing a "downloaded" badge)
 
   // Favorite state is local: BulletinMarkToggle only writes the DB, the
   // in-memory bulletin object is not refreshed, so we track the toggle here.
@@ -257,16 +248,8 @@ const VideoFeedItem = ({
         </div>
       ) : (
         <div className="h-full w-full flex flex-col items-center justify-center gap-4">
-          <IoPlay className="text-6xl text-white/20" />
-          <button
-            className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation()
-              startDownload()
-            }}
-          >
-            {t('bulletin.video_download')}
-          </button>
+          <div className="w-8 h-8 border-2 border-white/30 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-white/50 text-sm">{t('video.waiting_download', 'Preparing…')}</span>
         </div>
       )}
 
@@ -314,6 +297,7 @@ const VideoFeedItem = ({
           <div className="flex items-center gap-2">
             <BulletinAvatarLink address={bulletin.address} classNames="avatar-sm" />
             <AvatarName address={bulletin.address} short_flag={true} />
+            <BulletinLink address={bulletin.address} sequence={bulletin.sequence} hash={bulletin.hash} />
           </div>
           <p className="text-white/80 text-sm mt-2 line-clamp-2">{bulletin.content}</p>
           {bulletin.tag?.length > 0 && (

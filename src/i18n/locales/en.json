@@ -394,6 +394,8 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "source_internet": "Internet",
-    "source_local": "Local"
+    "source_local": "Local",
+    "empty_not_connected": "Not connected to server",
+    "empty_no_media": "Server has no media videos"
   }
 }

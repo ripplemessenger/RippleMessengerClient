@@ -144,6 +144,23 @@ export const mgAPI = {
   },
 
   /**
+   * Generate a request for bulletins containing media files.
+   * @param {string} seed - XRPL seed string
+   * @param {number} limit - Maximum number of bulletins to return
+   * @returns {string} Signed JSON string
+   */
+  genMediaBulletinRequest(seed, limit) {
+    const mg = getMessageGenerator(seed)
+    let json = {
+      Action: ActionCode.MediaBulletinRequest,
+      Limit: limit || 20,
+      Timestamp: Date.now(),
+      PublicKey: mg.PublicKey
+    }
+    return JSON.stringify(mg.signJson(json))
+  },
+
+  /**
    * Generate a request for the bulletin address list (leaderboard).
    * @param {string} seed - XRPL seed string
    * @param {number} page - Page number

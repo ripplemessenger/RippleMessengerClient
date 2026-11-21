@@ -440,6 +440,24 @@ export function* RequestRandomBulletin() {
   }
 }
 
+export function* RequestMediaBulletin({ payload }) {
+  try {
+    yield put(setRandomBulletinLoading(true))
+    const seed = yield select((state) => state.User.Seed)
+    if (!seed) {
+      yield put(setRandomBulletinLoading(false))
+      return
+    }
+    const limit = (payload && payload.limit) || 20
+    const media_bulletin_request = yield call(() => mgAPI.genMediaBulletinRequest(seed, limit))
+    yield call(SendMessage, { msg: media_bulletin_request })
+  } catch (e) {
+    Logger.error('[RequestMediaBulletin] failed:', e.message)
+    yield put(setRandomBulletinLoading(false))
+    yield put(setFlashNoticeMessage({ message: i18n.t('bulletin.load_random_failed'), duration: 3000 }))
+  }
+}
+
 export function* RequestServerAddress({ payload }) {
   try {
     const seed = yield select((state) => state.User.Seed)

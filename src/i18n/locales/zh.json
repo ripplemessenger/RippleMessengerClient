@@ -394,6 +394,8 @@
     "mute": "静音",
     "unmute": "取消静音",
     "source_internet": "网络",
-    "source_local": "本地"
+    "source_local": "本地",
+    "empty_not_connected": "未连接到服务器",
+    "empty_no_media": "服务器没有媒体视频"
   }
 }

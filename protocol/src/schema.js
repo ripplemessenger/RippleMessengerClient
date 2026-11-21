@@ -276,6 +276,19 @@ const RandomBulletinRequestSchema = {
   }
 };
 
+const MediaBulletinRequestSchema = {
+  type: 'object',
+  required: ['Action', 'Timestamp', 'PublicKey', 'Signature'],
+  maxProperties: 5,
+  properties: {
+    Action: { type: 'number', const: ActionCode.MediaBulletinRequest },
+    Limit: { type: 'number' },
+    Timestamp: { type: 'number' },
+    PublicKey: { type: 'string' },
+    Signature: { type: 'string' }
+  }
+};
+
 const ServerAddressRequestSchema = {
   type: 'object',
   required: ['Action', 'Page', 'Timestamp', 'PublicKey', 'Signature'],
@@ -972,6 +985,7 @@ const ActionSchemas = {
   [ActionCode.BulletinRequest]: BulletinRequestSchema,
   [ActionCode.BulletinSubscribe]: BulletinSubscribeSchema,
   [ActionCode.RandomBulletinRequest]: RandomBulletinRequestSchema,
+  [ActionCode.MediaBulletinRequest]: MediaBulletinRequestSchema,
   [ActionCode.ServerAddressRequest]: ServerAddressRequestSchema,
   [ActionCode.ReplyBulletinRequest]: ReplyBulletinRequestSchema,
   [ActionCode.TagBulletinRequest]: TagBulletinRequestSchema,
@@ -1049,6 +1063,7 @@ export {
   BulletinRequestSchema,
   BulletinSubscribeSchema,
   RandomBulletinRequestSchema,
+  MediaBulletinRequestSchema,
   ServerAddressRequestSchema,
   ServerAddressListSchema,
   BulletinAddressListRequestSchema,

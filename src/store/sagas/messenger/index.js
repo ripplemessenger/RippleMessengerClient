@@ -22,6 +22,7 @@ export {
   LoadBookmarkBulletin,
   LoadBulletin,
   RequestRandomBulletin,
+  RequestMediaBulletin,
   RequestServerAddress,
   RequestReplyBulletin,
   RequestTagBulletin,
